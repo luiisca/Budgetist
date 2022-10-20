@@ -1,14 +1,22 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider          = "postgresql"
   url               = env("DATABASE_URL")
   shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["interactiveTransactions"]
+}
+
+generator zod {
+  provider      = "zod-prisma"
+  output        = "./zod"
+  imports       = "./zod-utils"
+  relationModel = "default"
 }
 
 model Example {
@@ -46,9 +54,13 @@ model Session {
 
 model User {
   id            String    @id @default(cuid())
+  /// @zod.custom(imports.username)
+  username             String?                 @unique
   name          String?
   email         String?   @unique
   emailVerified DateTime?
+  identityProvider     IdentityProvider        @default(GOOGLE)
+  identityProviderId   String?
   image         String?
   accounts      Account[]
   sessions      Session[]

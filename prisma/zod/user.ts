@@ -4,11 +4,12 @@ import { IdentityProvider } from "@prisma/client"
 import { CompleteAccount, AccountModel, CompleteSession, SessionModel } from "./index"
 
 export const _UserModel = z.object({
-  id: z.string(),
+  id: z.number().int(),
   username: imports.username.nullish(),
   name: z.string().nullish(),
-  email: z.string().nullish(),
+  email: z.string(),
   emailVerified: z.date().nullish(),
+  avatar: z.string().nullish(),
   identityProvider: z.nativeEnum(IdentityProvider),
   identityProviderId: z.string().nullish(),
   image: z.string().nullish(),

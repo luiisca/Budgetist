@@ -4,11 +4,51 @@ import type { CreateNextContextOptions } from "@trpc/server/adapters/next";
 import type { Session } from "next-auth";
 import { getServerAuthSession } from "../common/get-server-auth-session";
 import { prisma } from "../db/client";
+import { Maybe } from "@trpc/server";
 
 type CreateContextOptions = {
   session: Session | null;
 };
 
+async function getUserFromSession({
+  session,
+}: {
+  session: Maybe<Session>;
+}) {
+  if (!session?.user?.id) {
+    return null;
+  }
+  const user = await prisma.user.findUnique({
+    where: {
+      id: session.user.id,
+    },
+    select: {
+      id: true,
+      username: true,
+      name: true,
+      email: true,
+      avatar: true,
+      identityProvider: true,
+    },
+  });
+
+  // some hacks to make sure `username` and `email` are never inferred as `null`
+  if (!user) {
+    return null;
+  }
+  const { email, username } = user;
+  if (!email) {
+    return null;
+  }
+  const avatar = user.avatar || defaultAvatarSrc({ email });
+
+  return {
+    ...user,
+    avatar,
+    email,
+    username,
+  };
+}
 /** Use this helper for:
  * - testing, so we dont have to mock Next.js' req/res
  * - trpc's `createSSGHelpers` where we don't have req/res
@@ -29,10 +69,13 @@ export const createContext = async (opts: CreateNextContextOptions) => {
 
   // Get the session from the server using the unstable_getServerSession wrapper function
   const session = await getServerAuthSession({ req, res });
+  const user = await getUserFromSession({session})
 
-  return await createContextInner({
+  return {
     session,
-  });
+    prisma,
+    user,
+  };
 };
 
 export type Context = inferAsyncReturnType<typeof createContext>;

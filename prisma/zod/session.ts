@@ -5,12 +5,13 @@ import { CompleteUser, UserModel } from "./index"
 export const _SessionModel = z.object({
   id: z.string(),
   sessionToken: z.string(),
-  userId: z.string(),
+  userId: z.number().int(),
+  patientId: z.string(),
   expires: z.date(),
 })
 
 export interface CompleteSession extends z.infer<typeof _SessionModel> {
-  user: CompleteUser
+  user?: CompleteUser | null
 }
 
 /**
@@ -19,5 +20,5 @@ export interface CompleteSession extends z.infer<typeof _SessionModel> {
  * NOTE: Lazy required in case of potential circular dependencies within schema
  */
 export const SessionModel: z.ZodSchema<CompleteSession> = z.lazy(() => _SessionModel.extend({
-  user: UserModel,
+  user: UserModel.nullish(),
 }))

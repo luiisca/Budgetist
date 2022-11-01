@@ -4,7 +4,7 @@ import { CompleteUser, UserModel } from "./index"
 
 export const _AccountModel = z.object({
   id: z.string(),
-  userId: z.string(),
+  userId: z.number().int(),
   type: z.string(),
   provider: z.string(),
   providerAccountId: z.string(),
@@ -18,7 +18,7 @@ export const _AccountModel = z.object({
 })
 
 export interface CompleteAccount extends z.infer<typeof _AccountModel> {
-  user: CompleteUser
+  user?: CompleteUser | null
 }
 
 /**
@@ -27,5 +27,5 @@ export interface CompleteAccount extends z.infer<typeof _AccountModel> {
  * NOTE: Lazy required in case of potential circular dependencies within schema
  */
 export const AccountModel: z.ZodSchema<CompleteAccount> = z.lazy(() => _AccountModel.extend({
-  user: UserModel,
+  user: UserModel.nullish(),
 }))

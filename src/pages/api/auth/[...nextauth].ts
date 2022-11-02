@@ -15,9 +15,9 @@ import Handlebars from "handlebars";
 
 // Prisma adapter for NextAuth, optional and can be removed
 import { prisma } from "../../../server/db/client";
-import BankistAdapter from "utils/auth/next-auth-custom-adapter";
+import BankistAdapter from "utils/next-auth-custom-adapter";
 import { WEBAPP_URL } from "utils/constants";
-import { Adapter, AdapterUser } from "next-auth/adapters";
+import { Adapter } from "next-auth/adapters";
 
 const transporter = nodemailer.createTransport<TransportOptions>({
   ...(serverConfig.transport as TransportOptions),
@@ -38,12 +38,10 @@ const providers: Provider[] = [
 ];
 
 if (true) {
+    console.log('CURRENT WORKING DIRECTORY', process.cwd())
   const emailsDir = path.resolve(
     process.cwd(),
-    "..",
-    "..",
-    "..",
-    "utils/emails",
+    "src/utils/emails",
     "templates"
   );
   providers.push(
@@ -169,9 +167,8 @@ export const authOptions: NextAuthOptions = {
     },
     async signIn(params) {
       console.log("SIGNIN CALLBACK");
-      const { account } = params;
-      const user = params.user as AdapterUser;
-      const profile = params.profile as Profile & { emailVerified: Date };
+      const { user, account } = params;
+      const profile = params.profile as Profile & { email_verified: Date};
       console.log("SIGNIN account", account);
       console.log("SIGNIN user", user);
       console.log("SIGNIN profile", profile);
@@ -196,12 +193,11 @@ export const authOptions: NextAuthOptions = {
       // if provider is anything but email
       if (account.provider) {
         let idP: IdentityProvider = IdentityProvider.GOOGLE;
-        user.emailVerified = user.emailVerified || profile?.emailVerified;
         if (account.provider === "github") {
-          idP = IdentityProvider.GITHUB;
+            idP = IdentityProvider.GITHUB;
         }
 
-        if (idP === "GOOGLE" && !user.emailVerified) {
+        if (idP === "GOOGLE" && !profile?.email_verified) {
           return "/auth/error?error=unverified-email";
         }
         // Only google oauth on this path
@@ -229,7 +225,7 @@ export const authOptions: NextAuthOptions = {
           // hasn't changed since they last logged in.
           if (existingUser.email === user.email) {
             try {
-              // If old user without Account entry we link their google account
+              // If old user without Account tries to sign in we link their google account
               if (existingUser.accounts.length === 0) {
                 const linkAccountWithUserData = {
                   ...account,
@@ -244,6 +240,7 @@ export const authOptions: NextAuthOptions = {
                 );
               }
             }
+
             return true;
           }
 

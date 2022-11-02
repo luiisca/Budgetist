@@ -1,20 +1,38 @@
 {
   "compilerOptions": {
+    "composite": false,
+    "inlineSources": false,
+    "moduleResolution": "node",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "preserveWatchOutput": true,
+    "declaration": false,
+    "declarationMap": false,
     "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
+    "incremental": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "node",
     "resolveJsonModule": true,
+    "strict": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "incremental": true,
-    "noUncheckedIndexedAccess": true
+    "strictNullChecks": true,
+    "useUnknownInCatchVariables": true,
+    "baseUrl": "./src"
+  },
+  "ts-node": {
+    "files": true,
+    "require": ["tsconfig-paths/register"],
+    "experimentalResolverFeatures": true,
+    "compilerOptions": {
+      "module": "CommonJS",
+      "types": ["node"]
+    }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.cjs", "**/*.mjs"],
   "exclude": ["node_modules"]

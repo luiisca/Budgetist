@@ -1,6 +1,9 @@
 import toast from "react-hot-toast";
 
-export default function showToast(message: string, variant: "success" | "warning" | "error") {
+export default function showToast(
+  message: string,
+  variant: "success" | "warning" | "error"
+) {
   switch (variant) {
     case "success":
       toast.success(message, {

@@ -41,7 +41,6 @@ export default function Verify() {
   const router = useRouter();
   const { email, t } = router.query;
   const [secondsLeft, setSecondsLeft] = useState(30);
-  console.log("ROUTER QUERY verify page", router.query);
   // @note: check for t=timestamp and apply disabled state and secondsLeft accordingly
   // to avoid refresh to skip waiting 30 seconds to re-send email
   useEffect(() => {

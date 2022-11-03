@@ -47,7 +47,9 @@ export default function Verify() {
   useEffect(() => {
     const lastSent = new Date(parseInt(`${t}`));
     // @note: This double round() looks ugly but it's the only way I came up to get the time difference in seconds
-    const difference = Math.round(Math.round(new Date().getTime() - lastSent.getTime()) / 1000);
+    const difference = Math.round(
+      Math.round(new Date().getTime() - lastSent.getTime()) / 1000
+    );
     if (difference < 30) {
       // If less than 30 seconds, set the seconds left to 30 - difference
       setSecondsLeft(30 - difference);
@@ -80,11 +82,17 @@ export default function Verify() {
           <div className="rounded-full border border-white p-3">
             <EnvelopeOpenIcon className="h-12 w-12 flex-shrink-0 p-0.5 font-extralight text-white" />
           </div>
-          <h3 className="font-cal my-6 text-3xl font-normal">Check your inbox</h3>
+          <h3 className="my-6 font-cal text-3xl font-normal">
+            Check your inbox
+          </h3>
           <p>
-We have sent an email to <b>{email}</b> with a link to activate your account.
+            We have sent an email to <b>{email}</b> with a link to activate your
+            account.
           </p>
-          <p className="mt-6 text-gray-400">Don't see an email? Click the button below to send another email.</p>
+          <p className="mt-6 text-gray-400">
+            Don&apos;t see an email? Click the button below to send another
+            email.
+          </p>
 
           <div className="mt-6 flex space-x-5 text-center">
             <Button
@@ -105,14 +113,14 @@ We have sent an email to <b>{email}</b> with a link to activate your account.
                   { shallow: true }
                 );
                 return await sendVerificationLogin(`${email}`);
-              }}>
+              }}
+            >
               {secondsLeft > 0
                 ? `Resend in ${secondsLeft} seconds`
-                : 'Send another email'
-                        }
+                : "Send another email"}
             </Button>
             <Button color="primary" href={`${WEBAPP_URL}/auth/login`}>
-Login using another method
+              Login using another method
             </Button>
           </div>
         </div>

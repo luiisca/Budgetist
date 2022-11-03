@@ -1,7 +1,7 @@
 import { GetServerSidePropsContext } from "next";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { FaGoogle, FaGithub } from "react-icons/fa";
 
@@ -22,14 +22,19 @@ export default function Login() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [oAuthError, setOAuthError] = useState<boolean>(false);
 
-  const errorMessages: { [key: string]: string } = {
-    [ErrorCode.UserNotFound]: "No account exists matching that email address.",
-    [ErrorCode.InternalServerError]: "Something went wrong. Please try again.",
-    [ErrorCode.ThirdPartyIdentityProviderEnabled]:
-      "Your account was created using an Identity Provider.",
-    [ErrorCode.IncorrectProvider]:
-      "Account already registered with another provider (Google, Facebook or Magic Link). Please try again using the one you registered your account with. Try to reset your browser if this problem persists.",
-  };
+  const errorMessages: { [key: string]: string } = useMemo(
+    () => ({
+      [ErrorCode.UserNotFound]:
+        "No account exists matching that email address.",
+      [ErrorCode.InternalServerError]:
+        "Something went wrong. Please try again.",
+      [ErrorCode.ThirdPartyIdentityProviderEnabled]:
+        "Your account was created using an Identity Provider.",
+      [ErrorCode.IncorrectProvider]:
+        "Account already registered with another provider (Google, Facebook or Magic Link). Please try again using the one you registered your account with. Try to reset your browser if this problem persists.",
+    }),
+    []
+  );
 
   useEffect(() => {
     if (router.query?.error) {
@@ -37,8 +42,7 @@ export default function Login() {
         router.query?.error === "OAuthCallback" ||
         router.query?.error === "OAuthAccountNotLinked"
       ) {
-        setOAuthError(true);
-        setErrorMessage(errorMessages[ErrorCode.IncorrectProvider]);
+        console.log("UH OH");
       } else {
         setOAuthError(true);
         setErrorMessage(
@@ -106,21 +110,17 @@ export default function Login() {
           onSubmit={form.handleSubmit(async (values) => {
             setErrorMessage(null);
             console.log("FORM VALUES", values);
-            const res = await signIn<"email">("email", {
-              redirect: false,
-              email: values.email,
-            });
-            console.log("RESPONSE OBJECT AFTER EMAIL SETN", res);
-            if (!res)
-              setErrorMessage(errorMessages[ErrorCode.InternalServerError]);
-            // we're logged in! let's do a hard refresh to the desired url
-            else if (!res.error) {
-              console.log("RESPONSE URL AFTER EMAIL SENT", res.url);
-              router.push(`${res.url}&email=${values.email}` || "");
-            } else
-              setErrorMessage(
-                errorMessages[res.error] || "Something went wrong."
+            if (values.email && values.email !== "") {
+              router.push(
+                new URL(
+                  `${WEBAPP_URL}/auth/verify?email=${values.email}` as string
+                ),
+                new URL(`${WEBAPP_URL}/auth/verify`)
               );
+
+              return;
+            }
+            setErrorMessage("Something went wrong.");
           })}
           data-testid="login-form"
         >

@@ -1,6 +1,6 @@
 import { useId } from "@radix-ui/react-id";
-import React, { forwardRef, ReactElement, ReactNode, Ref, useCallback, useState } from "react";
-import { Check, Circle, Info, X, Eye, EyeOff } from "react-feather";
+import React, { forwardRef, ReactNode } from "react";
+import { Check, Circle, Info, X } from "react-feather";
 import {
   FieldErrors,
   FieldValues,
@@ -11,11 +11,14 @@ import {
 } from "react-hook-form";
 
 import classNames from "classnames";
-import { Skeleton, Tooltip } from "components/ui";
+import { Skeleton } from "components/ui";
 
 type InputProps = JSX.IntrinsicElements["input"];
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(props, ref) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  props,
+  ref
+) {
   return (
     <input
       {...props}
@@ -32,15 +35,19 @@ export function Label(props: JSX.IntrinsicElements["label"]) {
   return (
     <label
       {...props}
-      className={classNames("mb-2 block text-sm font-medium leading-none text-gray-700", props.className)}>
+      className={classNames(
+        "mb-2 block text-sm font-medium leading-none text-gray-700",
+        props.className
+      )}
+    >
       {props.children}
     </label>
   );
 }
 
 const customErrorMessages: Record<string, string> = {
-    //
-}
+  //
+};
 
 function HintsOrErrors<T extends FieldValues = FieldValues>(props: {
   hintErrors?: string[];
@@ -84,15 +91,34 @@ function HintsOrErrors<T extends FieldValues = FieldValues>(props: {
             return (
               <li
                 key={key}
-                className={error !== undefined ? (submitted ? "text-red-700" : "") : "text-green-600"}>
+                className={
+                  error !== undefined
+                    ? submitted
+                      ? "text-red-700"
+                      : ""
+                    : "text-green-600"
+                }
+              >
                 {error !== undefined ? (
                   submitted ? (
-                    <X size="12" strokeWidth="3" className="mr-2 -ml-1 inline-block" />
+                    <X
+                      size="12"
+                      strokeWidth="3"
+                      className="mr-2 -ml-1 inline-block"
+                    />
                   ) : (
-                    <Circle fill="currentColor" size="5" className="mr-2 inline-block" />
+                    <Circle
+                      fill="currentColor"
+                      size="5"
+                      className="mr-2 inline-block"
+                    />
                   )
                 ) : (
-                  <Check size="12" strokeWidth="3" className="mr-2 -ml-1 inline-block" />
+                  <Check
+                    size="12"
+                    strokeWidth="3"
+                    className="mr-2 -ml-1 inline-block"
+                  />
                 )}
                 {customErrorMessages[`${fieldName}_hint_${key}`]}
               </li>
@@ -125,9 +151,17 @@ function HintsOrErrors<T extends FieldValues = FieldValues>(props: {
           return (
             <li key={key} className={!!dirty ? "text-green-600" : ""}>
               {!!dirty ? (
-                <Check size="12" strokeWidth="3" className="mr-2 -ml-1 inline-block" />
+                <Check
+                  size="12"
+                  strokeWidth="3"
+                  className="mr-2 -ml-1 inline-block"
+                />
               ) : (
-                <Circle fill="currentColor" size="5" className="mr-2 inline-block" />
+                <Circle
+                  fill="currentColor"
+                  size="5"
+                  className="mr-2 inline-block"
+                />
               )}
               {customErrorMessages[`${fieldName}_hint_${key}`]}
             </li>
@@ -154,91 +188,115 @@ type InputFieldProps = {
     labelClassName?: string;
   };
 
-const InputField = forwardRef<HTMLInputElement, InputFieldProps>(function InputField(props, ref) {
-  const id = useId();
-  const name = props.name || "";
-  const {
-    label = name,
-    labelProps,
-    labelClassName,
-    placeholder = "",
-    className,
-    addOnLeading,
-    addOnSuffix,
-    addOnFilled = true,
-    hint,
-    hintErrors,
-    labelSrOnly,
-    containerClassName,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    ...passThrough
-  } = props;
+const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
+  function InputField(props, ref) {
+    const id = useId();
+    const name = props.name || "";
+    const {
+      label = name,
+      labelProps,
+      labelClassName,
+      placeholder = "",
+      className,
+      addOnLeading,
+      addOnSuffix,
+      addOnFilled = true,
+      hint,
+      hintErrors,
+      labelSrOnly,
+      containerClassName,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      ...passThrough
+    } = props;
 
-  return (
-    <div className={classNames(containerClassName)}>
-      {!!name && (
-        <Skeleton
-          as={Label}
-          htmlFor={id}
-          loadingClassName="w-16"
-          {...labelProps}
-          className={classNames(labelClassName, labelSrOnly && "sr-only", props.error && "text-red-900")}>
-          {label}
-        </Skeleton>
-      )}
-      {addOnLeading || addOnSuffix ? (
-        <div
-          className={classNames(
-            " mb-1 flex items-center rounded-md focus-within:outline-none focus-within:ring-2 focus-within:ring-neutral-800 focus-within:ring-offset-1",
-            addOnSuffix && "group flex-row-reverse"
-          )}>
+    return (
+      <div className={classNames(containerClassName)}>
+        {!!name && (
+          <Skeleton
+            as={Label}
+            htmlFor={id}
+            loadingClassName="w-16"
+            {...labelProps}
+            className={classNames(
+              labelClassName,
+              labelSrOnly && "sr-only",
+              props.error && "text-red-900"
+            )}
+          >
+            {label}
+          </Skeleton>
+        )}
+        {addOnLeading || addOnSuffix ? (
           <div
             className={classNames(
-              "h-9 border border-gray-300",
-              addOnFilled && "bg-gray-100",
-              addOnLeading && "rounded-l-md border-r-0 px-3",
-              addOnSuffix && "rounded-r-md border-l-0 px-3"
-            )}>
+              " mb-1 flex items-center rounded-md focus-within:outline-none focus-within:ring-2 focus-within:ring-neutral-800 focus-within:ring-offset-1",
+              addOnSuffix && "group flex-row-reverse"
+            )}
+          >
             <div
               className={classNames(
-                "flex h-full flex-col justify-center px-1 text-sm",
-                props.error && "text-red-900"
-              )}>
-              <span className="whitespace-nowrap py-2.5">{addOnLeading || addOnSuffix}</span>
+                "h-9 border border-gray-300",
+                addOnFilled && "bg-gray-100",
+                addOnLeading && "rounded-l-md border-r-0 px-3",
+                addOnSuffix && "rounded-r-md border-l-0 px-3"
+              )}
+            >
+              <div
+                className={classNames(
+                  "flex h-full flex-col justify-center px-1 text-sm",
+                  props.error && "text-red-900"
+                )}
+              >
+                <span className="whitespace-nowrap py-2.5">
+                  {addOnLeading || addOnSuffix}
+                </span>
+              </div>
             </div>
+            <Input
+              id={id}
+              placeholder={placeholder}
+              className={classNames(
+                className,
+                addOnLeading && "rounded-l-none",
+                addOnSuffix && "rounded-r-none",
+                "!my-0 !ring-0"
+              )}
+              {...passThrough}
+              ref={ref}
+            />
           </div>
+        ) : (
           <Input
             id={id}
             placeholder={placeholder}
-            className={classNames(
-              className,
-              addOnLeading && "rounded-l-none",
-              addOnSuffix && "rounded-r-none",
-              "!my-0 !ring-0"
-            )}
+            className={className}
             {...passThrough}
             ref={ref}
           />
-        </div>
-      ) : (
-        <Input id={id} placeholder={placeholder} className={className} {...passThrough} ref={ref} />
-      )}
-      <HintsOrErrors hintErrors={hintErrors} fieldName={name}/>
-      {hint && <div className="text-gray mt-2 flex items-center text-sm text-gray-700">{hint}</div>}
-    </div>
-  );
-});
+        )}
+        <HintsOrErrors hintErrors={hintErrors} fieldName={name} />
+        {hint && (
+          <div className="text-gray mt-2 flex items-center text-sm text-gray-700">
+            {hint}
+          </div>
+        )}
+      </div>
+    );
+  }
+);
 
-export const EmailField = forwardRef<HTMLInputElement, InputFieldProps>(function EmailField(props, ref) {
-  return (
-    <InputField
-      ref={ref}
-      type="email"
-      autoCapitalize="none"
-      autoComplete="email"
-      autoCorrect="off"
-      inputMode="email"
-      {...props}
-    />
-  );
-});
+export const EmailField = forwardRef<HTMLInputElement, InputFieldProps>(
+  function EmailField(props, ref) {
+    return (
+      <InputField
+        ref={ref}
+        type="email"
+        autoCapitalize="none"
+        autoComplete="email"
+        autoCorrect="off"
+        inputMode="email"
+        {...props}
+      />
+    );
+  }
+);

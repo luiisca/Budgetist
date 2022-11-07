@@ -1,6 +1,10 @@
 import { Button, Input } from "components/ui";
 import { useRef, useState } from "react";
 
+const MIN_YEARS = 1;
+const MAX_YEARS = 200;
+const INDEX_ANNUAL_RETURN = 7;
+
 type User = {
   country: string | "other";
   inflation: number;
@@ -52,7 +56,6 @@ type Salary = {
   variance:
     | Array<{
         from: number;
-        to: number;
         amount: number;
       }>
     | false;
@@ -65,20 +68,49 @@ const salary: Salary = {
   variance: [
     {
       from: 1,
-      to: 2,
       amount: 2000,
     },
     {
       from: 3,
-      to: 5,
       amount: 4000,
     },
     {
       from: 6,
-      to: 10,
       amount: 10000,
     },
   ],
+};
+const getSalaryByYear = (year: number) => {
+  let salaryByYear = salary.amount;
+  const v = salary.variance;
+  if (v) {
+    for (let period = 0; period < v.length; period++) {
+      if (year >= v[period].from && year < v[period + 1].from) {
+        // console.log("THIS YEAR", year, v[period]);
+        salaryByYear = v[period].amount;
+
+        return salaryByYear;
+      }
+
+      const lastV = v[v.length - 1];
+      if (year >= lastV.from) {
+        salaryByYear = lastV.amount;
+
+        return salaryByYear;
+      }
+    }
+  }
+
+  return salaryByYear;
+};
+
+const convertToUSD = (currency: string, amount: number) => {
+  if (currency !== "USD") {
+    // console.log("no USD currency set");
+    // console.log("converting to USD");
+    // return toUSD(currency, amount)
+  }
+  return amount;
 };
 
 // shuoul utilize user.currency as default currency value on every category
@@ -190,40 +222,20 @@ export const categories: Array<Category> = [
   },
 ];
 
-// P => Principal, i => yearly interest, n => years
-const getCoumpValue = (P: number, i: number, n: number) => P * (1 + i) ** n;
-const getCoumpWithContrib = (P: number, i: number, n: number, m: number) =>
-  P * Math.pow(1 + i, n) + m * ((Math.pow(1 + i, n) - 1) / i);
+// // P => Principal, i => yearly interest, n => years
+// const getCoumpValue = (P: number, i: number, n: number) => P * (1 + i) ** n;
+// const getCoumpWithContrib = (P: number, i: number, n: number, m: number) =>
+//   P * Math.pow(1 + i, n) + m * ((Math.pow(1 + i, n) - 1) / i);
 
-export const getTotalAdjustedToInfl = (
-  startVal: number,
-  frequency: number,
-  infl: number,
-  limit: number,
-  calls: number = 1,
-  total: number = 0
-): number => {
-  frequency = frequency < 1 ? 1 : frequency > 12 ? 12 : frequency;
-  const newVal = startVal * (calls === 1 ? frequency : 1) * (1 + infl);
-
-  if (calls >= limit) return total + newVal;
-
-  return getTotalAdjustedToInfl(
-    newVal,
-    frequency,
-    infl,
-    limit,
-    calls + 1,
-    total + newVal
-  );
-};
 const getRate = (x: number) => x / 100;
 const getFrequency = (freq: number) => (freq < 1 ? 1 : freq > 12 ? 12 : freq);
 
 export const getTotalBalance = (years: number) => {
+  years = years <= 0 ? MIN_YEARS : years > MAX_YEARS ? MAX_YEARS : years;
+
   let total = 0;
-  let yearsExpenses = 0;
-  console.log("INSIDE GET_TOTAL_BALANCE");
+  let yearExpenses = 0;
+  // console.log("INSIDE GET_TOTAL_BALANCE");
 
   // fill accArr
   let accExpensArr: Array<{
@@ -241,21 +253,19 @@ export const getTotalBalance = (years: number) => {
     // 1. const allCatExpenses = iterate over Categories
     // Calculate total expenses of all categories over 1 year and store those values in accArr for next years calculations
     console.log(`YEAR ${year}`);
-    yearsExpenses = categories.reduce(
+    yearExpenses = categories.reduce(
       (prev: number, crr: Category, i: number) => {
         if (crr.records === null) {
-          console.log(`NO RECORDS ${crr.title}`);
-          if (crr.currency !== "USD") {
-            console.log("no USD currency set");
-            console.log("converting to USD");
-            // crr.budget = convertToUSD(budget)
-          }
+          // console.log(`NO RECORDS ${crr.title}`);
+
+          crr.budget = convertToUSD(crr.currency, crr.budget);
+
           if (!crr.inflType || crr.type === "income") {
             const crrYearSpent =
               crr.budget *
               getFrequency(crr.frequency) *
               (crr.type === "income" ? -1 : 1);
-            console.log(`Current year spent for ${crr.title}: ${crrYearSpent}`);
+            // console.log(`Current year spent for ${crr.title}: ${crrYearSpent}`);
 
             return prev + crrYearSpent;
           }
@@ -264,26 +274,22 @@ export const getTotalBalance = (years: number) => {
               accExpensArr[i].spent *
               (year === 1 ? getFrequency(crr.frequency) : 1) *
               (1 + getRate(crr.inflVal));
-            console.log("PREVIOUS SPENT", accExpensArr[i].spent);
-            console.log(
-              "FRECUENCY",
-              year === 1 ? getFrequency(crr.frequency) : 1
-            );
+            // console.log("PREVIOUS SPENT", accExpensArr[i].spent);
+            // console.log(
+            //   "FRECUENCY",
+            //   year === 1 ? getFrequency(crr.frequency) : 1
+            // );
             accExpensArr[i].spent = crrYearSpent;
-            console.log(`Current year spent for ${crr.title}: ${crrYearSpent}`);
+            // console.log(`Current year spent for ${crr.title}: ${crrYearSpent}`);
 
             return prev + crrYearSpent;
           }
         } else {
-          console.log(`RECORDS ${crr.title}`);
+          // console.log(`RECORDS ${crr.title}`);
           const yearCatExpenses = crr.records.reduce(
             (prevRec: number, crrRec: Record, crrRecI: number) => {
               // we wanna make sure all records are coverted to USD
-              if (crrRec.currency !== "USD") {
-                console.log("no USD currency set");
-                console.log("converting to USD");
-                // crrRec.amount = convertToUSD(crrRec.amount )
-              }
+              crrRec.amount = convertToUSD(crrRec.currency, crrRec.amount);
               if (
                 !crr.inflType ||
                 (crr.type === "perRec" && crrRec.type === "income")
@@ -292,9 +298,9 @@ export const getTotalBalance = (years: number) => {
                   crr.type === "income" || crr.type === "perRec" ? -1 : 1;
                 const crrYearSpent =
                   crrRec.amount * getFrequency(crrRec.frequency) * typeMod;
-                console.log(
-                  `Current year spent for ${crrRec.title}: ${crrYearSpent}`
-                );
+                // console.log(
+                //   `Current year spent for ${crrRec.title}: ${crrYearSpent}`
+                // );
 
                 return prevRec + crrYearSpent;
               }
@@ -306,23 +312,23 @@ export const getTotalBalance = (years: number) => {
                     (crr.inflType === "perRec"
                       ? getRate(crrRec.inflation)
                       : getRate(crr.inflVal)));
-                console.log(
-                  `Current year spent for ${crrRec.title}: ${crrYearSpent}`
-                );
-                console.log(
-                  "PREVIOUS SPENT",
-                  accExpensArr[i].records[crrRecI].spent
-                );
-                console.log(
-                  "FREQUENCY",
-                  year === 1 ? getFrequency(crrRec.frequency) : 1
-                );
-                console.log(
-                  "RATE",
-                  1 + crr.inflType === "perRec"
-                    ? getRate(crrRec.inflation)
-                    : getRate(crr.inflVal)
-                );
+                // console.log(
+                //   `Current year spent for ${crrRec.title}: ${crrYearSpent}`
+                // );
+                // console.log(
+                //   "PREVIOUS SPENT",
+                //   accExpensArr[i].records[crrRecI].spent
+                // );
+                // console.log(
+                //   "FREQUENCY",
+                //   year === 1 ? getFrequency(crrRec.frequency) : 1
+                // );
+                // console.log(
+                //   "RATE",
+                //   1 + crr.inflType === "perRec"
+                //     ? getRate(crrRec.inflation)
+                //     : getRate(crr.inflVal)
+                // );
                 accExpensArr[i].records[crrRecI].spent = crrYearSpent;
 
                 return prevRec + crrYearSpent;
@@ -332,7 +338,7 @@ export const getTotalBalance = (years: number) => {
             0
           );
 
-          console.log(`${crr.title} expenses: `, yearCatExpenses);
+          // console.log(`${crr.title} expenses: `, yearCatExpenses);
 
           return prev + yearCatExpenses;
         }
@@ -340,13 +346,24 @@ export const getTotalBalance = (years: number) => {
       },
       0
     );
-    console.log(`Expenses for year ${year}`, yearsExpenses);
-    // 2. add new calculated value after each year to variable
-    // const yearBalance = (yearSalary - allCatExpenses) * percToInvest
-    // 3. total += (year === 1 ? yearBalance : total) * indexRate
+    console.log(`Expenses for year ${year}`, yearExpenses);
+
+    const yearSalary =
+      (salary.variance ? getSalaryByYear(year) : salary.amount) * 12;
+    console.log(`SALARY AT YEAR ${year}: ${yearSalary}`);
+
+    const yearBalance = yearSalary - yearExpenses;
+    console.log(`YEAR BALANCE AT YEAR ${year}: ${yearBalance}`);
+
+    const moneyReadyToInvest = yearBalance * getRate(user.investPerc);
+    console.log("MONEY READY TO INVEST: ", moneyReadyToInvest);
+
+    console.log("PREVIOUS TOTAL", total);
+    total = (total + moneyReadyToInvest) * (1 + getRate(INDEX_ANNUAL_RETURN));
+    console.log("NEW TOTAL", total);
   }
 
-  return yearsExpenses;
+  return total;
 };
 
 export default function Home() {

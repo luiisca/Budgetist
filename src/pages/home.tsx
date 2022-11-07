@@ -222,11 +222,6 @@ export const categories: Array<Category> = [
   },
 ];
 
-// // P => Principal, i => yearly interest, n => years
-// const getCoumpValue = (P: number, i: number, n: number) => P * (1 + i) ** n;
-// const getCoumpWithContrib = (P: number, i: number, n: number, m: number) =>
-//   P * Math.pow(1 + i, n) + m * ((Math.pow(1 + i, n) - 1) / i);
-
 const getRate = (x: number) => x / 100;
 const getFrequency = (freq: number) => (freq < 1 ? 1 : freq > 12 ? 12 : freq);
 
@@ -238,7 +233,7 @@ export const getTotalBalance = (years: number) => {
   // console.log("INSIDE GET_TOTAL_BALANCE");
 
   // fill accArr
-  let accExpensArr: Array<{
+  const accExpensArr: Array<{
     spent: number;
     records: Array<{ spent: number }> | [];
   }> = categories.map((cat: Category) => ({

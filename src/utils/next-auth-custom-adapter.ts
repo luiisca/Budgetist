@@ -11,7 +11,7 @@ import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import { identityProviderNameMap } from "./auth";
 
 /** @return { import("next-auth/adapters").Adapter } */
-export default function BankistAdapter(prismaClient: PrismaClient) {
+export default function BudgetistAdapter(prismaClient: PrismaClient) {
   return {
     createUser: (data: Prisma.UserCreateInput) =>
       prismaClient.user.create({ data }),

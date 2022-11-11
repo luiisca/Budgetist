@@ -1,5 +1,18 @@
-import { Button, Input } from "components/ui";
+import {
+  Button,
+  Form,
+  Input,
+  Label,
+  SkeletonText,
+  TextField,
+} from "components/ui";
 import { useRef, useState } from "react";
+import Head from "next/head";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { profileData, ProfileDataInputType } from "prisma/zod-utils";
+import { trpc } from "utils/trpc";
+import { GetStaticPropsContext } from "next";
 
 const MIN_YEARS = 1;
 const MAX_YEARS = 200;
@@ -10,12 +23,19 @@ type User = {
   inflation: number;
   currency: string;
   investPerc: number;
+  indexReturn: number;
 };
-const user: User = {
-  country: "usa",
-  inflation: 8,
-  currency: "USD",
-  investPerc: 75,
+
+type Salary = {
+  title: string;
+  currency: string;
+  amount: number;
+  variance:
+    | Array<{
+        from: number;
+        amount: number;
+      }>
+    | false;
 };
 
 type Record = {
@@ -28,7 +48,6 @@ type Record = {
   currency: string;
 };
 
-// each category can have map their own country and inflVal but they will default to the user's one
 type Category = {
   title: string;
   budget: number;
@@ -49,16 +68,12 @@ type Category = {
   frequency: number;
 };
 
-type Salary = {
-  title: string;
-  currency: string;
-  amount: number;
-  variance:
-    | Array<{
-        from: number;
-        amount: number;
-      }>
-    | false;
+const user: User = {
+  country: "usa",
+  inflation: 8,
+  currency: "USD",
+  investPerc: 75,
+  indexReturn: INDEX_ANNUAL_RETURN,
 };
 
 const salary: Salary = {
@@ -79,38 +94,6 @@ const salary: Salary = {
       amount: 10000,
     },
   ],
-};
-const getSalaryByYear = (year: number) => {
-  let salaryByYear = salary.amount;
-  const v = salary.variance;
-  if (v) {
-    for (let period = 0; period < v.length; period++) {
-      if (year >= v[period].from && year < v[period + 1].from) {
-        // console.log("THIS YEAR", year, v[period]);
-        salaryByYear = v[period].amount;
-
-        return salaryByYear;
-      }
-
-      const lastV = v[v.length - 1];
-      if (year >= lastV.from) {
-        salaryByYear = lastV.amount;
-
-        return salaryByYear;
-      }
-    }
-  }
-
-  return salaryByYear;
-};
-
-const convertToUSD = (currency: string, amount: number) => {
-  if (currency !== "USD") {
-    // console.log("no USD currency set");
-    // console.log("converting to USD");
-    // return toUSD(currency, amount)
-  }
-  return amount;
 };
 
 // shuoul utilize user.currency as default currency value on every category
@@ -222,13 +205,42 @@ export const categories: Array<Category> = [
   },
 ];
 
-// // P => Principal, i => yearly interest, n => years
-// const getCoumpValue = (P: number, i: number, n: number) => P * (1 + i) ** n;
-// const getCoumpWithContrib = (P: number, i: number, n: number, m: number) =>
-//   P * Math.pow(1 + i, n) + m * ((Math.pow(1 + i, n) - 1) / i);
+const convertToUSD = (currency: string, amount: number) => {
+  if (currency !== "USD") {
+    // console.log("no USD currency set");
+    // console.log("converting to USD");
+    // return toUSD(currency, amount)
+  }
+  return amount;
+};
 
 const getRate = (x: number) => x / 100;
 const getFrequency = (freq: number) => (freq < 1 ? 1 : freq > 12 ? 12 : freq);
+
+const getSalaryByYear = (year: number) => {
+  let salaryByYear = salary.amount;
+  const v = salary.variance;
+
+  if (v) {
+    for (let period = 0; period < v.length; period++) {
+      if (year >= v[period].from && year < v[period + 1].from) {
+        // console.log("THIS YEAR", year, v[period]);
+        salaryByYear = v[period].amount;
+
+        return salaryByYear;
+      }
+
+      const lastV = v[v.length - 1];
+      if (year >= lastV.from) {
+        salaryByYear = lastV.amount;
+
+        return salaryByYear;
+      }
+    }
+  }
+
+  return salaryByYear;
+};
 
 export const getTotalBalance = (years: number) => {
   years = years <= 0 ? MIN_YEARS : years > MAX_YEARS ? MAX_YEARS : years;
@@ -238,7 +250,7 @@ export const getTotalBalance = (years: number) => {
   // console.log("INSIDE GET_TOTAL_BALANCE");
 
   // fill accArr
-  let accExpensArr: Array<{
+  const accExpensArr: Array<{
     spent: number;
     records: Array<{ spent: number }> | [];
   }> = categories.map((cat: Category) => ({
@@ -359,22 +371,89 @@ export const getTotalBalance = (years: number) => {
     console.log("MONEY READY TO INVEST: ", moneyReadyToInvest);
 
     console.log("PREVIOUS TOTAL", total);
-    total = (total + moneyReadyToInvest) * (1 + getRate(INDEX_ANNUAL_RETURN));
+    total = (total + moneyReadyToInvest) * (1 + getRate(user.indexReturn));
     console.log("NEW TOTAL", total);
   }
 
   return total;
 };
 
+const UserConfig = () => {
+  const form = useForm<ProfileDataInputType>({
+    resolver: zodResolver(profileData),
+    reValidateMode: "onChange",
+  });
+  const { register } = form;
+  const updateProfileData = trpc.user.updateProfile.useMutation();
+  const onSubmit = (data: ProfileDataInputType) => {
+    console.log("USER UPDATE DATA", data);
+    // updateProfileData.mutate(data);
+  };
+
+  return (
+    <>
+      <h2 className="text-2xl text-black">User settings</h2>
+      {/*country, inflation, currency, investPerc, indexReturn*/}
+
+      <Form form={form} handleSubmit={onSubmit}>
+        <TextField
+          label="Username"
+          placeholder="John"
+          {...register("username")}
+        />
+        <TextField
+          label="Name"
+          placeholder="John Doe"
+          {...register("username")}
+        />
+        {/*add avatar*/}
+        {/*add change email*/}
+        {/*add select country's inflation (country + inflation)*/}
+        {/*add currency selector*/}
+
+        <TextField
+          type="number"
+          label="Investment percentage"
+          placeholder="75%"
+          {...register("investPerc")}
+        />
+
+        <TextField
+          type="number"
+          label="Annual return"
+          placeholder="7%"
+          {...register("indexReturn")}
+        />
+        {/* <ErrorMessage */}
+        {/*   errors={locationFormMethods.formState.errors} */}
+        {/*   name={eventLocationType.variable} */}
+        {/*   className="mt-1 text-sm text-red-500" */}
+        {/*   as="p" */}
+        {/* /> */}
+      </Form>
+    </>
+  );
+};
+
 export default function Home() {
   const yearsEl = useRef<HTMLInputElement>(null);
   const [balance, setBalance] = useState<number | undefined>(undefined);
+  const secretMessage = trpc.auth.getSecretMessage.useQuery();
 
   return (
     // categories grid
+    <Head>
+      <title>Home | Budgetist</title>
+      <link rel='icon' href='/favicon.ico' />
+    </Head>
+    <Shell>
+
     <div className="mx-auto flex h-screen max-w-screen-xl flex-col justify-center px-3 pt-2 ">
       <div className="mb-3 flex justify-between">
-        <h1 className="text-3xl text-black ">Categories</h1>
+        <h1 className="order-2 text-3xl text-black">{secretMessage.data}</h1>
+        {secretMessage.isLoading && (
+          <SkeletonText className="order-1 w-60 self-start text-3xl" />
+        )}
         {balance && (
           <div className="text-3xl text-black">{Math.round(balance)}</div>
         )}
@@ -454,6 +533,7 @@ export default function Home() {
           Run
         </Button>
       </div>
-    </div>
+    </Shell>
   );
 }
+

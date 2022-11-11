@@ -13,7 +13,14 @@ interface SkeletonContainer {
 }
 
 const SkeletonAvatar: React.FC<SkeletonBaseProps> = ({ className }) => {
-  return <div className={classNames(`mt-1 rounded-full bg-gray-200 ltr:mr-2 rtl:ml-2`, className)} />;
+  return (
+    <div
+      className={classNames(
+        `mt-1 rounded-full bg-gray-200 ltr:mr-2 rtl:ml-2`,
+        className
+      )}
+    />
+  );
 };
 
 type SkeletonProps<T> = {
@@ -52,7 +59,8 @@ const Skeleton = <T extends keyof JSX.IntrinsicElements | React.FC>({
           : "",
         className
       )}
-      {...rest}>
+      {...rest}
+    >
       {children}
     </Component>
   );
@@ -81,9 +89,23 @@ const SkeletonButton: React.FC<SkeletonBaseProps> = ({ className }) => {
   );
 };
 
-const SkeletonContainer: React.FC<SkeletonContainer> = ({ children, as, className }) => {
+const SkeletonContainer: React.FC<SkeletonContainer> = ({
+  children,
+  as,
+  className,
+}) => {
   const Component = as || "div";
-  return <Component className={classNames("animate-pulse", className)}>{children}</Component>;
+  return (
+    <Component className={classNames("animate-pulse", className)}>
+      {children}
+    </Component>
+  );
 };
 
-export { Skeleton, SkeletonAvatar, SkeletonText, SkeletonButton, SkeletonContainer };
+export {
+  Skeleton,
+  SkeletonAvatar,
+  SkeletonText,
+  SkeletonButton,
+  SkeletonContainer,
+};

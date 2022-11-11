@@ -23,7 +23,10 @@
     "jsx": "preserve",
     "strictNullChecks": true,
     "useUnknownInCatchVariables": true,
-    "baseUrl": "./src"
+    "baseUrl": "src",
+    "paths": {
+      "prisma/*": ["../prisma"]
+    }
   },
   "ts-node": {
     "files": true,

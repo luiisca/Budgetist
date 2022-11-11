@@ -6,7 +6,6 @@ export const _SessionModel = z.object({
   id: z.string(),
   sessionToken: z.string(),
   userId: z.number().int(),
-  patientId: z.string(),
   expires: z.date(),
 })
 

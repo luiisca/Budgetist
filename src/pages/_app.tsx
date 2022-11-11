@@ -10,7 +10,6 @@ import { Toaster } from "react-hot-toast";
 
 type AppProps = Omit<NextAppProps, "Component"> & {
   Component: NextAppProps["Component"] & {
-    requiresLicense?: boolean;
     isThemeSupported?: boolean | ((arg: { router: NextRouter }) => boolean);
     getLayout?: (page: React.ReactElement, router: NextRouter) => ReactNode;
   };

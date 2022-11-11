@@ -11,11 +11,7 @@ type CreateContextOptions = {
   session: Session | null;
 };
 
-async function getUserFromSession({
-  session,
-}: {
-  session: Maybe<Session>;
-}) {
+async function getUserFromSession({ session }: { session: Maybe<Session> }) {
   if (!session?.user?.id) {
     return null;
   }
@@ -28,8 +24,16 @@ async function getUserFromSession({
       username: true,
       name: true,
       email: true,
+      emailVerified: true,
       avatar: true,
       identityProvider: true,
+      completedOnboarding: true,
+      country: true,
+      inflation: true,
+      currency: true,
+      investPerc: true,
+      indexReturn: true,
+      salary: true,
     },
   });
 
@@ -70,7 +74,7 @@ export const createContext = async (opts: CreateNextContextOptions) => {
 
   // Get the session from the server using the unstable_getServerSession wrapper function
   const session = await getServerAuthSession({ req, res });
-  const user = await getUserFromSession({session})
+  const user = await getUserFromSession({ session });
 
   return {
     session,

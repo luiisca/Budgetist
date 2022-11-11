@@ -8,7 +8,7 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["interactiveTransactions"]
 }
 
@@ -43,24 +43,31 @@ model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       Int
-  patientId    String
   expires      DateTime
   user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model User {
-  id                   Int                     @id @default(autoincrement())
+  id                 Int              @id @default(autoincrement())
   /// @zod.custom(imports.username)
-  username             String?                 @unique
-  name          String?
-  email         String   @unique
-  emailVerified        DateTime?
-  avatar               String?
-  identityProvider     IdentityProvider        @default(GOOGLE)
-  identityProviderId   String?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
+  username           String?
+  name               String?
+  email              String           @unique
+  emailVerified      DateTime?
+  avatar             String?
+  identityProvider   IdentityProvider @default(GOOGLE)
+  identityProviderId String?
+  completedOnboarding Boolean @default(false)
+  accounts           Account[]
+  sessions           Session[]
+
+  country     String @default("usa")
+  inflation   Int    @default(8)
+  currency    String @default("USD")
+  investPerc  Int    @default(80)
+  indexReturn Int    @default(7)
+
+  salary Salary?
 }
 
 model VerificationToken {
@@ -78,4 +85,53 @@ enum IdentityProvider {
   MAGIC
   GOOGLE
   GITHUB
+}
+
+model Salary {
+  id       Int      @id @default(autoincrement())
+  title    String
+  currency String
+  amount   String
+  variance Period[]
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int  @unique
+}
+
+model Period {
+  id     Int @id @default(autoincrement())
+  from   Int
+  amount Int
+
+  salary   Salary @relation(fields: [salaryId], references: [id])
+  salaryId Int
+}
+
+model Category {
+  id         Int    @id @default(autoincrement())
+  title      String
+  budget     Int
+  currency   String
+  type       String
+  inflType   String
+  country    String
+  inflVal    Int
+  color      String
+  icon       String
+  frequencey Int
+
+  records Record[]
+}
+
+model Record {
+  id         Int    @id @default(autoincrement())
+  title      String
+  amount     Int
+  type       String
+  frequencey Int
+  inflation  Int
+  currency   String
+
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId Int
 }

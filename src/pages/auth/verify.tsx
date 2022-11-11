@@ -6,7 +6,7 @@ import * as React from "react";
 import { useEffect, useState, useRef } from "react";
 
 import { WEBAPP_URL } from "utils/constants";
-import showToast from "utils/notification";
+import showToast from "components/ui/core/notifications";
 import { Button } from "components/ui";
 
 async function sendVerificationLogin(email: string) {
@@ -74,7 +74,7 @@ export default function Verify() {
   return (
     <div className="bg-black bg-opacity-90 text-white backdrop-blur-md backdrop-grayscale backdrop-filter">
       <Head>
-        <title>Verify your email | Bankist</title>
+        <title>Verify your email | Budgetist</title>
       </Head>
       <div className="flex min-h-screen flex-col items-center justify-center px-6">
         <div className="m-10 flex max-w-2xl flex-col items-start border border-white p-12 text-left">

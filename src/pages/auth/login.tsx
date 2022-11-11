@@ -8,10 +8,11 @@ import { FaGoogle, FaGithub } from "react-icons/fa";
 import { Alert } from "components/ui/Alert";
 import { Button, Label } from "components/ui";
 
-import { ErrorCode, getSession } from "utils/auth";
+import { ErrorCode } from "utils/auth";
 
 import AuthContainer from "components/ui/AuthContainer";
 import { WEBAPP_URL } from "utils/constants";
+import { getServerAuthSession } from "server/common/get-server-auth-session";
 
 export default function Login() {
   const router = useRouter();
@@ -129,7 +130,7 @@ export default function Login() {
             id="email"
             {...form.register("email")}
             defaultValue={router.query.email || ""}
-            placeholder="john.doe@example.com"
+            placeholder="hello@email.com"
             required
             className="mb-2 block h-9 w-full rounded-md border border-gray-300 py-2 px-3 text-sm placeholder:text-gray-400 hover:border-gray-400 focus:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-800 focus:ring-offset-1"
           />
@@ -148,9 +149,11 @@ export default function Login() {
   );
 }
 
-export async function getServerSideProps(context: GetServerSidePropsContext) {
-  const { req } = context;
-  const session = await getSession({ req });
+export async function getServerSideProps({
+  req,
+  res,
+}: GetServerSidePropsContext) {
+  const session = await getServerAuthSession({ req, res });
 
   if (session) {
     return {

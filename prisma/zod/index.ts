@@ -1,6 +1,7 @@
 export * from "./account"
 export * from "./session"
 export * from "./user"
+export * from "./feedback"
 export * from "./verificationtoken"
 export * from "./salary"
 export * from "./period"

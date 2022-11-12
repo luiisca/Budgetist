@@ -1,9 +1,13 @@
+import dayjs from "dayjs";
+
 import { profileData } from "prisma/zod-utils";
 import { router, protectedProcedure } from "../trpc";
 import { Prisma } from "@prisma/client";
 import slugify from "utils/slugify";
 import { resizeBase64Image } from "server/common/resizeBase64Image";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import { sendFeedbackEmail } from "utils/emails/email-manager";
 
 export const userRouter = router({
   me: protectedProcedure.query(({ ctx: { user } }) => {
@@ -56,5 +60,34 @@ export const userRouter = router({
           ...data,
         },
       });
+    }),
+  submitFeedback: protectedProcedure
+    .input(
+      z.object({
+        rating: z.string(),
+        comment: z.string(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const { rating, comment } = input;
+
+      const feedback = {
+        username: ctx.user?.username || "Nameless",
+        email: ctx.user?.email || "No email address",
+        rating: rating,
+        comment: comment,
+      };
+
+      await ctx.prisma.feedback.create({
+        data: {
+          date: dayjs().toISOString(),
+          userId: ctx.user?.id,
+          rating: rating,
+          comment: comment,
+        },
+      });
+
+      if (process.env.SEND_FEEDBACK_EMAIL && comment)
+        sendFeedbackEmail(feedback);
     }),
 });

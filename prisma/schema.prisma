@@ -60,6 +60,7 @@ model User {
   completedOnboarding Boolean @default(false)
   accounts           Account[]
   sessions           Session[]
+  Feedback Feedback[]
 
   country     String @default("usa")
   inflation   Int    @default(8)
@@ -68,6 +69,15 @@ model User {
   indexReturn Int    @default(7)
 
   salary Salary?
+}
+
+model Feedback {
+  id      Int      @id @default(autoincrement())
+  date    DateTime @default(now())
+  userId  Int
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating  String
+  comment String?
 }
 
 model VerificationToken {

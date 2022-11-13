@@ -1,4 +1,4 @@
-import { Feedback } from "./templates/feedback-email";
+import FeedbackEmail, { Feedback } from "./templates/feedback-email";
 
 export const sendFeedbackEmail = async (feedback: Feedback) => {
   await new Promise((resolve, reject) => {

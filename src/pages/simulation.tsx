@@ -1,18 +1,16 @@
 import {
   Button,
-  Form,
+  // Form,
   Input,
-  Label,
-  SkeletonText,
-  TextField,
+  // TextField,
 } from "components/ui";
 import { useRef, useState } from "react";
 import Head from "next/head";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { profileData, ProfileDataInputType } from "prisma/zod-utils";
-import { trpc } from "utils/trpc";
-import { GetStaticPropsContext } from "next";
+// import { zodResolver } from "@hookform/resolvers/zod";
+// import { useForm } from "react-hook-form";
+// import { profileData, ProfileDataInputType } from "prisma/zod-utils";
+// import { trpc } from "utils/trpc";
+import Shell from "components/ui/core/Shell";
 
 const MIN_YEARS = 1;
 const MAX_YEARS = 200;
@@ -378,162 +376,159 @@ export const getTotalBalance = (years: number) => {
   return total;
 };
 
-const UserConfig = () => {
-  const form = useForm<ProfileDataInputType>({
-    resolver: zodResolver(profileData),
-    reValidateMode: "onChange",
-  });
-  const { register } = form;
-  const updateProfileData = trpc.user.updateProfile.useMutation();
-  const onSubmit = (data: ProfileDataInputType) => {
-    console.log("USER UPDATE DATA", data);
-    // updateProfileData.mutate(data);
-  };
+// const UserConfig = () => {
+//   const form = useForm<ProfileDataInputType>({
+//     resolver: zodResolver(profileData),
+//     reValidateMode: "onChange",
+//   });
+//   const { register } = form;
+//   const updateProfileData = trpc.user.updateProfile.useMutation();
+//   const onSubmit = (data: ProfileDataInputType) => {
+//     console.log("USER UPDATE DATA", data);
+//     // updateProfileData.mutate(data);
+//   };
+//
+//   return (
+//     <>
+//       <h2 className="text-2xl text-black">User settings</h2>
+//       {/*country, inflation, currency, investPerc, indexReturn*/}
+//
+//       <Form form={form} handleSubmit={onSubmit}>
+//         <TextField
+//           label="Username"
+//           placeholder="John"
+//           {...register("username")}
+//         />
+//         <TextField
+//           label="Name"
+//           placeholder="John Doe"
+//           {...register("username")}
+//         />
+//         {/*add avatar*/}
+//         {/*add change email*/}
+//         {/*add select country's inflation (country + inflation)*/}
+//         {/*add currency selector*/}
+//
+//         <TextField
+//           type="number"
+//           label="Investment percentage"
+//           placeholder="75%"
+//           {...register("investPerc")}
+//         />
+//
+//         <TextField
+//           type="number"
+//           label="Annual return"
+//           placeholder="7%"
+//           {...register("indexReturn")}
+//         />
+//         {/* <ErrorMessage */}
+//         {/*   errors={locationFormMethods.formState.errors} */}
+//         {/*   name={eventLocationType.variable} */}
+//         {/*   className="mt-1 text-sm text-red-500" */}
+//         {/*   as="p" */}
+//         {/* /> */}
+//       </Form>
+//     </>
+//   );
+// };
 
-  return (
-    <>
-      <h2 className="text-2xl text-black">User settings</h2>
-      {/*country, inflation, currency, investPerc, indexReturn*/}
-
-      <Form form={form} handleSubmit={onSubmit}>
-        <TextField
-          label="Username"
-          placeholder="John"
-          {...register("username")}
-        />
-        <TextField
-          label="Name"
-          placeholder="John Doe"
-          {...register("username")}
-        />
-        {/*add avatar*/}
-        {/*add change email*/}
-        {/*add select country's inflation (country + inflation)*/}
-        {/*add currency selector*/}
-
-        <TextField
-          type="number"
-          label="Investment percentage"
-          placeholder="75%"
-          {...register("investPerc")}
-        />
-
-        <TextField
-          type="number"
-          label="Annual return"
-          placeholder="7%"
-          {...register("indexReturn")}
-        />
-        {/* <ErrorMessage */}
-        {/*   errors={locationFormMethods.formState.errors} */}
-        {/*   name={eventLocationType.variable} */}
-        {/*   className="mt-1 text-sm text-red-500" */}
-        {/*   as="p" */}
-        {/* /> */}
-      </Form>
-    </>
-  );
-};
-
-export default function Home() {
+export default function Simulation() {
   const yearsEl = useRef<HTMLInputElement>(null);
-  const [balance, setBalance] = useState<number | undefined>(undefined);
-  const secretMessage = trpc.auth.getSecretMessage.useQuery();
+  const [balance, setBalance] = useState<number>(salary.amount);
 
   return (
     // categories grid
-    <Head>
-      <title>Home | Budgetist</title>
-      <link rel='icon' href='/favicon.ico' />
-    </Head>
-    <Shell>
+    <>
+      <Head>
+        <title>Simulation | Budgetist</title>
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+      <Shell
+        heading="Current balance"
+        subtitle="As of 12/11/2022"
+        CTA={
+          balance ? (
+            <div className="text-3xl text-black">{Math.round(balance)}</div>
+          ) : null
+        }
+      >
+        <div className="mb-6 grid gap-6 overflow-y-scroll lg:grid-cols-2">
+          {categories.map((cat: Category) => {
+            return (
+              <div
+                className="rounded-md border border-gray-500 p-5 shadow-sm"
+                key={cat.title}
+              >
+                <div className="mb-4">
+                  <div className="mb-2 flex justify-between border-b border-b-black">
+                    <h2 className="mb-2 text-xl text-black">{cat.title}</h2>
+                    <p className="text-xl text-black">
+                      {cat.budget} {cat.currency}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <p>Category type: {cat.type}</p>
+                    <p>Type of inflation: {`${cat.inflType}`}</p>
+                    <p>Country: {cat.country}</p>
+                    <p>Inflation value: {cat.inflVal}</p>
+                    <p>Color: {cat.color}</p>
+                    <p>Icon: {cat.icon}</p>
+                    <p>Frequency: {cat.frequency}</p>
+                  </div>
+                </div>
 
-    <div className="mx-auto flex h-screen max-w-screen-xl flex-col justify-center px-3 pt-2 ">
-      <div className="mb-3 flex justify-between">
-        <h1 className="order-2 text-3xl text-black">{secretMessage.data}</h1>
-        {secretMessage.isLoading && (
-          <SkeletonText className="order-1 w-60 self-start text-3xl" />
-        )}
-        {balance && (
-          <div className="text-3xl text-black">{Math.round(balance)}</div>
-        )}
-      </div>
-      <div className="mb-6 grid gap-6 overflow-y-scroll lg:grid-cols-2">
-        {categories.map((cat: Category) => {
-          return (
-            <div
-              className="rounded-md border border-gray-500 p-5 shadow-sm"
-              key={cat.title}
-            >
-              <div className="mb-4">
-                <div className="mb-2 flex justify-between border-b border-b-black">
-                  <h2 className="mb-2 text-xl text-black">{cat.title}</h2>
-                  <p className="text-xl text-black">
-                    {cat.budget} {cat.currency}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <p>Category type: {cat.type}</p>
-                  <p>Type of inflation: {`${cat.inflType}`}</p>
-                  <p>Country: {cat.country}</p>
-                  <p>Inflation value: {cat.inflVal}</p>
-                  <p>Color: {cat.color}</p>
-                  <p>Icon: {cat.icon}</p>
-                  <p>Frequency: {cat.frequency}</p>
-                </div>
+                <>
+                  {cat.records && <h2 className="mb-2 text-xl">Records</h2>}
+                  <div className="grid grid-cols-2 gap-2">
+                    {cat.records?.map((record: Record) => {
+                      return (
+                        <div
+                          className="rounded-sm border border-gray-500 p-2"
+                          key={record.title}
+                        >
+                          <div className="flex justify-between">
+                            <h4 className="mb-1 text-lg text-black">
+                              {record.title.toLowerCase().toUpperCase()}
+                            </h4>
+                            <p className="text-lg text-black">
+                              {record.amount} {record.currency}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <p>Frequency: {record.frequency}</p>
+                            <p>Inflation: {record.inflation}</p>
+                            <p>Type: {record.type}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
               </div>
-
-              <>
-                {cat.records && <h2 className="mb-2 text-xl">Records</h2>}
-                <div className="grid grid-cols-2 gap-2">
-                  {cat.records?.map((record: Record) => {
-                    return (
-                      <div
-                        className="rounded-sm border border-gray-500 p-2"
-                        key={record.title}
-                      >
-                        <div className="flex justify-between">
-                          <h4 className="mb-1 text-lg text-black">
-                            {record.title.toLowerCase().toUpperCase()}
-                          </h4>
-                          <p className="text-lg text-black">
-                            {record.amount} {record.currency}
-                          </p>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                          <p>Frequency: {record.frequency}</p>
-                          <p>Inflation: {record.inflation}</p>
-                          <p>Type: {record.type}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            </div>
-          );
-        })}
-      </div>
-      {/* calculate button */}
-      <div className="flex justify-start">
-        <Input
-          id="years"
-          name="years"
-          required
-          type="number"
-          ref={yearsEl}
-          className="w-auto rounded-r-none"
-        />
-        <Button
-          onClick={() => {
-            setBalance(getTotalBalance(Number(yearsEl?.current?.value)));
-          }}
-          className="rounded-l-none py-2 px-4"
-        >
-          Run
-        </Button>
-      </div>
-    </Shell>
+            );
+          })}
+        </div>
+        {/* calculate button */}
+        <div className="flex justify-start">
+          <Input
+            id="years"
+            name="years"
+            required
+            type="number"
+            ref={yearsEl}
+            className="w-auto rounded-r-none"
+          />
+          <Button
+            onClick={() => {
+              setBalance(getTotalBalance(Number(yearsEl?.current?.value)));
+            }}
+            className="rounded-l-none py-2 px-4"
+          >
+            Run
+          </Button>
+        </div>
+      </Shell>
+    </>
   );
 }
-

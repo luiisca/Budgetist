@@ -81,7 +81,7 @@ export const userRouter = router({
       await ctx.prisma.feedback.create({
         data: {
           date: dayjs().toISOString(),
-          userId: ctx.user?.id,
+          userId: ctx.user.id,
           rating: rating,
           comment: comment,
         },

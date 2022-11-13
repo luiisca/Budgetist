@@ -29,6 +29,7 @@
     "crypto": "^1.0.1",
     "dayjs": "^1.11.6",
     "handlebars": "^4.7.7",
+    "lodash": "^4.17.21",
     "next": "12.3.1",
     "next-auth": "^4.12.3",
     "next-seo": "^5.8.0",
@@ -46,6 +47,7 @@
     "zod-prisma": "^0.5.4"
   },
   "devDependencies": {
+    "@types/lodash": "^4.14.188",
     "@types/node": "18.0.0",
     "@types/nodemailer": "^6.4.6",
     "@types/react": "18.0.14",

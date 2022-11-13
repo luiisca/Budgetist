@@ -10,7 +10,8 @@ export const EmailSchedulingBodyDivider = () => (
         padding: "10px 25px",
         paddingBottom: 15,
         wordBreak: "break-word",
-      }}>
+      }}
+    >
       <p
         style={{
           borderTop: "solid 1px #E1E1E1",

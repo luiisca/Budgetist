@@ -1,4 +1,4 @@
-import { renderEmail } from "../";
+import renderEmail from "../src/renderEmail";
 import BaseEmail from "./_base-email";
 
 export interface Feedback {
@@ -18,7 +18,7 @@ export default class FeedbackEmail extends BaseEmail {
 
   protected getNodeMailerPayload(): Record<string, unknown> {
     return {
-      from: `Osteocenter <${this.getMailerOptions().from}>`,
+      from: `Budgetist <${this.getMailerOptions().from}>`,
       to: process.env.SEND_FEEDBACK_EMAIL,
       subject: `User Feedback`,
       html: renderEmail("FeedbackEmail", this.feedback),

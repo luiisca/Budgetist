@@ -44,7 +44,7 @@ const EmailBodyLogo = () => {
                   align="center"
                   style={{
                     fontSize: "0px",
-                    padding: "10px 25px",
+                    padding: "0px 25px",
                     paddingTop: "32px",
                     wordBreak: "break-word",
                   }}
@@ -56,14 +56,12 @@ const EmailBodyLogo = () => {
                     <td style={{ width: "89px" }}>
                       <a href={WEBAPP_URL} target="_blank" rel="noreferrer">
                         <img
-                          height="19"
                           src={image}
                           style={{
                             border: "0",
                             display: "block",
                             outline: "none",
                             textDecoration: "none",
-                            height: "19px",
                             width: "100%",
                             fontSize: "13px",
                           }}

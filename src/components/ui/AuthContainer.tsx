@@ -18,7 +18,7 @@ export default function AuthContainer(props: React.PropsWithChildren<Props>) {
       {props.showLogo && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          className="mx-auto mb-6 w-[200px]"
+          className="mx-auto mb-auto w-[200px]"
           src={LOGO}
           alt="Budgetist Logo"
         />

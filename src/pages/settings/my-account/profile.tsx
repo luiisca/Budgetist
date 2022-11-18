@@ -46,11 +46,18 @@ const SkeletonLoader = () => {
 
 const ProfileView = () => {
   const utils = trpc.useContext();
-
   const { data: user, isLoading } = trpc.user.me.useQuery();
+
   const mutation = trpc.user.updateProfile.useMutation({
-    onSuccess: () => {
-      showToast("Settings updated successfully", "success");
+    onSuccess: async (_, input) => {
+      console.log(input);
+      showToast(
+        input.name || input.username
+          ? "Settings updated successfully"
+          : "Avatar updated successfully",
+        "success"
+      );
+      await utils.user.me.invalidate();
     },
     onError: () => {
       showToast("Error updating settings", "error");
@@ -151,7 +158,7 @@ const ProfileView = () => {
                     id="avatar-upload"
                     buttonMsg="Change Avatar"
                     handleAvatarChange={(newAvatar) => {
-                      formMethods.setValue("avatar", newAvatar);
+                      mutation.mutate({ avatar: newAvatar });
                     }}
                     imageSrc={value}
                   />

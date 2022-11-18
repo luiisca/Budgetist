@@ -14,6 +14,7 @@ export default function Logo({
     <h1 className="inline">
       <strong>
         {icon ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             className={classNames("mx-auto w-8", black && "invert")}
             alt="Budgetist"
@@ -21,6 +22,7 @@ export default function Logo({
             src={LOGO_ICON}
           />
         ) : (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             className={classNames(
               small ? "h-4 w-auto" : "h-6 w-auto",

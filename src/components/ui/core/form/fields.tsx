@@ -1,7 +1,8 @@
 import { useId } from "@radix-ui/react-id";
 import React, { forwardRef, ReactElement, ReactNode, Ref } from "react";
-import { Check, Circle, Info, X } from "react-feather";
 import {
+  Controller,
+  ControllerProps,
   FieldErrors,
   FieldValues,
   FormProvider,
@@ -13,6 +14,8 @@ import {
 import classNames from "classnames";
 import { getErrorFromUnknown } from "utils/errors";
 import showToast from "components/ui/core/notifications";
+import { FiInfo } from "react-icons/fi";
+import { ProfileDataInputType } from "prisma/*";
 
 type InputProps = JSX.IntrinsicElements["input"];
 
@@ -46,10 +49,6 @@ export function Label(props: JSX.IntrinsicElements["label"]) {
   );
 }
 
-const customErrorMessages: Record<string, string> = {
-  //
-};
-
 function Errors<T extends FieldValues = FieldValues>(props: {
   fieldName: string;
 }) {
@@ -65,26 +64,9 @@ function Errors<T extends FieldValues = FieldValues>(props: {
 
   if (!fieldErrors) return null;
 
-  if (fieldErrors && !fieldErrors.message) {
-    // field errors exist and they are custom ones
-    return (
-      <div className="text-gray mt-2 flex items-center text-sm text-gray-700">
-        <ul className="ml-2">
-          {Object.keys(fieldErrors).map((key: string) => {
-            return (
-              <li key={key} className="text-blue-700">
-                {customErrorMessages[`${fieldName}_hint_${key}`]}
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    );
-  }
-
   return (
     <div className="text-gray mt-2 flex items-center text-sm text-red-700">
-      <Info className="mr-1 h-3 w-3" />
+      <FiInfo className="mr-1 h-3 w-3" />
       <>{fieldErrors.message}</>
     </div>
   );
@@ -220,6 +202,40 @@ export const EmailField = forwardRef<HTMLInputElement, InputFieldProps>(
     );
   }
 );
+
+export const NumberInput = (
+  arg: Omit<ControllerProps<ProfileDataInputType>, "render"> & {
+    label: string;
+    placeholder?: string;
+    addOnSuffix?: ReactNode;
+  }
+) => {
+  return (
+    <Controller
+      {...arg}
+      render={({ field }) => (
+        <TextField
+          {...field}
+          label={arg.label}
+          addOnSuffix={arg.addOnSuffix}
+          placeholder={arg.placeholder}
+          onChange={(e) => {
+            return field.onChange(
+              Number.isNaN(parseInt(e.target.value, 10))
+                ? 0
+                : parseInt(e.target.value, 10)
+            );
+          }}
+          value={
+            Number.isNaN(parseInt(field.value as string)) || field.value === 0
+              ? 0
+              : parseInt(field.value as string, 10)
+          }
+        />
+      )}
+    />
+  );
+};
 
 type FormProps<T extends object> = {
   form: UseFormReturn<T>;

@@ -393,42 +393,6 @@ export const getTotalBalance = (years: number) => {
 //       <h2 className="text-2xl text-black">User settings</h2>
 //       {/*country, inflation, currency, investPerc, indexReturn*/}
 //
-//       <Form form={form} handleSubmit={onSubmit}>
-//         <TextField
-//           label="Username"
-//           placeholder="John"
-//           {...register("username")}
-//         />
-//         <TextField
-//           label="Name"
-//           placeholder="John Doe"
-//           {...register("username")}
-//         />
-//         {/*add avatar*/}
-//         {/*add change email*/}
-//         {/*add select country's inflation (country + inflation)*/}
-//         {/*add currency selector*/}
-//
-//         <TextField
-//           type="number"
-//           label="Investment percentage"
-//           placeholder="75%"
-//           {...register("investPerc")}
-//         />
-//
-//         <TextField
-//           type="number"
-//           label="Annual return"
-//           placeholder="7%"
-//           {...register("indexReturn")}
-//         />
-//         {/* <ErrorMessage */}
-//         {/*   errors={locationFormMethods.formState.errors} */}
-//         {/*   name={eventLocationType.variable} */}
-//         {/*   className="mt-1 text-sm text-red-500" */}
-//         {/*   as="p" */}
-//         {/* /> */}
-//       </Form>
 //     </>
 //   );
 // };

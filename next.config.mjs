@@ -21,4 +21,14 @@ export default defineNextConfig({
     locales: ["en"],
     defaultLocale: "en",
   },
+  async redirects() {
+    const redirects = [
+      {
+        source: "/settings",
+        destination: "/settings/my-account/profile",
+        permanent: true,
+      },
+    ];
+    return redirects;
+  },
 });

@@ -31,6 +31,7 @@ import FeedbackMenuItem from "../support/FeedbackMenuItem";
 import ErrorBoundary from "../ErrorBoundary";
 import Button from "./Button";
 import Link from "next/link";
+import { noop } from "lodash";
 
 const useRedirectToLoginIfUnauthenticated = () => {
   const router = useRouter();
@@ -43,32 +44,32 @@ const useRedirectToLoginIfUnauthenticated = () => {
         pathname: "/auth/login",
       });
     }
-  }, [loading, session]);
+  }, [router, loading, session]);
 
   return {
     loading: loading && !session,
     session,
   };
 };
-// const useRedirectToOnboardingIfNeeded = () => {
-//   const router = useRouter();
-//   const query = useMeQuery();
-//   const user = query.data;
-//
-//   const isRedirectingToOnboarding = user && !user.completedOnboarding;
-//
-//   useEffect(() => {
-//     if (isRedirectingToOnboarding) {
-//       router.replace({
-//         pathname: "/getting-started",
-//       });
-//     }
-//   }, [isRedirectingToOnboarding]);
-//
-//   return {
-//     isRedirectingToOnboarding,
-//   };
-// };
+const useRedirectToOnboardingIfNeeded = () => {
+  const router = useRouter();
+  const query = useMeQuery();
+  const user = query.data;
+
+  const isRedirectingToOnboarding = user && !user.completedOnboarding;
+
+  useEffect(() => {
+    if (isRedirectingToOnboarding) {
+      router.replace({
+        pathname: "/getting-started",
+      });
+    }
+  }, [router, isRedirectingToOnboarding]);
+
+  return {
+    isRedirectingToOnboarding,
+  };
+};
 
 type NavigationItemType = {
   name: string;
@@ -104,11 +105,11 @@ type LayoutProps = {
 
 export default function Shell(props: LayoutProps) {
   useRedirectToLoginIfUnauthenticated();
-  // useRedirectToOnboardingIfNeeded();
+  useRedirectToOnboardingIfNeeded();
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <SideBarContainer />
+      {props.SidebarContainer || <SideBarContainer />}
       <div className="flex w-0 flex-1 flex-col overflow-hidden">
         <MainContainer {...props} />
       </div>
@@ -145,8 +146,7 @@ function UserDropdown({ small }: { small?: boolean }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 className="rounded-full"
-                // src={WEBAPP_URL + "/" + user.username + "/avatar.png"}
-                src="https://images.unsplash.com/photo-1667566949262-ef606331420d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=600&h=600&q=80"
+                src={user.avatar}
                 alt={user.username || "Nameless User"}
               />
             }
@@ -278,6 +278,31 @@ const NavigationItem: React.FC<{ item: NavigationItemType }> = ({ item }) => {
   );
 };
 
+// function MobileNavigationContainer() {
+//   const { status } = useSession();
+//   if (status !== "authenticated") return null;
+//   return <MobileNavigation />;
+// }
+//
+// const MobileNavigation = () => {
+//   return (
+//     <>
+//       <nav
+//         className={classNames(
+//           "bottom-nav fixed bottom-0 z-30 -mx-4 flex w-full border border-t border-gray-200 bg-gray-50 bg-opacity-40 px-1 shadow backdrop-blur-md md:hidden",
+//           isEmbed && "hidden"
+//         )}
+//       >
+//         {navigation.map((item) => (
+//           <MobileNavigationItem key={item.name} item={item} />
+//         ))}
+//       </nav>
+//       {/* add padding to content for mobile navigation*/}
+//       <div className="block pt-12 md:hidden" />
+//     </>
+//   );
+// };
+
 function SideBarContainer() {
   const { status } = useSession();
 
@@ -403,27 +428,39 @@ export function ShellMain(props: LayoutProps) {
   );
 }
 
-function MainContainer(props: LayoutProps) {
-  // const [sideContainerOpen, setSideContainerOpen] = props.drawerState || [
-  //   false,
-  //   noop,
-  // ];
+const SettingsSidebarContainerDefault = () => null;
+
+function MainContainer({
+  SettingsSidebarContainer: SettingsSidebarContainerProp = (
+    <SettingsSidebarContainerDefault />
+  ),
+  // MobileNavigationContainer: MobileNavigationContainerProp = (
+  //   <MobileNavigationContainer />
+  // ),
+  MobileNavigationContainer: MobileNavigationContainerProp,
+  TopNavContainer: TopNavContainerProp = <TopNavContainer />,
+  ...props
+}: LayoutProps) {
+  const [sideContainerOpen, setSideContainerOpen] = props.drawerState || [
+    false,
+    noop,
+  ];
 
   return (
     <main className="relative z-0 flex flex-1 flex-col overflow-y-auto bg-white focus:outline-none ">
       {/* show top navigation for md and smaller (tablet and phones) */}
-      <TopNavContainer />
+      {TopNavContainerProp}
 
-      {/* <div */}
-      {/*   className={classNames( */}
-      {/*     "absolute z-40 m-0 h-screen w-screen bg-black opacity-50", */}
-      {/*     sideContainerOpen ? "" : "hidden" */}
-      {/*   )} */}
-      {/*   onClick={() => { */}
-      {/*     setSideContainerOpen(false); */}
-      {/*   }} */}
-      {/* /> */}
-      {/* <SettingsSidebarContainer /> */}
+      <div
+        className={classNames(
+          "absolute z-40 m-0 h-screen w-screen bg-black opacity-50",
+          sideContainerOpen ? "" : "hidden"
+        )}
+        onClick={() => {
+          setSideContainerOpen(false);
+        }}
+      />
+      {SettingsSidebarContainerProp}
 
       <div className="flex h-screen flex-col px-4 py-2 lg:py-8 lg:px-12">
         <ErrorBoundary>
@@ -476,17 +513,3 @@ function TopNav() {
     </>
   );
 }
-
-// function SettingsSidebarContainer() {
-//
-//   return (
-//
-//         <div
-//           className={classNames(
-//             "absolute inset-y-0 z-50 m-0 h-screen transform overflow-y-scroll border-gray-100 bg-gray-50 transition duration-200 ease-in-out",
-//             sideContainerOpen ? "translate-x-0" : "-translate-x-full"
-//           )}>
-//           <SettingsSidebarContainer />
-//         </div>
-//   )
-// }

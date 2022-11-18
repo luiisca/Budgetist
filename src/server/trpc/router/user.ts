@@ -8,6 +8,7 @@ import { resizeBase64Image } from "server/common/resizeBase64Image";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { sendFeedbackEmail } from "utils/emails/email-manager";
+import { ErrorCode } from "utils/auth";
 
 export const userRouter = router({
   me: protectedProcedure.query(({ ctx: { user } }) => {
@@ -41,6 +42,7 @@ export const userRouter = router({
       if (input?.avatar) {
         data.avatar = await resizeBase64Image(input?.avatar);
       }
+      // parse country and currency against API endpoints inputs to make sure they are valid
 
       const userToUpdate = await prisma.user.findUnique({
         where: {
@@ -61,6 +63,23 @@ export const userRouter = router({
         },
       });
     }),
+  deleteMe: protectedProcedure.mutation(async ({ ctx }) => {
+    const user = await ctx.prisma.user.findUnique({
+      where: {
+        id: ctx.user.id,
+      },
+    });
+
+    if (!user) {
+      throw new Error(ErrorCode.UserNotFound);
+    }
+
+    await ctx.prisma.user.delete({
+      where: {
+        id: ctx.user.id,
+      },
+    });
+  }),
   submitFeedback: protectedProcedure
     .input(
       z.object({

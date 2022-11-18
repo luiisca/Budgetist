@@ -9,6 +9,8 @@ import { NextRouter } from "next/router";
 import { ReactNode } from "react";
 import { trpc } from "../utils/trpc";
 import { Toaster } from "react-hot-toast";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { MetaProvider } from "components/ui/core/Meta";
 
 type AppProps = Omit<NextAppProps, "Component"> & {
   Component: NextAppProps["Component"] & {
@@ -26,10 +28,13 @@ const MyApp: AppType<{ session: Session | null }> = (props: AppProps) => {
   const getLayout = Component.getLayout ?? ((page) => page);
 
   return (
-    <SessionProvider session={session || undefined}>
-      <Toaster position="bottom-right" />
-      {getLayout && getLayout(<Component {...pageProps} err={err} />, router)}
-    </SessionProvider>
+    <MetaProvider>
+      <SessionProvider session={session || undefined}>
+        <Toaster position="bottom-right" />
+        {getLayout && getLayout(<Component {...pageProps} err={err} />, router)}
+        <ReactQueryDevtools initialIsOpen={false} />
+      </SessionProvider>
+    </MetaProvider>
   );
 };
 

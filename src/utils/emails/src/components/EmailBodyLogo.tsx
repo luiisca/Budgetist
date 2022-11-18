@@ -55,6 +55,7 @@ const EmailBodyLogo = () => {
                   >
                     <td style={{ width: "89px" }}>
                       <a href={WEBAPP_URL} target="_blank" rel="noreferrer">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={image}
                           style={{

@@ -1,17 +1,21 @@
 import { useId } from "@radix-ui/react-id";
-import React, { forwardRef, ReactNode } from "react";
-import { Check, Circle, Info, X } from "react-feather";
+import React, { forwardRef, ReactElement, ReactNode, Ref } from "react";
 import {
+  Controller,
+  ControllerProps,
   FieldErrors,
   FieldValues,
-  // FormProvider,
-  // SubmitHandler,
+  FormProvider,
+  SubmitHandler,
   useFormContext,
-  // UseFormReturn,
+  UseFormReturn,
 } from "react-hook-form";
 
 import classNames from "classnames";
-import { Skeleton } from "components/ui";
+import { getErrorFromUnknown } from "utils/errors";
+import showToast from "components/ui/core/notifications";
+import { FiInfo } from "react-icons/fi";
+import { ProfileDataInputType } from "prisma/*";
 
 type InputProps = JSX.IntrinsicElements["input"];
 
@@ -45,129 +49,25 @@ export function Label(props: JSX.IntrinsicElements["label"]) {
   );
 }
 
-const customErrorMessages: Record<string, string> = {
-  //
-};
-
-function HintsOrErrors<T extends FieldValues = FieldValues>(props: {
-  hintErrors?: string[];
+function Errors<T extends FieldValues = FieldValues>(props: {
   fieldName: string;
 }) {
   const methods = useFormContext() as ReturnType<typeof useFormContext> | null;
   /* If there's no methods it means we're using these components outside a React Hook Form context */
   if (!methods) return null;
   const { formState } = methods;
-  const { hintErrors, fieldName } = props;
+  const { fieldName } = props;
 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   const fieldErrors: FieldErrors<T> | undefined = formState.errors[fieldName];
 
-  if (!hintErrors && fieldErrors && !fieldErrors.message) {
-    // no hints passed, field errors exist and they are custom ones
-    return (
-      <div className="text-gray mt-2 flex items-center text-sm text-gray-700">
-        <ul className="ml-2">
-          {Object.keys(fieldErrors).map((key: string) => {
-            return (
-              <li key={key} className="text-blue-700">
-                {customErrorMessages[`${fieldName}_hint_${key}`]}
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    );
-  }
+  if (!fieldErrors) return null;
 
-  if (hintErrors && fieldErrors) {
-    // hints passed, field errors exist
-    return (
-      <div className="text-gray mt-2 flex items-center text-sm text-gray-700">
-        <ul className="ml-2">
-          {hintErrors.map((key: string) => {
-            const submitted = formState.isSubmitted;
-            const error = fieldErrors[key] || fieldErrors.message;
-            return (
-              <li
-                key={key}
-                className={
-                  error !== undefined
-                    ? submitted
-                      ? "text-red-700"
-                      : ""
-                    : "text-green-600"
-                }
-              >
-                {error !== undefined ? (
-                  submitted ? (
-                    <X
-                      size="12"
-                      strokeWidth="3"
-                      className="mr-2 -ml-1 inline-block"
-                    />
-                  ) : (
-                    <Circle
-                      fill="currentColor"
-                      size="5"
-                      className="mr-2 inline-block"
-                    />
-                  )
-                ) : (
-                  <Check
-                    size="12"
-                    strokeWidth="3"
-                    className="mr-2 -ml-1 inline-block"
-                  />
-                )}
-                {customErrorMessages[`${fieldName}_hint_${key}`]}
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    );
-  }
-
-  // errors exist, not custom ones, just show them as is
-  if (fieldErrors) {
-    return (
-      <div className="text-gray mt-2 flex items-center text-sm text-red-700">
-        <Info className="mr-1 h-3 w-3" />
-        <>{fieldErrors.message}</>
-      </div>
-    );
-  }
-
-  if (!hintErrors) return null;
-
-  // hints passed, no errors exist, proceed to just show hints
   return (
-    <div className="text-gray mt-2 flex items-center text-sm text-gray-700">
-      <ul className="ml-2">
-        {hintErrors.map((key: string) => {
-          // if field was changed, as no error exist, show checked status and color
-          const dirty = formState.dirtyFields[fieldName];
-          return (
-            <li key={key} className={!!dirty ? "text-green-600" : ""}>
-              {!!dirty ? (
-                <Check
-                  size="12"
-                  strokeWidth="3"
-                  className="mr-2 -ml-1 inline-block"
-                />
-              ) : (
-                <Circle
-                  fill="currentColor"
-                  size="5"
-                  className="mr-2 inline-block"
-                />
-              )}
-              {customErrorMessages[`${fieldName}_hint_${key}`]}
-            </li>
-          );
-        })}
-      </ul>
+    <div className="text-gray mt-2 flex items-center text-sm text-red-700">
+      <FiInfo className="mr-1 h-3 w-3" />
+      <>{fieldErrors.message}</>
     </div>
   );
 }
@@ -175,7 +75,6 @@ function HintsOrErrors<T extends FieldValues = FieldValues>(props: {
 type InputFieldProps = {
   label?: ReactNode;
   hint?: ReactNode;
-  hintErrors?: string[];
   addOnLeading?: ReactNode;
   addOnSuffix?: ReactNode;
   addOnFilled?: boolean;
@@ -202,7 +101,6 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
       addOnSuffix,
       addOnFilled = true,
       hint,
-      hintErrors,
       labelSrOnly,
       containerClassName,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -212,10 +110,8 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
     return (
       <div className={classNames(containerClassName)}>
         {!!name && (
-          <Skeleton
-            as={Label}
+          <Label
             htmlFor={id}
-            loadingClassName="w-16"
             {...labelProps}
             className={classNames(
               labelClassName,
@@ -224,7 +120,7 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
             )}
           >
             {label}
-          </Skeleton>
+          </Label>
         )}
         {addOnLeading || addOnSuffix ? (
           <div
@@ -274,7 +170,7 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
             ref={ref}
           />
         )}
-        <HintsOrErrors hintErrors={hintErrors} fieldName={name} />
+        <Errors fieldName={name} />
         {hint && (
           <div className="text-gray mt-2 flex items-center text-sm text-gray-700">
             {hint}
@@ -282,6 +178,12 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
         )}
       </div>
     );
+  }
+);
+
+export const TextField = forwardRef<HTMLInputElement, InputFieldProps>(
+  function TextField(props, ref) {
+    return <InputField ref={ref} {...props} />;
   }
 );
 
@@ -300,3 +202,92 @@ export const EmailField = forwardRef<HTMLInputElement, InputFieldProps>(
     );
   }
 );
+
+export const NumberInput = (
+  arg: Omit<ControllerProps<ProfileDataInputType>, "render"> & {
+    label: string;
+    placeholder?: string;
+    addOnSuffix?: ReactNode;
+  }
+) => {
+  return (
+    <Controller
+      {...arg}
+      render={({ field }) => (
+        <TextField
+          {...field}
+          label={arg.label}
+          addOnSuffix={arg.addOnSuffix}
+          placeholder={arg.placeholder}
+          onChange={(e) => {
+            return field.onChange(
+              Number.isNaN(parseInt(e.target.value, 10))
+                ? 0
+                : parseInt(e.target.value, 10)
+            );
+          }}
+          value={
+            Number.isNaN(parseInt(field.value as string)) || field.value === 0
+              ? 0
+              : parseInt(field.value as string, 10)
+          }
+        />
+      )}
+    />
+  );
+};
+
+type FormProps<T extends object> = {
+  form: UseFormReturn<T>;
+  handleSubmit: SubmitHandler<T>;
+} & Omit<JSX.IntrinsicElements["form"], "onSubmit">;
+
+const PlainForm = <T extends FieldValues>(
+  props: FormProps<T>,
+  ref: Ref<HTMLFormElement>
+) => {
+  const { form, handleSubmit, ...passThrough } = props;
+
+  return (
+    <FormProvider {...form}>
+      <form
+        ref={ref}
+        onSubmit={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          form
+            .handleSubmit(handleSubmit)(event)
+            .catch((err) => {
+              showToast(`${getErrorFromUnknown(err).message}`, "error");
+            });
+        }}
+        {...passThrough}
+      >
+        {
+          /* @see https://react-hook-form.com/advanced-usage/#SmartFormComponent */
+          // to provide register prop to every valid child field (wow)
+          React.Children.map(props.children, (child) => {
+            return typeof child !== "string" &&
+              typeof child !== "number" &&
+              typeof child !== "boolean" &&
+              child &&
+              "props" in child &&
+              child.props.name
+              ? React.createElement(child.type, {
+                  ...{
+                    ...child.props,
+                    register: form.register,
+                    key: child.props.name,
+                  },
+                })
+              : child;
+          })
+        }
+      </form>
+    </FormProvider>
+  );
+};
+
+export const Form = forwardRef(PlainForm) as <T extends FieldValues>(
+  p: FormProps<T> & { ref?: Ref<HTMLFormElement> }
+) => ReactElement;

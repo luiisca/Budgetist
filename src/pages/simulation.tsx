@@ -1,5 +1,16 @@
-import { Button, Input } from "components/ui";
+import {
+  Button,
+  // Form,
+  Input,
+  // TextField,
+} from "components/ui";
 import { useRef, useState } from "react";
+import Head from "next/head";
+// import { zodResolver } from "@hookform/resolvers/zod";
+// import { useForm } from "react-hook-form";
+// import { profileData, ProfileDataInputType } from "prisma/zod-utils";
+// import { trpc } from "utils/trpc";
+import Shell from "components/ui/core/Shell";
 
 const MIN_YEARS = 1;
 const MAX_YEARS = 200;
@@ -10,12 +21,19 @@ type User = {
   inflation: number;
   currency: string;
   investPerc: number;
+  indexReturn: number;
 };
-const user: User = {
-  country: "usa",
-  inflation: 8,
-  currency: "USD",
-  investPerc: 75,
+
+type Salary = {
+  title: string;
+  currency: string;
+  amount: number;
+  variance:
+    | Array<{
+        from: number;
+        amount: number;
+      }>
+    | false;
 };
 
 type Record = {
@@ -28,7 +46,6 @@ type Record = {
   currency: string;
 };
 
-// each category can have map their own country and inflVal but they will default to the user's one
 type Category = {
   title: string;
   budget: number;
@@ -49,16 +66,12 @@ type Category = {
   frequency: number;
 };
 
-type Salary = {
-  title: string;
-  currency: string;
-  amount: number;
-  variance:
-    | Array<{
-        from: number;
-        amount: number;
-      }>
-    | false;
+const user: User = {
+  country: "usa",
+  inflation: 8,
+  currency: "USD",
+  investPerc: 75,
+  indexReturn: INDEX_ANNUAL_RETURN,
 };
 
 const salary: Salary = {
@@ -79,38 +92,6 @@ const salary: Salary = {
       amount: 10000,
     },
   ],
-};
-const getSalaryByYear = (year: number) => {
-  let salaryByYear = salary.amount;
-  const v = salary.variance;
-  if (v) {
-    for (let period = 0; period < v.length; period++) {
-      if (year >= v[period].from && year < v[period + 1].from) {
-        // console.log("THIS YEAR", year, v[period]);
-        salaryByYear = v[period].amount;
-
-        return salaryByYear;
-      }
-
-      const lastV = v[v.length - 1];
-      if (year >= lastV.from) {
-        salaryByYear = lastV.amount;
-
-        return salaryByYear;
-      }
-    }
-  }
-
-  return salaryByYear;
-};
-
-const convertToUSD = (currency: string, amount: number) => {
-  if (currency !== "USD") {
-    // console.log("no USD currency set");
-    // console.log("converting to USD");
-    // return toUSD(currency, amount)
-  }
-  return amount;
 };
 
 // shuoul utilize user.currency as default currency value on every category
@@ -222,8 +203,42 @@ export const categories: Array<Category> = [
   },
 ];
 
+const convertToUSD = (currency: string, amount: number) => {
+  if (currency !== "USD") {
+    // console.log("no USD currency set");
+    // console.log("converting to USD");
+    // return toUSD(currency, amount)
+  }
+  return amount;
+};
+
 const getRate = (x: number) => x / 100;
 const getFrequency = (freq: number) => (freq < 1 ? 1 : freq > 12 ? 12 : freq);
+
+const getSalaryByYear = (year: number) => {
+  let salaryByYear = salary.amount;
+  const v = salary.variance;
+
+  if (v) {
+    for (let period = 0; period < v.length; period++) {
+      if (year >= v[period].from && year < v[period + 1].from) {
+        // console.log("THIS YEAR", year, v[period]);
+        salaryByYear = v[period].amount;
+
+        return salaryByYear;
+      }
+
+      const lastV = v[v.length - 1];
+      if (year >= lastV.from) {
+        salaryByYear = lastV.amount;
+
+        return salaryByYear;
+      }
+    }
+  }
+
+  return salaryByYear;
+};
 
 export const getTotalBalance = (years: number) => {
   years = years <= 0 ? MIN_YEARS : years > MAX_YEARS ? MAX_YEARS : years;
@@ -354,101 +369,130 @@ export const getTotalBalance = (years: number) => {
     console.log("MONEY READY TO INVEST: ", moneyReadyToInvest);
 
     console.log("PREVIOUS TOTAL", total);
-    total = (total + moneyReadyToInvest) * (1 + getRate(INDEX_ANNUAL_RETURN));
+    total = (total + moneyReadyToInvest) * (1 + getRate(user.indexReturn));
     console.log("NEW TOTAL", total);
   }
 
   return total;
 };
 
-export default function Home() {
+// const UserConfig = () => {
+//   const form = useForm<ProfileDataInputType>({
+//     resolver: zodResolver(profileData),
+//     reValidateMode: "onChange",
+//   });
+//   const { register } = form;
+//   const updateProfileData = trpc.user.updateProfile.useMutation();
+//   const onSubmit = (data: ProfileDataInputType) => {
+//     console.log("USER UPDATE DATA", data);
+//     // updateProfileData.mutate(data);
+//   };
+//
+//   return (
+//     <>
+//       <h2 className="text-2xl text-black">User settings</h2>
+//       {/*country, inflation, currency, investPerc, indexReturn*/}
+//
+//     </>
+//   );
+// };
+
+export default function Simulation() {
   const yearsEl = useRef<HTMLInputElement>(null);
-  const [balance, setBalance] = useState<number | undefined>(undefined);
+  const [balance, setBalance] = useState<number>(salary.amount);
 
   return (
     // categories grid
-    <div className="mx-auto flex h-screen max-w-screen-xl flex-col justify-center px-3 pt-2 ">
-      <div className="mb-3 flex justify-between">
-        <h1 className="text-3xl text-black ">Categories</h1>
-        {balance && (
-          <div className="text-3xl text-black">{Math.round(balance)}</div>
-        )}
-      </div>
-      <div className="mb-6 grid gap-6 overflow-y-scroll lg:grid-cols-2">
-        {categories.map((cat: Category) => {
-          return (
-            <div
-              className="rounded-md border border-gray-500 p-5 shadow-sm"
-              key={cat.title}
-            >
-              <div className="mb-4">
-                <div className="mb-2 flex justify-between border-b border-b-black">
-                  <h2 className="mb-2 text-xl text-black">{cat.title}</h2>
-                  <p className="text-xl text-black">
-                    {cat.budget} {cat.currency}
-                  </p>
+    <>
+      <Head>
+        <title>Simulation | Budgetist</title>
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+      <Shell
+        heading="Current balance"
+        subtitle="As of 12/11/2022"
+        CTA={
+          balance ? (
+            <div className="text-3xl text-black">{Math.round(balance)}</div>
+          ) : null
+        }
+      >
+        <div className="mb-6 grid gap-6 overflow-y-scroll lg:grid-cols-2">
+          {categories.map((cat: Category) => {
+            return (
+              <div
+                className="rounded-md border border-gray-500 p-5 shadow-sm"
+                key={cat.title}
+              >
+                <div className="mb-4">
+                  <div className="mb-2 flex justify-between border-b border-b-black">
+                    <h2 className="mb-2 text-xl text-black">{cat.title}</h2>
+                    <p className="text-xl text-black">
+                      {cat.budget} {cat.currency}
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <p>Category type: {cat.type}</p>
+                    <p>Type of inflation: {`${cat.inflType}`}</p>
+                    <p>Country: {cat.country}</p>
+                    <p>Inflation value: {cat.inflVal}</p>
+                    <p>Color: {cat.color}</p>
+                    <p>Icon: {cat.icon}</p>
+                    <p>Frequency: {cat.frequency}</p>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <p>Category type: {cat.type}</p>
-                  <p>Type of inflation: {`${cat.inflType}`}</p>
-                  <p>Country: {cat.country}</p>
-                  <p>Inflation value: {cat.inflVal}</p>
-                  <p>Color: {cat.color}</p>
-                  <p>Icon: {cat.icon}</p>
-                  <p>Frequency: {cat.frequency}</p>
-                </div>
-              </div>
 
-              <>
-                {cat.records && <h2 className="mb-2 text-xl">Records</h2>}
-                <div className="grid grid-cols-2 gap-2">
-                  {cat.records?.map((record: Record) => {
-                    return (
-                      <div
-                        className="rounded-sm border border-gray-500 p-2"
-                        key={record.title}
-                      >
-                        <div className="flex justify-between">
-                          <h4 className="mb-1 text-lg text-black">
-                            {record.title.toLowerCase().toUpperCase()}
-                          </h4>
-                          <p className="text-lg text-black">
-                            {record.amount} {record.currency}
-                          </p>
+                <>
+                  {cat.records && <h2 className="mb-2 text-xl">Records</h2>}
+                  <div className="grid grid-cols-2 gap-2">
+                    {cat.records?.map((record: Record) => {
+                      return (
+                        <div
+                          className="rounded-sm border border-gray-500 p-2"
+                          key={record.title}
+                        >
+                          <div className="flex justify-between">
+                            <h4 className="mb-1 text-lg text-black">
+                              {record.title.toLowerCase().toUpperCase()}
+                            </h4>
+                            <p className="text-lg text-black">
+                              {record.amount} {record.currency}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <p>Frequency: {record.frequency}</p>
+                            <p>Inflation: {record.inflation}</p>
+                            <p>Type: {record.type}</p>
+                          </div>
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <p>Frequency: {record.frequency}</p>
-                          <p>Inflation: {record.inflation}</p>
-                          <p>Type: {record.type}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            </div>
-          );
-        })}
-      </div>
-      {/* calculate button */}
-      <div className="flex justify-start">
-        <Input
-          id="years"
-          name="years"
-          required
-          type="number"
-          ref={yearsEl}
-          className="w-auto rounded-r-none"
-        />
-        <Button
-          onClick={() => {
-            setBalance(getTotalBalance(Number(yearsEl?.current?.value)));
-          }}
-          className="rounded-l-none py-2 px-4"
-        >
-          Run
-        </Button>
-      </div>
-    </div>
+                      );
+                    })}
+                  </div>
+                </>
+              </div>
+            );
+          })}
+        </div>
+        {/* calculate button */}
+        <div className="flex justify-start">
+          <Input
+            id="years"
+            name="years"
+            required
+            type="number"
+            ref={yearsEl}
+            className="w-auto rounded-r-none"
+          />
+          <Button
+            onClick={() => {
+              setBalance(getTotalBalance(Number(yearsEl?.current?.value)));
+            }}
+            className="rounded-l-none py-2 px-4"
+          >
+            Run
+          </Button>
+        </div>
+      </Shell>
+    </>
   );
 }

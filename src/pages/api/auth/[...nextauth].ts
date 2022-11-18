@@ -15,7 +15,7 @@ import Handlebars from "handlebars";
 
 // Prisma adapter for NextAuth, optional and can be removed
 import { prisma } from "../../../server/db/client";
-import BankistAdapter from "utils/next-auth-custom-adapter";
+import BudgetistAdapter from "utils/next-auth-custom-adapter";
 import { WEBAPP_URL } from "utils/constants";
 import { Adapter } from "next-auth/adapters";
 
@@ -38,7 +38,7 @@ const providers: Provider[] = [
 ];
 
 if (true) {
-    console.log('CURRENT WORKING DIRECTORY', process.cwd())
+  console.log("CURRENT WORKING DIRECTORY", process.cwd());
   const emailsDir = path.resolve(
     process.cwd(),
     "src/utils/emails",
@@ -63,9 +63,9 @@ if (true) {
         );
         const emailTemplate = Handlebars.compile(emailFile);
         transporter.sendMail({
-          from: `${process.env.EMAIL_FROM}` || "Bankist",
+          from: `${process.env.EMAIL_FROM}` || "Budgetist",
           to: identifier,
-          subject: "Welcome to your Bankist account",
+          subject: "Welcome to your Budgetist account",
           html: emailTemplate({
             base_url: WEBAPP_URL,
             signin_url: url,
@@ -77,10 +77,10 @@ if (true) {
   );
 }
 
-const bankistAdapter = BankistAdapter(prisma);
+const budgetistAdapter = BudgetistAdapter(prisma);
 export const authOptions: NextAuthOptions = {
   // Configure one or more authentication providers
-  adapter: bankistAdapter as unknown as Adapter,
+  adapter: budgetistAdapter as unknown as Adapter,
   session: {
     strategy: "jwt",
   },
@@ -168,7 +168,7 @@ export const authOptions: NextAuthOptions = {
     async signIn(params) {
       console.log("SIGNIN CALLBACK");
       const { user, account } = params;
-      const profile = params.profile as Profile & { email_verified: Date};
+      const profile = params.profile as Profile & { email_verified: Date };
       console.log("SIGNIN account", account);
       console.log("SIGNIN user", user);
       console.log("SIGNIN profile", profile);
@@ -194,7 +194,7 @@ export const authOptions: NextAuthOptions = {
       if (account.provider) {
         let idP: IdentityProvider = IdentityProvider.GOOGLE;
         if (account.provider === "github") {
-            idP = IdentityProvider.GITHUB;
+          idP = IdentityProvider.GITHUB;
         }
 
         if (idP === "GOOGLE" && !profile?.email_verified) {
@@ -231,7 +231,7 @@ export const authOptions: NextAuthOptions = {
                   ...account,
                   userId: existingUser.id,
                 };
-                await bankistAdapter.linkAccount(linkAccountWithUserData);
+                await budgetistAdapter.linkAccount(linkAccountWithUserData);
               }
             } catch (error) {
               if (error instanceof Error) {
@@ -318,7 +318,7 @@ export const authOptions: NextAuthOptions = {
         });
         console.log("SIGNIN CALLBACK: New user created", newUser);
         const linkAccountNewUserData = { ...account, userId: newUser.id };
-        await bankistAdapter.linkAccount(linkAccountNewUserData);
+        await budgetistAdapter.linkAccount(linkAccountNewUserData);
 
         return true;
       }

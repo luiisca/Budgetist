@@ -1,18 +1,42 @@
 import { ArrowRightIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { User } from "@prisma/client";
-import { Button, Form, NumberInput, TextField } from "components/ui";
+import { Button, Form, Label, NumberInput, TextField } from "components/ui";
+import Select from "components/ui/core/form/select";
 import showToast from "components/ui/core/notifications";
 import { useRouter } from "next/router";
 import { profileData, ProfileDataInputType } from "prisma/*";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { FiPercent } from "react-icons/fi";
 import { trpc } from "utils/trpc";
+import { z } from "zod";
+
+interface CountryOption {
+  readonly value: string;
+  readonly label: string;
+}
+type FormValues = Omit<ProfileDataInputType, "country"> & {
+  country?: CountryOption;
+};
 
 const SimSettings = ({ user }: { user: User }) => {
-  const form = useForm<ProfileDataInputType>({
-    resolver: zodResolver(profileData),
+  const form = useForm<FormValues>({
+    resolver: zodResolver(
+      profileData.extend({
+        country: z.object({
+          value: z.string().optional(),
+          label: z.string().optional(),
+        }),
+      })
+    ),
     reValidateMode: "onChange",
+    defaultValues: {
+      country: { value: user.country, label: user.country },
+      inflation: user.inflation || 0,
+      currency: user.currency || "",
+      investPerc: user.investPerc || 0,
+      indexReturn: user.indexReturn || 0,
+    },
   });
   const { control } = form;
   const utils = trpc.useContext();
@@ -32,28 +56,48 @@ const SimSettings = ({ user }: { user: User }) => {
     },
   });
 
-  const onSubmit = (data: ProfileDataInputType) => {
-    mutation.mutate({
-      ...data,
-      completedOnboarding: true,
-    });
-  };
+  const countryOptions: readonly CountryOption[] = [
+    { value: "Peru", label: "Peru" },
+    { value: "Chile", label: "Chile" },
+    { value: "Argentina", label: "Argentina" },
+    { value: "Brasil", label: "Brasil" },
+    { value: "Bolivia", label: "Bolivia" },
+    { value: "Colombia", label: "Colombia" },
+  ];
 
   return (
-    <Form form={form} handleSubmit={onSubmit} className="space-y-6">
+    <Form<FormValues>
+      form={form}
+      handleSubmit={(values) => {
+        mutation.mutate({
+          ...values,
+          country: values.country?.value,
+          completedOnboarding: true,
+        });
+      }}
+      className="space-y-6"
+    >
       {/* country */}
       <div>
-        <TextField
-          label="Country"
-          placeholder="Peru"
-          defaultValue={user.country}
-          {...form.register("country")}
+        <Controller
+          control={control}
+          name="country"
+          render={({ field: { value } }) => (
+            <>
+              <Label className="mt-8 text-gray-900">Country</Label>
+              <Select
+                value={value}
+                options={countryOptions}
+                onChange={(e) => e && form.setValue("country", { ...e })}
+              />
+            </>
+          )}
         />
       </div>
 
       {/* country inflation */}
       <div>
-        <NumberInput
+        <NumberInput<FormValues>
           control={control}
           name="inflation"
           label="Country inflation"
@@ -75,7 +119,7 @@ const SimSettings = ({ user }: { user: User }) => {
 
       {/* Investment per year perc */}
       <div>
-        <NumberInput
+        <NumberInput<FormValues>
           control={control}
           name="investPerc"
           label="Investment percentage"
@@ -87,7 +131,7 @@ const SimSettings = ({ user }: { user: User }) => {
 
       {/* annual return perc */}
       <div>
-        <NumberInput
+        <NumberInput<FormValues>
           control={control}
           name="indexReturn"
           label="Annual return"

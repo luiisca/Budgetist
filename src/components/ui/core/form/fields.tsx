@@ -203,8 +203,8 @@ export const EmailField = forwardRef<HTMLInputElement, InputFieldProps>(
   }
 );
 
-export const NumberInput = (
-  arg: Omit<ControllerProps<ProfileDataInputType>, "render"> & {
+export const NumberInput = <T extends FieldValues = ProfileDataInputType>(
+  arg: Omit<ControllerProps<T>, "render"> & {
     label: string;
     placeholder?: string;
     addOnSuffix?: ReactNode;

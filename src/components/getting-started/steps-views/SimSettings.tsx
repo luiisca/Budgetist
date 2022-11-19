@@ -7,9 +7,14 @@ import showToast from "components/ui/core/notifications";
 import { useRouter } from "next/router";
 import { profileData, ProfileDataInputType } from "prisma/*";
 import { Controller, useForm } from "react-hook-form";
-import { FiPercent } from "react-icons/fi";
+import { FiCheck, FiGlobe, FiPercent } from "react-icons/fi";
 import { trpc } from "utils/trpc";
 import { z } from "zod";
+import * as countries from "country-flag-icons/react/3x2";
+import { useMemo } from "react";
+import { components as reactSelectComponents } from "react-select";
+import classNames from "classnames";
+import { FLAG_URL } from "utils/constants";
 
 interface CountryOption {
   readonly value: string;
@@ -55,15 +60,23 @@ const SimSettings = ({ user }: { user: User }) => {
       );
     },
   });
-
-  const countryOptions: readonly CountryOption[] = [
-    { value: "Peru", label: "Peru" },
-    { value: "Chile", label: "Chile" },
-    { value: "Argentina", label: "Argentina" },
-    { value: "Brasil", label: "Brasil" },
-    { value: "Bolivia", label: "Bolivia" },
-    { value: "Colombia", label: "Colombia" },
-  ];
+  const countryOptions = useMemo(() => {
+    let options: CountryOption[] = [];
+    const display = new Intl.DisplayNames(["en"], { type: "region" });
+    const countriesArr: string[] = [];
+    for (const option in countries) {
+      console.log(option);
+      countriesArr.push(option);
+      options.push({
+        value: option, // 'PE'
+        label:
+          option !== "default"
+            ? new Intl.DisplayNames(option, { type: "region" }).of(option) || ""
+            : "Other",
+      });
+    }
+    return options;
+  }, []);
 
   return (
     <Form<FormValues>
@@ -84,11 +97,39 @@ const SimSettings = ({ user }: { user: User }) => {
           name="country"
           render={({ field: { value } }) => (
             <>
-              <Label className="mt-8 text-gray-900">Country</Label>
+              <Label className="text-gray-900">Country</Label>
               <Select
                 value={value}
                 options={countryOptions}
                 onChange={(e) => e && form.setValue("country", { ...e })}
+                components={{
+                  Option: (props) => (
+                    <reactSelectComponents.Option
+                      {...props}
+                      className={classNames(
+                        "!flex !cursor-pointer !items-center !py-3 dark:bg-darkgray-100",
+                        props.isFocused && "!bg-gray-100 dark:!bg-darkgray-200",
+                        props.isSelected &&
+                          "!bg-neutral-900 dark:!bg-darkgray-300"
+                      )}
+                    >
+                      <span className="mr-3">
+                        {props.data.value !== "default" ? (
+                          <img
+                            src={FLAG_URL.replace("{XX}", props.data.value)}
+                            alt={props.data.label + "flag"}
+                            role={props.data.label}
+                            className="w-5"
+                          />
+                        ) : (
+                          <FiGlobe className="h-5 w-5 text-brand-400" />
+                        )}
+                      </span>
+                      <span className="flex-1">{props.label}</span>{" "}
+                      {props.isSelected && <FiCheck className="h-4 w-4" />}
+                    </reactSelectComponents.Option>
+                  ),
+                }}
               />
             </>
           )}

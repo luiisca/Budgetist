@@ -153,7 +153,7 @@ export const MenuListComponent = <
   <reactSelectComponents.MenuList
     {...props}
     className={classNames(
-      "scrollbar-thin scrollbar-thumb-rounded-md dark:scrollbar-thumb-darkgray-300 scrollbar-thumb-gray-300 scrollbar-track-transparent scrollbar-track-w-[80px] rounded-md",
+      "scrollbar-track-w-[80px] rounded-md scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 scrollbar-thumb-rounded-md dark:scrollbar-thumb-darkgray-300",
       className
     )}
   />

@@ -1,13 +1,15 @@
 import { useId } from "@radix-ui/react-id";
 import classNames from "classnames";
-import { Label } from "components/ui";
 import * as React from "react";
 import ReactSelect, {
   components as reactSelectComponents,
   GroupBase,
   Props,
+  SingleValue,
+  MultiValue,
   SelectComponentsConfig,
 } from "react-select";
+import { Label } from "../fields";
 
 import {
   ControlComponent,
@@ -132,5 +134,79 @@ export const SelectField = function SelectField<
     </div>
   );
 };
+
+/**
+ * TODO: It should replace Select after through testing
+ */
+export function SelectWithValidation<
+  Option extends { label: string; value: string },
+  IsMulti extends boolean = false,
+  Group extends GroupBase<Option> = GroupBase<Option>
+>({
+  required = false,
+  onChange,
+  value,
+  ...remainingProps
+}: SelectProps<Option, IsMulti, Group> & { required?: boolean }) {
+  const [hiddenInputValue, _setHiddenInputValue] = React.useState(() => {
+    if (value instanceof Array || !value) {
+      return;
+    }
+    return value.value || "";
+  });
+
+  const setHiddenInputValue = React.useCallback(
+    (value: MultiValue<Option> | SingleValue<Option>) => {
+      let hiddenInputValue = "";
+      if (value instanceof Array) {
+        hiddenInputValue = value.map((val) => val.value).join(",");
+      } else {
+        hiddenInputValue = value?.value || "";
+      }
+      _setHiddenInputValue(hiddenInputValue);
+    },
+    []
+  );
+
+  React.useEffect(() => {
+    if (!value) {
+      return;
+    }
+    setHiddenInputValue(value);
+  }, [value, setHiddenInputValue]);
+
+  return (
+    <div className={classNames("relative", remainingProps.className)}>
+      <Select
+        value={value}
+        {...remainingProps}
+        onChange={(value, ...remainingArgs) => {
+          setHiddenInputValue(value);
+          if (onChange) {
+            onChange(value, ...remainingArgs);
+          }
+        }}
+      />
+      {required && (
+        <input
+          tabIndex={-1}
+          autoComplete="off"
+          style={{
+            opacity: 0,
+            width: "100%",
+            height: 1,
+            position: "absolute",
+          }}
+          value={hiddenInputValue}
+          // eslint-disable-next-line @typescript-eslint/no-empty-function
+          onChange={() => {}}
+          // TODO:Not able to get focus to work
+          // onFocus={() => selectRef.current?.focus()}
+          required={required}
+        />
+      )}
+    </div>
+  );
+}
 
 export default Select;

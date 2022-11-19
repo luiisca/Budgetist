@@ -206,6 +206,7 @@ module.exports = {
     require("@tailwindcss/typography"),
     require("@tailwindcss/line-clamp"),
     require("tailwindcss-radix")(),
+    require("tailwind-scrollbar")({ nocompatible: true }),
     plugin(({ addVariant }) => {
       addVariant("mac", ".mac &");
       addVariant("windows", ".windows &");
@@ -213,4 +214,3 @@ module.exports = {
     }),
   ],
 };
-

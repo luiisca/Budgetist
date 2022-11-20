@@ -1,20 +1,38 @@
 import { ArrowRightIcon } from "@heroicons/react/24/outline";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { User } from "@prisma/client";
-import { Button, Form, NumberInput, TextField } from "components/ui";
-import showToast from "components/ui/core/notifications";
 import { useRouter } from "next/router";
-import { profileData, ProfileDataInputType } from "prisma/*";
+import { profileData } from "prisma/*";
 import { useForm } from "react-hook-form";
-import { FiPercent } from "react-icons/fi";
 import { trpc } from "utils/trpc";
 
+import { Button, Form } from "components/ui";
+import showToast from "components/ui/core/notifications";
+import {
+  getCountryLabel,
+  getCurrency,
+  selectOptionsData,
+  SettingsFormValues,
+} from "utils/sim-settings";
+import { Fields } from "./components";
+
 const SimSettings = ({ user }: { user: User }) => {
-  const form = useForm<ProfileDataInputType>({
-    resolver: zodResolver(profileData),
+  const form = useForm<SettingsFormValues>({
+    resolver: zodResolver(
+      profileData.extend({
+        country: selectOptionsData,
+        currency: selectOptionsData,
+      })
+    ),
     reValidateMode: "onChange",
+    defaultValues: {
+      country: { value: user.country, label: getCountryLabel(user.country) },
+      inflation: user.inflation || 0,
+      currency: getCurrency(user.currency),
+      investPerc: user.investPerc || 0,
+      indexReturn: user.indexReturn || 0,
+    },
   });
-  const { control } = form;
   const utils = trpc.useContext();
   const router = useRouter();
 
@@ -32,71 +50,20 @@ const SimSettings = ({ user }: { user: User }) => {
     },
   });
 
-  const onSubmit = (data: ProfileDataInputType) => {
-    mutation.mutate({
-      ...data,
-      completedOnboarding: true,
-    });
-  };
-
   return (
-    <Form form={form} handleSubmit={onSubmit} className="space-y-6">
-      {/* country */}
-      <div>
-        <TextField
-          label="Country"
-          placeholder="Peru"
-          defaultValue={user.country}
-          {...form.register("country")}
-        />
-      </div>
-
-      {/* country inflation */}
-      <div>
-        <NumberInput
-          control={control}
-          name="inflation"
-          label="Country inflation"
-          addOnSuffix={<FiPercent />}
-          placeholder="8"
-          defaultValue={user.inflation}
-        />
-      </div>
-
-      {/* currency */}
-      <div>
-        <TextField
-          label="Country Currency"
-          placeholder="PEN"
-          defaultValue={user.currency}
-          {...form.register("currency")}
-        />
-      </div>
-
-      {/* Investment per year perc */}
-      <div>
-        <NumberInput
-          control={control}
-          name="investPerc"
-          label="Investment percentage"
-          addOnSuffix={<FiPercent />}
-          placeholder="75"
-          defaultValue={user.investPerc}
-        />
-      </div>
-
-      {/* annual return perc */}
-      <div>
-        <NumberInput
-          control={control}
-          name="indexReturn"
-          label="Annual return"
-          addOnSuffix={<FiPercent />}
-          placeholder="7"
-          defaultValue={user.indexReturn}
-        />
-      </div>
-
+    <Form<SettingsFormValues>
+      form={form}
+      handleSubmit={(values) => {
+        mutation.mutate({
+          ...values,
+          country: values.country?.value,
+          currency: values.currency?.value,
+          completedOnboarding: true,
+        });
+      }}
+      className="space-y-6"
+    >
+      <Fields form={form} user={user} />
       <Button
         type="submit"
         className="mt-8 flex w-full flex-row justify-center rounded-md border border-black bg-black p-2 text-center text-sm text-white"

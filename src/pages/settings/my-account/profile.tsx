@@ -107,9 +107,9 @@ const ProfileView = () => {
     if (user) {
       reset(
         {
-          avatar: user?.avatar || "",
-          username: user?.username || "",
-          name: user?.name || "",
+          avatar: user.avatar || "",
+          username: user.username || "",
+          name: user.name || "",
         },
         {
           keepDirtyValues: true,

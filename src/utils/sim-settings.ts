@@ -1,14 +1,34 @@
 import clm from "country-locale-map";
-import { MAYOR_CURRENCY_CODES } from "utils/constants";
+import {
+  DEFAULT_COUNTRY,
+  DEFAULT_CURRENCY,
+  MAYOR_CURRENCY_CODES,
+} from "utils/constants";
 import * as countryFlags from "country-flag-icons/react/3x2";
 import cc from "currency-codes";
+import { ProfileDataInputType } from "prisma/*";
+import { z } from "zod";
 
 export interface SelectOption {
   readonly value: string;
   readonly label: string;
 }
 
+export type SettingsFormValues = Omit<
+  ProfileDataInputType,
+  "country" | "currency"
+> & {
+  country?: SelectOption;
+  currency?: SelectOption;
+};
+export const selectOptionsData = z.object({
+  value: z.string().optional(),
+  label: z.string().optional(),
+});
+
 export const getCurrency = (code: string) => {
+  code = code || DEFAULT_CURRENCY;
+
   const label = new Intl.NumberFormat("en", {
     style: "currency",
     currency: code,
@@ -24,6 +44,8 @@ export const getCurrency = (code: string) => {
 };
 
 export const getCountryLabel = (countryCode: string) => {
+  countryCode = countryCode || DEFAULT_COUNTRY;
+
   const locale = clm.getCountryByAlpha2(countryCode)?.languages[0];
   return countryCode !== "default"
     ? new Intl.DisplayNames(locale, { type: "region" }).of(countryCode) || ""
@@ -32,7 +54,7 @@ export const getCountryLabel = (countryCode: string) => {
 
 export const getCurrencyOptions = () => {
   const getUniqCurrencies = (currencies: string[]) => {
-    let seen: Record<string, boolean> = {};
+    const seen: Record<string, boolean> = {};
     return currencies.filter(function (currency) {
       return seen.hasOwnProperty(currency) ? false : (seen[currency] = true);
     });
@@ -44,7 +66,7 @@ export const getCurrencyOptions = () => {
 };
 
 export const getCountryOptions = () => {
-  let countries: SelectOption[] = [];
+  const countries: SelectOption[] = [];
   for (const countryCode in countryFlags) {
     countries.push({
       value: countryCode,

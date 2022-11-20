@@ -26,3 +26,6 @@ export const MAYOR_CURRENCY_CODES = [
   "MXN",
   "CLP",
 ];
+
+export const DEFAULT_CURRENCY = "USD";
+export const DEFAULT_COUNTRY = "US";

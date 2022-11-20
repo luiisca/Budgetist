@@ -1,19 +1,24 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Fields } from "components/getting-started/steps-views/components";
 import {
   Button,
   Form,
-  NumberInput,
   SkeletonButton,
   SkeletonContainer,
   SkeletonText,
-  TextField,
 } from "components/ui";
 import { getLayout } from "components/ui/core/layouts/SettingsLayout";
 import Meta from "components/ui/core/Meta";
 import showToast from "components/ui/core/notifications";
-import { profileData, ProfileDataInputType } from "prisma/*";
-import { Controller, useForm } from "react-hook-form";
-import { FiPercent } from "react-icons/fi";
+import { profileData } from "prisma/*";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import {
+  getCountryLabel,
+  getCurrency,
+  selectOptionsData,
+  SettingsFormValues,
+} from "utils/sim-settings";
 import { trpc } from "utils/trpc";
 
 const SkeletonLoader = () => {
@@ -33,7 +38,11 @@ const SkeletonLoader = () => {
 };
 
 const ProfileView = () => {
-  const { data: user, isLoading } = trpc.user.me.useQuery();
+  const { data: user, isLoading } = trpc.user.me.useQuery(undefined, {
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
   const mutation = trpc.user.updateProfile.useMutation({
     onSuccess: () => {
       showToast("Settings updated successfully", "success");
@@ -43,25 +52,55 @@ const ProfileView = () => {
     },
   });
 
-  const formMethods = useForm<ProfileDataInputType>({
-    resolver: zodResolver(profileData),
+  const formMethods = useForm<SettingsFormValues>({
+    resolver: zodResolver(
+      profileData.extend({
+        country: selectOptionsData,
+        currency: selectOptionsData,
+      })
+    ),
     reValidateMode: "onChange",
   });
 
   const {
-    control,
-    formState: { isSubmitting },
+    reset,
+    formState: { isSubmitting, isDirty },
   } = formMethods;
 
+  useEffect(() => {
+    console.log("USEEFFECT INSIDE simulation config page called");
+    if (user) {
+      reset(
+        {
+          country: {
+            value: user.country,
+            label: getCountryLabel(user.country),
+          },
+          inflation: user.inflation,
+          currency: getCurrency(user.currency),
+          investPerc: user.investPerc,
+          indexReturn: user.indexReturn,
+        },
+        {
+          keepDirtyValues: true,
+        }
+      );
+    }
+  }, [reset, user]);
+
   if (isLoading || !user) return <SkeletonLoader />;
-  const isDisabled = isSubmitting;
+  const isDisabled = isSubmitting || !isDirty;
 
   return (
     <>
       <Form
         form={formMethods}
         handleSubmit={(values) => {
-          mutation.mutate(values);
+          mutation.mutate({
+            ...values,
+            country: values.country?.value,
+            currency: values.currency?.value,
+          });
         }}
         className="space-y-6"
       >
@@ -70,75 +109,7 @@ const ProfileView = () => {
           description="Manage configs for your Budgetist simulation"
         />
 
-        {/* country */}
-        <Controller
-          name="country"
-          control={control}
-          defaultValue={user.country}
-          render={({ field }) => (
-            <TextField
-              {...field}
-              onChange={(e) =>
-                e && formMethods.setValue("country", e.target.value)
-              }
-              label="Country"
-              placeholder="Peru"
-            />
-          )}
-        />
-
-        {/* country inflation */}
-        <div>
-          <NumberInput
-            control={control}
-            name="inflation"
-            label="Country inflation"
-            addOnSuffix={<FiPercent />}
-            placeholder="8"
-            defaultValue={user.inflation}
-          />
-        </div>
-
-        {/* currency */}
-        <Controller
-          name="currency"
-          defaultValue={user.currency}
-          render={({ field }) => (
-            <TextField
-              {...field}
-              label="Country Currency"
-              placeholder="PEN"
-              defaultValue={user.currency}
-              onChange={(e) =>
-                e && formMethods.setValue("currency", e.target.value)
-              }
-            />
-          )}
-        />
-
-        {/* Investment per year perc */}
-        <div>
-          <NumberInput
-            control={control}
-            name="investPerc"
-            label="Investment percentage"
-            addOnSuffix={<FiPercent />}
-            placeholder="75"
-            defaultValue={user.investPerc}
-          />
-        </div>
-
-        {/* annual return perc */}
-        <div>
-          <NumberInput
-            control={control}
-            name="indexReturn"
-            label="Annual return"
-            addOnSuffix={<FiPercent />}
-            placeholder="7"
-            defaultValue={user.indexReturn}
-          />
-        </div>
+        <Fields form={formMethods} user={user} />
 
         <Button
           disabled={isDisabled}

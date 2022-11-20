@@ -28,7 +28,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       {...props}
       ref={ref}
       className={classNames(
-        "mb-2 block h-9 w-full rounded-md border border-gray-300 py-2 px-3 text-sm placeholder:text-gray-400 hover:border-gray-400 focus:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-800 focus:ring-offset-1",
+        "mb-2 block h-9 w-full rounded-md border border-gray-300 py-2 px-3 text-sm placeholder:text-gray-400 focus:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-800 focus:ring-offset-1 hover:border-gray-400",
         props.className
       )}
     />
@@ -79,9 +79,9 @@ type InputFieldProps = {
   addOnSuffix?: ReactNode;
   addOnFilled?: boolean;
   error?: string;
+  loader?: ReactNode;
   labelSrOnly?: boolean;
   containerClassName?: string;
-  t?: (key: string) => string;
 } & React.ComponentProps<typeof Input> & {
     labelProps?: React.ComponentProps<typeof Label>;
     labelClassName?: string;
@@ -100,6 +100,7 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
       addOnLeading,
       addOnSuffix,
       addOnFilled = true,
+      loader,
       hint,
       labelSrOnly,
       containerClassName,
@@ -148,27 +149,34 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
                 </span>
               </div>
             </div>
+            <div className="relative w-full">
+              <Input
+                id={id}
+                placeholder={placeholder}
+                className={classNames(
+                  className,
+                  addOnLeading && "rounded-l-none",
+                  addOnSuffix && "rounded-r-none",
+                  "!my-0 !ring-0"
+                )}
+                {...passThrough}
+                ref={ref}
+              />
+              {loader}
+            </div>
+          </div>
+        ) : (
+          <div className="relative w-full">
             <Input
               id={id}
               placeholder={placeholder}
-              className={classNames(
-                className,
-                addOnLeading && "rounded-l-none",
-                addOnSuffix && "rounded-r-none",
-                "!my-0 !ring-0"
-              )}
+              className={className}
               {...passThrough}
               ref={ref}
             />
+
+            {loader}
           </div>
-        ) : (
-          <Input
-            id={id}
-            placeholder={placeholder}
-            className={className}
-            {...passThrough}
-            ref={ref}
-          />
         )}
         <Errors fieldName={name} />
         {hint && (
@@ -208,6 +216,8 @@ export const NumberInput = <T extends FieldValues = ProfileDataInputType>(
     label: string;
     placeholder?: string;
     addOnSuffix?: ReactNode;
+    className?: string;
+    loader?: ReactNode;
   }
 ) => {
   return (
@@ -216,9 +226,11 @@ export const NumberInput = <T extends FieldValues = ProfileDataInputType>(
       render={({ field }) => (
         <TextField
           {...field}
+          className={classNames(arg.className)}
           label={arg.label}
           addOnSuffix={arg.addOnSuffix}
           placeholder={arg.placeholder}
+          loader={arg.loader}
           onChange={(e) => {
             return field.onChange(
               Number.isNaN(parseInt(e.target.value, 10))

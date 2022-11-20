@@ -69,7 +69,7 @@ export const ControlComponent = <
     {...props}
     className={classNames(
       className,
-      "border-gray-300 bg-white text-sm leading-4 placeholder:text-sm placeholder:font-normal focus-within:border-0 focus-within:ring-2 focus-within:ring-neutral-800 hover:border-neutral-400 dark:border-darkgray-300 dark:bg-darkgray-100 dark:focus-within:ring-white"
+      "!rounded-md border-gray-300 bg-white text-sm leading-4 placeholder:text-sm placeholder:font-normal focus-within:border-0 focus-within:ring-2 focus-within:ring-neutral-800 hover:border-neutral-400 dark:border-darkgray-300 dark:bg-darkgray-100 dark:focus-within:ring-white"
     )}
   />
 );

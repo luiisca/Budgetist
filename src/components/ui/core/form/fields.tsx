@@ -211,6 +211,12 @@ export const EmailField = forwardRef<HTMLInputElement, InputFieldProps>(
   }
 );
 
+const transIntoInt = (value: string) => {
+  return Number.isNaN(parseInt(value as string, 10))
+    ? 0
+    : parseInt(value as string, 10);
+};
+
 export const NumberInput = <T extends FieldValues = ProfileDataInputType>(
   arg: Omit<ControllerProps<T>, "render"> & {
     label: string;
@@ -218,6 +224,8 @@ export const NumberInput = <T extends FieldValues = ProfileDataInputType>(
     addOnSuffix?: ReactNode;
     className?: string;
     loader?: ReactNode;
+    onChange?: (...event: any[]) => void;
+    controllerValue?: string | number | readonly string[];
   }
 ) => {
   return (
@@ -233,16 +241,11 @@ export const NumberInput = <T extends FieldValues = ProfileDataInputType>(
           loader={arg.loader}
           onChange={(e) => {
             return field.onChange(
-              Number.isNaN(parseInt(e.target.value, 10))
-                ? 0
-                : parseInt(e.target.value, 10)
+              (arg?.onChange && arg?.onChange(e)) ||
+                transIntoInt(e.target.value)
             );
           }}
-          value={
-            Number.isNaN(parseInt(field.value as string)) || field.value === 0
-              ? 0
-              : parseInt(field.value as string, 10)
-          }
+          value={arg.controllerValue || transIntoInt(field.value)}
         />
       )}
     />

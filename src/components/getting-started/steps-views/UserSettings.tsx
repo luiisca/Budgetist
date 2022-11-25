@@ -76,11 +76,11 @@ const UserSettings = (props: IUserSettingsProps) => {
         <Controller
           control={formMethods.control}
           name="avatar"
-          render={({ field: { value } }) => (
+          render={({ field }) => (
             <>
               <Avatar
                 alt=""
-                imageSrc={value}
+                imageSrc={field.value}
                 gravatarFallbackMd5={emailMd5}
                 size="lg"
               />
@@ -90,9 +90,9 @@ const UserSettings = (props: IUserSettingsProps) => {
                   id="avatar-upload"
                   buttonMsg="Change Avatar"
                   handleAvatarChange={(newAvatar) => {
-                    formMethods.setValue("avatar", newAvatar);
+                    field.onChange(newAvatar);
                   }}
-                  imageSrc={value}
+                  imageSrc={field.value}
                 />
               </div>
             </>

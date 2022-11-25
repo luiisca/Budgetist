@@ -62,7 +62,7 @@ model User {
   sessions           Session[]
   Feedback Feedback[]
 
-  country     String @default("usa")
+  country     String @default("US")
   inflation   Int    @default(8)
   currency    String @default("USD")
   investPerc  Int    @default(80)
@@ -99,9 +99,9 @@ enum IdentityProvider {
 
 model Salary {
   id       Int      @id @default(autoincrement())
-  title    String
-  currency String
-  amount   String
+  title    String @default("Salary")
+  currency    String @default("USD")
+  amount   Int
   variance Period[]
 
   user   User @relation(fields: [userId], references: [id])

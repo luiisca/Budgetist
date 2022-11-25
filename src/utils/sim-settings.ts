@@ -43,8 +43,18 @@ export const getCurrency = (code: string) => {
   };
 };
 
+const listAllCountries = () => {
+  const countries: string[] = [];
+  for (const countryCode in countryFlags) {
+    countries.push(countryCode);
+  }
+  return countries;
+};
+
 export const getCountryLabel = (countryCode: string) => {
-  countryCode = countryCode || DEFAULT_COUNTRY;
+  countryCode = listAllCountries().includes(countryCode)
+    ? countryCode
+    : DEFAULT_COUNTRY;
 
   const locale = clm.getCountryByAlpha2(countryCode)?.languages[0];
   return countryCode !== "default"

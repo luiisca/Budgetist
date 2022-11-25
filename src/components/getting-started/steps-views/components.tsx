@@ -1,6 +1,6 @@
 import classNames from "classnames";
 import { useCallback, useMemo, useState } from "react";
-import { FiCheck, FiGlobe, FiPercent } from "react-icons/fi";
+import { FiCheck, FiGlobe, FiPercent, FiX } from "react-icons/fi";
 import {
   components as reactSelectComponents,
   GroupBase,
@@ -8,7 +8,12 @@ import {
   SingleValue,
   ValueContainerProps,
 } from "react-select";
-import { Controller, UseFormReturn } from "react-hook-form";
+import {
+  Control,
+  Controller,
+  FieldValues,
+  UseFormReturn,
+} from "react-hook-form";
 import { FLAG_URL } from "utils/constants";
 import {
   getCountryOptions,
@@ -113,6 +118,27 @@ export const ValueComponent = (
   );
 };
 
+export const CurrencyInput = ({ control }: { control: Control }) => {
+  const currencyOptions = useMemo(getCurrencyOptions, []);
+
+  return (
+    <Controller
+      control={control}
+      name="currency"
+      render={({ field }) => (
+        <>
+          <Label className="text-gray-900">Currency</Label>
+          <Select
+            value={field.value}
+            options={currencyOptions}
+            onChange={(e) => e && field.onChange({ ...e })}
+          />
+        </>
+      )}
+    />
+  );
+};
+
 export const Fields = ({
   form,
   user,
@@ -120,13 +146,12 @@ export const Fields = ({
   form: UseFormReturn<SettingsFormValues>;
   user: Record<string, any>;
 }) => {
-  const [isLoadingInfl, setIsLoadingInfl] = useState<boolean>(false);
-  const [isValidInfl, setIsValidInfl] = useState<boolean | null>(false);
+  const [isLoadingInfl, setIsLoadingInfl] = useState<boolean | null>(null);
+  const [isValidInfl, setIsValidInfl] = useState<boolean | null>(null);
   const { control } = form;
   const utils = trpc.useContext();
 
   const countryOptions = useMemo(getCountryOptions, []);
-  const currencyOptions = useMemo(getCurrencyOptions, []);
 
   const updateCurrency = useCallback(
     (
@@ -137,44 +162,42 @@ export const Fields = ({
         countryData?.value &&
         countryToCurrency[countryData.value as keyof SingleValue<SelectOption>];
 
-      countryData?.value &&
-        console.log(
-          `CURRENCY CODE FOR ${countryData?.label} (${countryData?.value})`,
-          currencyCode
-        );
-
       form.setValue("currency", getCurrency(currencyCode || "USD"));
     },
     []
   );
   const updateInflation = useCallback(
     async (
-      currencyData: SingleValue<SelectOption>,
+      countryData: SingleValue<SelectOption>,
       form: UseFormReturn<SettingsFormValues, any>
     ) => {
       let inflation = [];
-      if (currencyData) {
-        form.setValue("country", { ...currencyData });
+      if (countryData) {
+        const countryName = countryData.value;
 
         setIsValidInfl(null);
         setIsLoadingInfl(true);
+
         inflation = await utils.external.inflation.fetch(
-          new Intl.DisplayNames("en", { type: "region" }).of(
-            currencyData.value
-          ) || ""
+          new Intl.DisplayNames("en", { type: "region" }).of(countryName) || ""
         );
         setIsLoadingInfl(false);
-        if (inflation.length === 0) {
+
+        if (!inflation || inflation.length === 0) {
+          setIsValidInfl(false);
+          setTimeout(() => setIsValidInfl(null), 2000);
           showToast(
-            "No inflation value found for selected country. Please update manually",
+            "Something went wrong updating inflation. Please try again or update manually",
             "warning"
           );
           return;
         }
         setIsValidInfl(true);
-        setTimeout(() => setIsValidInfl(false), 2000);
+        setTimeout(() => setIsValidInfl(null), 2000);
 
-        form.setValue("inflation", Math.round(+inflation[0].yearly_rate_pct));
+        form.setValue("inflation", Math.round(+inflation[0].yearly_rate_pct), {
+          shouldDirty: true,
+        });
       }
     },
     []
@@ -187,13 +210,14 @@ export const Fields = ({
         <Controller
           control={control}
           name="country"
-          render={({ field: { value } }) => (
+          render={({ field }) => (
             <>
               <Label className="text-gray-900">Country</Label>
               <Select
-                value={value}
+                value={field.value}
                 options={countryOptions}
                 onChange={async (e) => {
+                  field.onChange(e);
                   updateCurrency(e, form);
                   updateInflation(e, form);
                 }}
@@ -210,20 +234,7 @@ export const Fields = ({
       {/* currency */}
       <div className="flex space-x-3">
         <div className="flex-[1_1_80%]">
-          <Controller
-            control={control}
-            name="currency"
-            render={({ field: { value } }) => (
-              <>
-                <Label className="text-gray-900">Currency</Label>
-                <Select
-                  value={value}
-                  options={currencyOptions}
-                  onChange={(e) => e && form.setValue("currency", { ...e })}
-                />
-              </>
-            )}
-          />
+          <CurrencyInput control={control} />
         </div>
 
         {/* country inflation */}
@@ -237,13 +248,16 @@ export const Fields = ({
             defaultValue={user.inflation}
             loader={
               <>
-                {isValidInfl && (
-                  <div className="absolute right-[2px] top-0 flex flex-row">
-                    <span className={classNames("mx-2 py-2")}>
+                <div className="absolute right-[2px] top-0 flex flex-row">
+                  <span className={classNames("mx-2 py-2")}>
+                    {isLoadingInfl === false && isValidInfl && (
                       <FiCheck className="mt-[2px] w-6" />
-                    </span>
-                  </div>
-                )}
+                    )}
+                    {isLoadingInfl === false && isValidInfl === false && (
+                      <FiX className="mt-[2px] w-6" />
+                    )}
+                  </span>
+                </div>
                 {isLoadingInfl && <LoadingIcon />}
               </>
             }

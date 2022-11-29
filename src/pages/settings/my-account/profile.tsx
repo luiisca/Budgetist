@@ -93,8 +93,12 @@ const ProfileView = () => {
     },
   });
 
-  const formMethods = useForm<ProfileDataInputType>({
-    resolver: zodResolver(profileData),
+  const formMethods = useForm<
+    Omit<ProfileDataInputType, "inflation" | "investPerc" | "indexReturn">
+  >({
+    resolver: zodResolver(
+      profileData.omit({ inflation: true, investPerc: true, indexReturn: true })
+    ),
     reValidateMode: "onChange",
   });
 

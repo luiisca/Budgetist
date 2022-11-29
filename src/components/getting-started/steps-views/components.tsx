@@ -8,13 +8,13 @@ import {
   SingleValue,
   ValueContainerProps,
 } from "react-select";
+import { Control, Controller, UseFormReturn } from "react-hook-form";
 import {
-  Control,
-  Controller,
-  FieldValues,
-  UseFormReturn,
-} from "react-hook-form";
-import { FLAG_URL } from "utils/constants";
+  DEFAULT_INDEX_RETURN,
+  DEFAULT_INFLATION,
+  DEFAULT_INVEST_PERC,
+  FLAG_URL,
+} from "utils/constants";
 import {
   getCountryOptions,
   getCurrency,
@@ -244,7 +244,7 @@ export const Fields = ({
             name="inflation"
             label="Country inflation"
             addOnSuffix={<FiPercent />}
-            placeholder="7"
+            placeholder={`${DEFAULT_INFLATION}`}
             defaultValue={user.inflation}
             loader={
               <>
@@ -272,7 +272,7 @@ export const Fields = ({
           name="investPerc"
           label="Investment percentage"
           addOnSuffix={<FiPercent />}
-          placeholder="75"
+          placeholder={`${DEFAULT_INVEST_PERC}`}
           defaultValue={user.investPerc}
         />
       </div>
@@ -284,7 +284,7 @@ export const Fields = ({
           name="indexReturn"
           label="Annual return"
           addOnSuffix={<FiPercent />}
-          placeholder="7"
+          placeholder={`${DEFAULT_INDEX_RETURN}`}
           defaultValue={user.indexReturn}
         />
       </div>

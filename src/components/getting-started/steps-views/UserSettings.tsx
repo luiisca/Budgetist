@@ -20,8 +20,12 @@ interface IUserSettingsProps {
 const UserSettings = (props: IUserSettingsProps) => {
   const { user, nextStep } = props;
 
-  const formMethods = useForm<ProfileDataInputType>({
-    resolver: zodResolver(profileData),
+  const formMethods = useForm<
+    Omit<ProfileDataInputType, "inflation" | "investPerc" | "indexReturn">
+  >({
+    resolver: zodResolver(
+      profileData.omit({ inflation: true, investPerc: true, indexReturn: true })
+    ),
     reValidateMode: "onChange",
   });
 
@@ -64,13 +68,13 @@ const UserSettings = (props: IUserSettingsProps) => {
     onError: onError,
   });
 
-  const onSubmit = (data: ProfileDataInputType) => {
-    mutation.mutate(data);
-    console.log("USER UPDATE DATA", data);
-  };
-
   return (
-    <Form form={formMethods} handleSubmit={onSubmit}>
+    <Form
+      form={formMethods}
+      handleSubmit={(values) => {
+        mutation.mutate(values);
+      }}
+    >
       {/*country, inflation, currency*/}
       <div className="flex items-center">
         <Controller

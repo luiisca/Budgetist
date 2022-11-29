@@ -10,6 +10,7 @@ import {
   useFormContext,
   UseFormReturn,
 } from "react-hook-form";
+import objectPath from "object-path";
 
 import classNames from "classnames";
 import { getErrorFromUnknown } from "utils/errors";
@@ -60,7 +61,10 @@ function Errors<T extends FieldValues = FieldValues>(props: {
 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  const fieldErrors: FieldErrors<T> | undefined = formState.errors[fieldName];
+  const fieldErrors: FieldErrors<T> | undefined = objectPath.get(
+    formState.errors,
+    fieldName
+  );
 
   if (!fieldErrors) return null;
 
@@ -211,21 +215,23 @@ export const EmailField = forwardRef<HTMLInputElement, InputFieldProps>(
   }
 );
 
-const transIntoInt = (value: string) => {
-  return Number.isNaN(parseInt(value as string, 10))
-    ? 0
+export const transIntoInt = (value: string) => {
+  const parsedVal = parseInt(value as string, 10);
+  return parsedVal === 0
+    ? 1
+    : Number.isNaN(parsedVal)
+    ? ""
     : parseInt(value as string, 10);
 };
 
 export const NumberInput = <T extends FieldValues = ProfileDataInputType>(
   arg: Omit<ControllerProps<T>, "render"> & {
-    label: string;
+    label?: string;
     placeholder?: string;
     addOnSuffix?: ReactNode;
     className?: string;
     loader?: ReactNode;
-    onChange?: (...event: any[]) => void;
-    controllerValue?: string | number | readonly string[];
+    onChange?: (...event: any[]) => number | string;
   }
 ) => {
   return (
@@ -234,18 +240,19 @@ export const NumberInput = <T extends FieldValues = ProfileDataInputType>(
       render={({ field }) => (
         <TextField
           {...field}
+          type="number"
           className={classNames(arg.className)}
           label={arg.label}
           addOnSuffix={arg.addOnSuffix}
           placeholder={arg.placeholder}
           loader={arg.loader}
           onChange={(e) => {
-            return field.onChange(
+            field.onChange(
               (arg?.onChange && arg?.onChange(e)) ||
                 transIntoInt(e.target.value)
             );
           }}
-          value={arg.controllerValue || transIntoInt(field.value)}
+          value={transIntoInt(field.value)}
         />
       )}
     />

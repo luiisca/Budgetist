@@ -7,6 +7,7 @@ export const externalRouter = router({
     .query(async ({ input: country }) => {
       let value;
       try {
+        console.log("BEFORE INFALTION REQ");
         const result = await fetch(
           `https://api.api-ninjas.com/v1/inflation?country=${country}`,
           {

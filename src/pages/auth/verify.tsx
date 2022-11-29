@@ -106,6 +106,7 @@ export default function Verify() {
                   {
                     query: {
                       ...router.query,
+                      email,
                       t: Date.now(),
                     },
                   },

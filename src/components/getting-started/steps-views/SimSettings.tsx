@@ -15,6 +15,11 @@ import {
   SettingsFormValues,
 } from "utils/sim-settings";
 import { Fields } from "./components";
+import {
+  DEFAULT_INDEX_RETURN,
+  DEFAULT_INFLATION,
+  DEFAULT_INVEST_PERC,
+} from "utils/constants";
 
 const SimSettings = ({ user }: { user: User }) => {
   const form = useForm<SettingsFormValues>({
@@ -56,6 +61,9 @@ const SimSettings = ({ user }: { user: User }) => {
       handleSubmit={(values) => {
         mutation.mutate({
           ...values,
+          investPerc: Number(values.investPerc) || DEFAULT_INVEST_PERC,
+          inflation: Number(values.inflation) || DEFAULT_INFLATION,
+          indexReturn: Number(values.indexReturn) || DEFAULT_INDEX_RETURN,
           country: values.country?.value,
           currency: values.currency?.value,
           completedOnboarding: true,

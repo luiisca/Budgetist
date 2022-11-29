@@ -14,6 +14,11 @@ import { profileData } from "prisma/*";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
+  DEFAULT_INDEX_RETURN,
+  DEFAULT_INFLATION,
+  DEFAULT_INVEST_PERC,
+} from "utils/constants";
+import {
   getCountryLabel,
   getCurrency,
   selectOptionsData,
@@ -100,6 +105,9 @@ const ProfileView = () => {
         handleSubmit={(values) => {
           mutation.mutate({
             ...values,
+            investPerc: Number(values.investPerc) || DEFAULT_INVEST_PERC,
+            inflation: Number(values.inflation) || DEFAULT_INFLATION,
+            indexReturn: Number(values.indexReturn) || DEFAULT_INDEX_RETURN,
             country: values.country?.value,
             currency: values.currency?.value,
           });

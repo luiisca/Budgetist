@@ -1,27 +1,10 @@
 import { TRPCError } from "@trpc/server";
-import { salaryData } from "prisma/*";
-import { z } from "zod";
+import { salaryDataVarianceNumber } from "prisma/*";
 import { protectedProcedure, router } from "../trpc";
 
 export const simulationRouter = router({
   updateOrCreateSalary: protectedProcedure
-    .input(
-      salaryData.extend({
-        variance: z
-          .array(
-            z
-              .object({
-                from: z.number().positive(),
-                amount: z.number().positive(),
-              })
-              .required()
-          )
-          .nonempty({
-            message: "Cannot send empty list when variance switch is on",
-          })
-          .optional(),
-      })
-    )
+    .input(salaryDataVarianceNumber)
     .mutation(async ({ input, ctx }) => {
       const { prisma, user } = ctx;
       let salary;

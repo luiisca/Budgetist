@@ -38,7 +38,12 @@ async function getUserFromSession({ session }: { session: Maybe<Session> }) {
           title: true,
           currency: true,
           amount: true,
-          variance: true,
+          variance: {
+            select: {
+              from: true,
+              amount: true,
+            },
+          },
         },
       },
     },

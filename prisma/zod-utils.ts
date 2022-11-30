@@ -38,7 +38,6 @@ export const salaryVarianceStringOrNumber = z
       })
       .required()
   )
-  .nonempty({ message: "Cannot send empty list when variance switch is on" })
   .optional();
 
 export const salaryVarianceNumber = z
@@ -50,9 +49,6 @@ export const salaryVarianceNumber = z
       })
       .required()
   )
-  .nonempty({
-    message: "Cannot send empty list when variance switch is on",
-  })
   .optional();
 
 export const salaryData = z.object({

@@ -14,6 +14,11 @@ import { profileData } from "prisma/*";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
+  DEFAULT_INDEX_RETURN,
+  DEFAULT_INFLATION,
+  DEFAULT_INVEST_PERC,
+} from "utils/constants";
+import {
   getCountryLabel,
   getCurrency,
   selectOptionsData,
@@ -43,12 +48,15 @@ const ProfileView = () => {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
+  const utils = trpc.useContext();
   const mutation = trpc.user.updateProfile.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       showToast("Settings updated successfully", "success");
+      await utils.user.me.invalidate();
     },
-    onError: () => {
+    onError: async () => {
       showToast("Error updating settings", "error");
+      await utils.user.me.invalidate();
     },
   });
 
@@ -68,7 +76,6 @@ const ProfileView = () => {
   } = formMethods;
 
   useEffect(() => {
-    console.log("USEEFFECT INSIDE simulation config page called");
     if (user) {
       reset(
         {
@@ -98,6 +105,9 @@ const ProfileView = () => {
         handleSubmit={(values) => {
           mutation.mutate({
             ...values,
+            investPerc: Number(values.investPerc) || DEFAULT_INVEST_PERC,
+            inflation: Number(values.inflation) || DEFAULT_INFLATION,
+            indexReturn: Number(values.indexReturn) || DEFAULT_INDEX_RETURN,
             country: values.country?.value,
             currency: values.currency?.value,
           });
@@ -114,7 +124,7 @@ const ProfileView = () => {
         <Button
           disabled={isDisabled}
           color="primary"
-          className="mt-8"
+          className="mt-6"
           type="submit"
           loading={mutation.isLoading}
         >

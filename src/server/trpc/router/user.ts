@@ -32,7 +32,17 @@ export const userRouter = router({
     }
   }),
   updateProfile: protectedProcedure
-    .input(profileData)
+    .input(
+      profileData.extend({
+        inflation: z.number().positive().optional(),
+        investPerc: z
+          .number()
+          .positive()
+          .max(100, { message: "Cannot be greater than 100%" })
+          .optional(),
+        indexReturn: z.number().positive().optional(),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const { prisma, user } = ctx;
       const data: Prisma.UserUpdateInput = input;

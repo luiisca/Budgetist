@@ -29,3 +29,6 @@ export const MAYOR_CURRENCY_CODES = [
 
 export const DEFAULT_CURRENCY = "USD";
 export const DEFAULT_COUNTRY = "US";
+export const DEFAULT_INVEST_PERC = 60;
+export const DEFAULT_INFLATION = 7;
+export const DEFAULT_INDEX_RETURN = 7;

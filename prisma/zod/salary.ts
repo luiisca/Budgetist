@@ -6,7 +6,7 @@ export const _SalaryModel = z.object({
   id: z.number().int(),
   title: z.string(),
   currency: z.string(),
-  amount: z.string(),
+  amount: z.number().int(),
   userId: z.number().int(),
 })
 

@@ -46,6 +46,7 @@ async function getUserFromSession({ session }: { session: Maybe<Session> }) {
           },
         },
       },
+      categories: true,
     },
   });
 

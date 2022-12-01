@@ -69,6 +69,7 @@ model User {
   indexReturn Int    @default(7)
 
   salary Salary?
+  categories Category[]
 }
 
 model Feedback {
@@ -130,6 +131,8 @@ model Category {
   icon       String
   frequencey Int
 
+  user User @relation(fields: [userId], references: [id])
+  userId Int
   records Record[]
 }
 

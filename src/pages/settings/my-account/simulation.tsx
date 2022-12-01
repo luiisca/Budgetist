@@ -14,6 +14,7 @@ import { profileData } from "prisma/*";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
+  DEFAULT_CURRENCY,
   DEFAULT_INDEX_RETURN,
   DEFAULT_INFLATION,
   DEFAULT_INVEST_PERC,
@@ -109,7 +110,7 @@ const ProfileView = () => {
             inflation: Number(values.inflation) || DEFAULT_INFLATION,
             indexReturn: Number(values.indexReturn) || DEFAULT_INDEX_RETURN,
             country: values.country?.value,
-            currency: values.currency?.value,
+            currency: values.currency?.value || DEFAULT_CURRENCY,
           });
         }}
         className="space-y-6"

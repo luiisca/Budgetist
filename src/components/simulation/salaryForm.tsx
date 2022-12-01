@@ -1,5 +1,4 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Salary, User } from "@prisma/client";
 import { CurrencyInput } from "components/getting-started/steps-views/components";
 import {
   Button,
@@ -14,10 +13,9 @@ import showToast from "components/ui/core/notifications";
 import Switch from "components/ui/core/Switch";
 import _ from "lodash";
 import {
-  salaryData,
-  SalaryDataInputType,
-  SalaryDataInputTypeVarianceNumber,
-  salaryVarianceNumber,
+  salaryDataClient,
+  salaryDataServer,
+  SalaryDataInputTypeClient,
 } from "prisma/*";
 import { useEffect, useState } from "react";
 import {
@@ -36,7 +34,7 @@ import {
 import { AppRouterTypes, trpc } from "utils/trpc";
 import { z } from "zod";
 
-type SalaryFormValues = Omit<SalaryDataInputType, "currency"> & {
+type SalaryFormValues = Omit<SalaryDataInputTypeClient, "currency"> & {
   currency?: SelectOption;
 };
 
@@ -247,7 +245,7 @@ const SalaryForm = ({
 
   const salaryForm = useForm<SalaryFormValues>({
     resolver: zodResolver(
-      salaryData.extend({
+      salaryDataClient.extend({
         currency: selectOptionsData,
       })
     ),
@@ -257,7 +255,7 @@ const SalaryForm = ({
   const { isSubmitting, isDirty } = formState;
 
   const utils = trpc.useContext();
-  const salaryMutation = trpc.simulation.updateOrCreateSalary.useMutation({
+  const salaryMutation = trpc.simulation.salary.updateOrCreate.useMutation({
     onSuccess: async () => {
       showToast("Salary updated successfully", "success");
       await utils.user.me.invalidate();
@@ -289,19 +287,18 @@ const SalaryForm = ({
     if (!varianceHidden && (values.variance?.length as number) > 0) {
       input = {
         ...values,
-        variance: values.variance as unknown as z.infer<
-          typeof salaryVarianceNumber
-        >,
-        currency: values.currency?.value,
+        currency: values.currency?.value || user?.currency,
       };
     } else {
       input = {
         ..._.omit(values, ["variance"]),
-        currency: values.currency?.value,
+        currency: values.currency?.value || user?.currency,
       };
     }
 
-    return salaryMutation.mutate(input);
+    return salaryMutation.mutate(
+      input as unknown as z.infer<typeof salaryDataServer>
+    );
   };
 
   return (

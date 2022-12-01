@@ -1,7 +1,7 @@
 import * as z from "zod"
 import * as imports from "../zod-utils"
 import { IdentityProvider } from "@prisma/client"
-import { CompleteAccount, AccountModel, CompleteSession, SessionModel, CompleteFeedback, FeedbackModel, CompleteSalary, SalaryModel } from "./index"
+import { CompleteAccount, AccountModel, CompleteSession, SessionModel, CompleteFeedback, FeedbackModel, CompleteSalary, SalaryModel, CompleteCategory, CategoryModel } from "./index"
 
 export const _UserModel = z.object({
   id: z.number().int(),
@@ -25,6 +25,7 @@ export interface CompleteUser extends z.infer<typeof _UserModel> {
   sessions: CompleteSession[]
   Feedback: CompleteFeedback[]
   salary?: CompleteSalary | null
+  categories: CompleteCategory[]
 }
 
 /**
@@ -37,4 +38,5 @@ export const UserModel: z.ZodSchema<CompleteUser> = z.lazy(() => _UserModel.exte
   sessions: SessionModel.array(),
   Feedback: FeedbackModel.array(),
   salary: SalaryModel.nullish(),
+  categories: CategoryModel.array(),
 }))

@@ -1,6 +1,6 @@
 import * as z from "zod"
 import * as imports from "../zod-utils"
-import { CompleteRecord, RecordModel } from "./index"
+import { CompleteUser, UserModel, CompleteRecord, RecordModel } from "./index"
 
 export const _CategoryModel = z.object({
   id: z.number().int(),
@@ -14,9 +14,11 @@ export const _CategoryModel = z.object({
   color: z.string(),
   icon: z.string(),
   frequencey: z.number().int(),
+  userId: z.number().int(),
 })
 
 export interface CompleteCategory extends z.infer<typeof _CategoryModel> {
+  user: CompleteUser
   records: CompleteRecord[]
 }
 
@@ -26,5 +28,6 @@ export interface CompleteCategory extends z.infer<typeof _CategoryModel> {
  * NOTE: Lazy required in case of potential circular dependencies within schema
  */
 export const CategoryModel: z.ZodSchema<CompleteCategory> = z.lazy(() => _CategoryModel.extend({
+  user: UserModel,
   records: RecordModel.array(),
 }))

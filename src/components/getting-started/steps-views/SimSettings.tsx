@@ -16,6 +16,7 @@ import {
 } from "utils/sim-settings";
 import { Fields } from "./components";
 import {
+  DEFAULT_CURRENCY,
   DEFAULT_INDEX_RETURN,
   DEFAULT_INFLATION,
   DEFAULT_INVEST_PERC,
@@ -65,7 +66,7 @@ const SimSettings = ({ user }: { user: User }) => {
           inflation: Number(values.inflation) || DEFAULT_INFLATION,
           indexReturn: Number(values.indexReturn) || DEFAULT_INDEX_RETURN,
           country: values.country?.value,
-          currency: values.currency?.value,
+          currency: values.currency?.value || DEFAULT_CURRENCY,
           completedOnboarding: true,
         });
       }}

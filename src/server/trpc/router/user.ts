@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 
-import { profileData } from "prisma/zod-utils";
+import { categoryDataServer, profileData } from "prisma/zod-utils";
 import { router, protectedProcedure } from "../trpc";
 import { Prisma } from "@prisma/client";
 import slugify from "utils/slugify";

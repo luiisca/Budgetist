@@ -122,14 +122,14 @@ model Category {
   id         Int    @id @default(autoincrement())
   title      String
   budget     Int
-  currency   String
-  type       String
-  inflType   String
+  currency   String @default("USD")
+  type       String @default("outcome")
+  inflType   String @default("perCat")
   country    String
   inflVal    Int
-  color      String
   icon       String
-  frequencey Int
+  freqType String @default("perCat")
+  frequency Int @default(12)
 
   user User @relation(fields: [userId], references: [id])
   userId Int
@@ -138,10 +138,10 @@ model Category {
 
 model Record {
   id         Int    @id @default(autoincrement())
-  title      String
+  title      String?
   amount     Int
   type       String
-  frequencey Int
+  frequency Int
   inflation  Int
   currency   String
 

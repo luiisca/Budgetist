@@ -1,22 +1,10 @@
-import {
-  Button,
-  Form,
-  SkeletonButton,
-  SkeletonContainer,
-  SkeletonText,
-} from "components/ui";
+import { SkeletonButton, SkeletonContainer, SkeletonText } from "components/ui";
 import Head from "next/head";
 import Shell from "components/ui/core/Shell";
 import { trpc } from "utils/trpc";
 import _ from "lodash";
 import SalaryForm from "components/simulation/salaryForm";
-import { FiPlus } from "react-icons/fi";
-import { Alert } from "components/ui/Alert";
-import EmptyScreen from "components/ui/core/EmptyScreen";
-import { Category } from "@prisma/client";
-import { categoryDataClient, CategoryDataInputTypeClient } from "prisma/*";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import Categories from "components/simulation/categories";
 
 const SkeletonLoader = () => {
   return (
@@ -33,56 +21,6 @@ const SkeletonLoader = () => {
       </div>
     </SkeletonContainer>
   );
-};
-
-const CategoryForm = ({ category }: { category: Category }) => {
-  // useForm
-  const categoryForm = useForm<CategoryDataInputTypeClient>({
-    resolver: zodResolver(categoryDataClient),
-  });
-  // useEffect with reset
-  // useFieldArray for expenses
-  // isDisabled for button disabled=
-  // mutation.isLoading for button
-
-  return <Form></Form>;
-};
-
-const Categories = () => {
-  const { data, isLoading, isError, isSuccess, error } =
-    trpc.simulation.categories.get.useQuery();
-
-  if (isLoading) return <SkeletonLoader />;
-  if (isError)
-    return (
-      <Alert
-        severity="error"
-        title="Something went wrong"
-        message={error.message}
-      />
-    );
-
-  if (isSuccess)
-    return (
-      <div>
-        <Button className="mb-4" StartIcon={FiPlus}>
-          New Category
-        </Button>
-        {data?.categories.map((category) => (
-          <CategoryForm category={category} />
-        ))}
-        {data?.categories.length === 0 && (
-          <EmptyScreen
-            Icon={FiPlus}
-            headline="New category"
-            description="Budget categories helps you define all your yearly expenses to fine-tune the simulation's result"
-          />
-        )}
-      </div>
-    );
-
-  // impossible state
-  return null;
 };
 
 export default function Simulation() {
@@ -116,7 +54,7 @@ export default function Simulation() {
           <>
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-medium">Salary</h2>
-              <SalaryForm user={user} />
+              <SalaryForm />
             </div>
 
             <div>

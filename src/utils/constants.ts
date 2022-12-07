@@ -32,3 +32,10 @@ export const DEFAULT_COUNTRY = "US";
 export const DEFAULT_INVEST_PERC = 60;
 export const DEFAULT_INFLATION = 7;
 export const DEFAULT_INDEX_RETURN = 7;
+
+export const MIN_YEARS = 1;
+export const MAX_YEARS = 200;
+export const DEFAULT_FREQUENCY = 12;
+export const DEFAULT_FREQUENCY_TYPE = "perCat";
+export const CATEGORY_TYPES = ["income", "outcome", "perRec"];
+export const CATEGORY_INFL_TYPES = ["", "perCat", "perRec"];

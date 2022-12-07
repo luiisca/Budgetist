@@ -1,6 +1,8 @@
 import { useId } from "@radix-ui/react-id";
 import classNames from "classnames";
 import * as React from "react";
+import { useMemo } from "react";
+import { Control, Controller, FieldValues, Path } from "react-hook-form";
 import ReactSelect, {
   components as reactSelectComponents,
   GroupBase,
@@ -208,5 +210,40 @@ export function SelectWithValidation<
     </div>
   );
 }
+
+export const ControlledSelect = <T extends FieldValues>({
+  control,
+  options,
+  name,
+  label,
+  onChange,
+}: {
+  control: Control<T>;
+  options: () => Array<any>;
+  name: string;
+  label?: string;
+  onChange?: (...event: any[]) => string;
+}) => {
+  const selectOptions = useMemo(options, []);
+
+  return (
+    <Controller
+      control={control}
+      name={name as Path<T>}
+      render={({ field }) => (
+        <>
+          {label && <Label className="text-gray-900">{label}</Label>}
+          <Select
+            value={field.value}
+            options={selectOptions}
+            onChange={(e) =>
+              e && field.onChange((onChange && onChange({ ...e })) || { ...e })
+            }
+          />
+        </>
+      )}
+    />
+  );
+};
 
 export default Select;

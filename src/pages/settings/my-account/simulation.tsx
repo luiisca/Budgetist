@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Fields } from "components/getting-started/steps-views/components";
+import { SimSettingsFields } from "components/getting-started/steps-views/components";
 import {
   Button,
   Form,
@@ -109,7 +109,7 @@ const ProfileView = () => {
             investPerc: Number(values.investPerc) || DEFAULT_INVEST_PERC,
             inflation: Number(values.inflation) || DEFAULT_INFLATION,
             indexReturn: Number(values.indexReturn) || DEFAULT_INDEX_RETURN,
-            country: values.country?.value,
+            country: values.country?.value || user.country,
             currency: values.currency?.value || DEFAULT_CURRENCY,
           });
         }}
@@ -120,7 +120,7 @@ const ProfileView = () => {
           description="Manage configs for your Budgetist simulation"
         />
 
-        <Fields form={formMethods} user={user} />
+        <SimSettingsFields form={formMethods} />
 
         <Button
           disabled={isDisabled}

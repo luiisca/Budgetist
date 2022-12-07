@@ -11,9 +11,9 @@ export const _CategoryModel = z.object({
   inflType: z.string(),
   country: z.string(),
   inflVal: z.number().int(),
-  color: z.string(),
   icon: z.string(),
-  frequencey: z.number().int(),
+  freqType: z.string(),
+  frequency: z.number().int(),
   userId: z.number().int(),
 })
 

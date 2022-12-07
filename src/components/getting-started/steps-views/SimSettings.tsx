@@ -14,7 +14,7 @@ import {
   selectOptionsData,
   SettingsFormValues,
 } from "utils/sim-settings";
-import { Fields } from "./components";
+import { SimSettingsFields } from "./components";
 import {
   DEFAULT_CURRENCY,
   DEFAULT_INDEX_RETURN,
@@ -65,14 +65,14 @@ const SimSettings = ({ user }: { user: User }) => {
           investPerc: Number(values.investPerc) || DEFAULT_INVEST_PERC,
           inflation: Number(values.inflation) || DEFAULT_INFLATION,
           indexReturn: Number(values.indexReturn) || DEFAULT_INDEX_RETURN,
-          country: values.country?.value,
+          country: values.country?.value || user.country,
           currency: values.currency?.value || DEFAULT_CURRENCY,
           completedOnboarding: true,
         });
       }}
       className="space-y-6"
     >
-      <Fields form={form} user={user} />
+      <SimSettingsFields form={form} />
       <Button
         type="submit"
         className="mt-8 flex w-full flex-row justify-center rounded-md border border-black bg-black p-2 text-center text-sm text-white"

@@ -67,43 +67,58 @@ export const salaryDataServer = salaryDataClient.extend({
 
 // categories
 export const categoryDataClient = z.object({
+  id: z.number().optional(),
   title: nonEmptyString,
   budget: nonEmptyString.or(z.number().positive()),
-  currency: z.union([equalTo("perRec"), z.string().optional()]),
+  currency: z.union([equalTo("perRec"), z.string().optional()]), // pass default
   type: z.union([equalTo("income"), equalTo("outcome"), equalTo("perRec")]),
-  inflType: z.union([z.boolean(), equalTo("perCat"), equalTo("perRec")]),
-  country: z.string().optional(),
-  inflVal: nonEmptyString.or(z.number().positive()).optional(),
-  color: z.string().optional(),
-  icon: z.string().optional(),
+  inflType: z.union([equalTo(""), equalTo("perCat"), equalTo("perRec")]),
+  country: z.string().optional(), // pass default
+  inflVal: nonEmptyString.or(z.number().positive()).optional(), // pass default
+  icon: z.string().optional(), // pass random default
 
-  records: z.array(
-    z.object({
-      title: nonEmptyString,
-      amount: nonEmptyString.or(z.number().positive()),
-      type: z.union([equalTo("income"), equalTo("outcome")]),
-      frequency: nonEmptyString.or(z.number().positive()).optional(),
-      inflation: nonEmptyString.or(z.number().positive()).optional(),
-      currency: z.string().optional(),
-    })
-  ),
-  frequency: nonEmptyString.or(z.number().positive()).optional(),
+  records: z
+    .array(
+      z
+        .object({
+          title: z.string().optional(),
+          amount: nonEmptyString.or(z.number().positive()),
+          type: z.union([equalTo("income"), equalTo("outcome")]),
+          frequency: nonEmptyString.or(z.number().positive()).optional(), // pass default
+          inflation: nonEmptyString.or(z.number().positive()).optional(), // parent default
+          currency: z.string().optional(), // pass default
+        })
+        .required()
+    )
+    .optional(),
+  freqType: z.union([equalTo("perRec"), equalTo("perCat")]).optional(),
+  frequency: z.union([nonEmptyString, z.number().positive()]).optional(), // pass default
 });
 
 export const categoryDataServer = categoryDataClient.extend({
+  id: z.number().optional(),
+  country: z.string(),
   budget: z.number().positive(),
-  inflType: z.union([equalTo("perCat"), equalTo("perRec")]),
-  inflVal: z.number().positive().optional(),
-  records: z.array(
-    z.object({
-      title: nonEmptyString,
-      amount: z.number().positive(),
-      type: z.union([equalTo("income"), equalTo("outcome")]),
-      frequency: z.number().positive().optional(),
-      inflation: z.number().positive().optional(),
-      currency: z.string().optional(),
-    })
-  ),
+  inflType: z.union([equalTo(""), equalTo("perCat"), equalTo("perRec")]),
+  inflVal: z.number().positive(),
+  icon: z.string(),
+
+  records: z
+    .array(
+      z
+        .object({
+          title: z.string().optional(),
+          amount: z.number().positive(),
+          type: z.union([equalTo("income"), equalTo("outcome")]),
+          frequency: z.number().positive(),
+          inflation: z.number().positive(),
+          currency: z.string(),
+        })
+        .required()
+    )
+    .optional(),
+  freqType: z.union([equalTo("perRec"), equalTo("perCat")]),
+  frequency: z.number().positive(),
 });
 
 export type ProfileDataInputType = z.infer<typeof profileData>;

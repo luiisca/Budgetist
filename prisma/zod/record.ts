@@ -7,7 +7,7 @@ export const _RecordModel = z.object({
   title: z.string(),
   amount: z.number().int(),
   type: z.string(),
-  frequencey: z.number().int(),
+  frequency: z.number().int(),
   inflation: z.number().int(),
   currency: z.string(),
   categoryId: z.number().int(),

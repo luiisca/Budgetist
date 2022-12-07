@@ -224,7 +224,7 @@ export const transIntoInt = (value: string) => {
     : parseInt(value as string, 10);
 };
 
-export const NumberInput = <T extends FieldValues = ProfileDataInputType>(
+export const NumberInput = <T extends FieldValues = FieldValues>(
   arg: Omit<ControllerProps<T>, "render"> & {
     label?: string;
     placeholder?: string;

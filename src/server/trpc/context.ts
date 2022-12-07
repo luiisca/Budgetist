@@ -33,20 +33,6 @@ async function getUserFromSession({ session }: { session: Maybe<Session> }) {
       currency: true,
       investPerc: true,
       indexReturn: true,
-      salary: {
-        select: {
-          title: true,
-          currency: true,
-          amount: true,
-          variance: {
-            select: {
-              from: true,
-              amount: true,
-            },
-          },
-        },
-      },
-      categories: true,
     },
   });
 

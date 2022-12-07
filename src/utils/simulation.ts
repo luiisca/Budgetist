@@ -1,6 +1,9 @@
-const MIN_YEARS = 1;
-const MAX_YEARS = 200;
-const INDEX_ANNUAL_RETURN = 7;
+import {
+  DEFAULT_FREQUENCY,
+  DEFAULT_INDEX_RETURN,
+  MAX_YEARS,
+  MIN_YEARS,
+} from "./constants";
 
 type User = {
   country: string | "other";
@@ -37,13 +40,14 @@ type Category = {
   budget: number;
   currency: string | "perRec";
   type: "income" | "outcome" | "perRec";
-  inflType: false | "perCat" | "perRec";
+  inflType: "" | "perCat" | "perRec";
   country: string;
   inflVal: number;
   color: string;
   icon: string;
 
   records: Array<Record> | null;
+  freqType: "perRec" | "perCat";
   frequency: number;
 };
 
@@ -52,7 +56,7 @@ const user: User = {
   inflation: 8,
   currency: "USD",
   investPerc: 75,
-  indexReturn: INDEX_ANNUAL_RETURN,
+  indexReturn: DEFAULT_INDEX_RETURN,
 };
 
 const salary: Salary = {
@@ -193,7 +197,10 @@ const convertToUSD = (currency: string, amount: number) => {
 };
 
 const getRate = (x: number) => x / 100;
-const getFrequency = (freq: number) => (freq < 1 ? 1 : freq > 12 ? 12 : freq);
+const getFrequency = (freq: number) => {
+  if (!freq) return DEFAULT_FREQUENCY;
+  return freq < 1 ? 1 : freq > DEFAULT_FREQUENCY ? DEFAULT_FREQUENCY : freq;
+};
 
 const getSalaryByYear = (year: number) => {
   let salaryByYear = salary.amount;
@@ -221,7 +228,8 @@ const getSalaryByYear = (year: number) => {
 };
 
 export const getTotalBalance = (years: number) => {
-  years = years <= 0 ? MIN_YEARS : years > MAX_YEARS ? MAX_YEARS : years;
+  years =
+    years && years <= 0 ? MIN_YEARS : years > MAX_YEARS ? MAX_YEARS : years;
 
   let total = 0;
   let yearExpenses = 0;
@@ -244,50 +252,76 @@ export const getTotalBalance = (years: number) => {
     // Calculate total expenses of all categories over 1 year and store those values in accArr for next years calculations
     console.log(`YEAR ${year}`);
     yearExpenses = categories.reduce(
-      (prev: number, crr: Category, i: number) => {
-        if (crr.records === null) {
+      (prevCat: number, crrCat: Category, crrCatI: number) => {
+        if (crrCat.records === null) {
           // console.log(`NO RECORDS ${crr.title}`);
 
-          crr.budget = convertToUSD(crr.currency, crr.budget);
+          crrCat.budget = convertToUSD(crrCat.currency, crrCat.budget);
 
-          if (!crr.inflType || crr.type === "income") {
+          const noInflation = !crrCat.inflType || crrCat.type === "income";
+          const frequency =
+            crrCat.frequency !== "perRec"
+              ? crrCat.frequency
+              : DEFAULT_FREQUENCY;
+
+          if (noInflation) {
             const crrYearSpent =
-              crr.budget *
-              getFrequency(crr.frequency) *
-              (crr.type === "income" ? -1 : 1);
+              crrCat.budget *
+              getFrequency(frequency) *
+              (crrCat.type === "income" ? -1 : 1);
             // console.log(`Current year spent for ${crr.title}: ${crrYearSpent}`);
 
-            return prev + crrYearSpent;
+            return prevCat + crrYearSpent;
           }
-          if (crr.type === "outcome") {
-            const crrYearSpent =
-              accExpensArr[i].spent *
-              (year === 1 ? getFrequency(crr.frequency) : 1) *
-              (1 + getRate(crr.inflVal));
+
+          if (crrCat.type === "outcome") {
+            const crrAccCatExpense = accExpensArr[crrCatI].spent;
+            // after first iteration we've got how much they make on a year so no need to multiply by freq again
+            const freqMod = year === 1 ? getFrequency(frequency) : 1;
+            const P = crrAccCatExpense * freqMod;
+            const i = getRate(crrCat.inflVal);
+
+            const crrYearSpent = P * (1 + i);
             // console.log("PREVIOUS SPENT", accExpensArr[i].spent);
             // console.log(
             //   "FRECUENCY",
             //   year === 1 ? getFrequency(crr.frequency) : 1
             // );
-            accExpensArr[i].spent = crrYearSpent;
+
+            // Save acc cat expense for next iteration calculations
+            accExpensArr[crrCatI].spent = crrYearSpent;
             // console.log(`Current year spent for ${crr.title}: ${crrYearSpent}`);
 
-            return prev + crrYearSpent;
+            return prevCat + crrYearSpent;
           }
         } else {
           // console.log(`RECORDS ${crr.title}`);
-          const yearCatExpenses = crr.records.reduce(
+          const yearCatExpenses = crrCat.records.reduce(
             (prevRec: number, crrRec: Record, crrRecI: number) => {
-              // we wanna make sure all records are coverted to USD
-              crrRec.amount = convertToUSD(crrRec.currency, crrRec.amount);
-              if (
-                !crr.inflType ||
-                (crr.type === "perRec" && crrRec.type === "income")
-              ) {
-                const typeMod =
-                  crr.type === "income" || crr.type === "perRec" ? -1 : 1;
+              // convert all amounts to USD before running as there can be many different curencies
+              crrRec.amount = convertToUSD(
+                crrCat.currency === "perRec"
+                  ? crrRec.currency
+                  : crrCat.currency,
+                crrRec.amount
+              );
+
+              // helpers
+              const perCatIncome = crrCat.type === "income";
+              const perRecIncome =
+                crrCat.type === "perRec" && crrRec.type === "income";
+              const noInflation =
+                !crrCat.inflType || perCatIncome || perRecIncome;
+              const frequency =
+                crrCat.frequency === "perRec"
+                  ? crrRec.frequency
+                  : crrCat.frequency;
+              //
+
+              if (noInflation) {
+                const typeMod = perCatIncome || perRecIncome ? -1 : 1;
                 const crrYearSpent =
-                  crrRec.amount * getFrequency(crrRec.frequency) * typeMod;
+                  crrRec.amount * getFrequency(frequency) * typeMod;
                 // console.log(
                 //   `Current year spent for ${crrRec.title}: ${crrYearSpent}`
                 // );
@@ -295,13 +329,18 @@ export const getTotalBalance = (years: number) => {
                 return prevRec + crrYearSpent;
               }
               if (crrRec.type === "outcome") {
-                const crrYearSpent =
-                  accExpensArr[i].records[crrRecI].spent *
-                  (year === 1 ? getFrequency(crrRec.frequency) : 1) *
-                  (1 +
-                    (crr.inflType === "perRec"
-                      ? getRate(crrRec.inflation)
-                      : getRate(crr.inflVal)));
+                const crrAccRecordExpense =
+                  accExpensArr[crrCatI].records[crrRecI].spent;
+                // after first we've got how much they make on a year so no need to multiply by freq again
+                const freqMod = year === 1 ? getFrequency(frequency) : 1;
+                const P = crrAccRecordExpense * freqMod;
+                const i =
+                  crrCat.inflType === "perRec"
+                    ? getRate(crrRec.inflation)
+                    : getRate(crrCat.inflVal);
+
+                const crrYearSpent = P * (1 + i);
+
                 // console.log(
                 //   `Current year spent for ${crrRec.title}: ${crrYearSpent}`
                 // );
@@ -319,10 +358,11 @@ export const getTotalBalance = (years: number) => {
                 //     ? getRate(crrRec.inflation)
                 //     : getRate(crr.inflVal)
                 // );
-                accExpensArr[i].records[crrRecI].spent = crrYearSpent;
+                accExpensArr[crrCatI].records[crrRecI].spent = crrYearSpent;
 
                 return prevRec + crrYearSpent;
               }
+
               return prevRec + 0;
             },
             0
@@ -330,9 +370,9 @@ export const getTotalBalance = (years: number) => {
 
           // console.log(`${crr.title} expenses: `, yearCatExpenses);
 
-          return prev + yearCatExpenses;
+          return prevCat + yearCatExpenses;
         }
-        return prev + 0;
+        return prevCat + 0;
       },
       0
     );

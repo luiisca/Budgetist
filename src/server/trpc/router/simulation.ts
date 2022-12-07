@@ -1,4 +1,5 @@
 import { TRPCError } from "@trpc/server";
+import _ from "lodash";
 import { categoryDataServer, salaryDataServer } from "prisma/*";
 import { protectedProcedure, router } from "../trpc";
 
@@ -33,7 +34,13 @@ export const simulationRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
         }
 
-        await prisma.period.deleteMany({});
+        await prisma.period.deleteMany({
+          where: {
+            salary: {
+              userId: user.id,
+            },
+          },
+        });
 
         if (input.variance) {
           salary = {
@@ -64,18 +71,71 @@ export const simulationRouter = router({
       }),
   }),
   categories: router({
-    get: protectedProcedure.query(({ ctx: { user } }) => {
-      if (user) {
-        return {
-          categories: user.categories,
-        };
-      }
+    get: protectedProcedure.query(async ({ ctx }) => {
+      const { prisma, user } = ctx;
+      return await prisma.category.findMany({
+        where: {
+          userId: user.id,
+        },
+        include: {
+          records: true,
+        },
+      });
     }),
-    create: protectedProcedure
+    createOrUpdate: protectedProcedure
       .input(categoryDataServer)
-      .mutation(({ input, ctx: { user } }) => {
-        console.log("hey", user.name);
-        console.log("INPUT", input);
+      .mutation(async ({ input, ctx }) => {
+        const { prisma, user } = ctx;
+
+        const userToUpdate = await prisma.user.findUnique({
+          where: {
+            id: user.id,
+          },
+        });
+
+        if (!userToUpdate) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        }
+
+        let category;
+
+        if (input.records) {
+          category = {
+            ...input,
+            records: {
+              create: input.records,
+            },
+          };
+        } else {
+          category = {
+            ..._.omit(input, ["records"]),
+          };
+        }
+
+        if (input.id) {
+          await prisma.record.deleteMany({
+            where: {
+              categoryId: input.id,
+            },
+          });
+          await prisma.category.update({
+            where: {
+              id: input.id,
+            },
+            data: category,
+          });
+        } else {
+          await prisma.category.create({
+            data: {
+              ..._.omit(category, ["id"]),
+              user: {
+                connect: {
+                  id: user.id,
+                },
+              },
+            },
+          });
+        }
       }),
   }),
 });

@@ -1,16 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CurrencyInput } from "components/getting-started/steps-views/components";
 import {
   Button,
   Form,
-  Label,
   NumberInput,
   TextField,
-  Tooltip,
   transIntoInt,
 } from "components/ui";
+import { ControlledSelect } from "components/ui/core/form/select/Select";
 import showToast from "components/ui/core/notifications";
-import Switch from "components/ui/core/Switch";
 import _ from "lodash";
 import {
   salaryDataClient,
@@ -25,14 +22,16 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form";
-import { FiInfo, FiPlus, FiX } from "react-icons/fi";
+import { FiX } from "react-icons/fi";
 import {
   getCurrency,
+  getCurrencyOptions,
   SelectOption,
   selectOptionsData,
 } from "utils/sim-settings";
-import { AppRouterTypes, trpc } from "utils/trpc";
+import { trpc } from "utils/trpc";
 import { z } from "zod";
+import { RecordsList } from "./components";
 
 type SalaryFormValues = Omit<SalaryDataInputTypeClient, "currency"> & {
   currency?: SelectOption;
@@ -50,10 +49,8 @@ const PeriodInput = ({
   label: string;
   name: string;
   varianceArr?: {
-    id: number;
-    from: number;
-    amount: number;
-    salaryId: number;
+    from: number | string;
+    amount: number | string;
   }[];
 }) => {
   const { setError, clearErrors } = useFormContext();
@@ -62,6 +59,7 @@ const PeriodInput = ({
 
     if (!varianceArr) return crrParsedInput;
 
+    // validate custom validations for all array fields on every keystroke
     varianceArr.reduce((prev, crr, index) => {
       // use crrParsedInput when validating neighbors as new val is not yet registered by useWatch
       const prevFromVal = position === index - 1 ? crrParsedInput : prev?.from;
@@ -87,7 +85,7 @@ const PeriodInput = ({
         clearErrors(`variance.${index}.from`);
       }
       return crr;
-    }, {} as { id: number; from: number; amount: number; salaryId: number });
+    }, {} as { from: number; amount: number });
 
     return crrParsedInput;
   };
@@ -102,147 +100,11 @@ const PeriodInput = ({
   );
 };
 
-const Variance = ({
-  varianceHidden,
-  setVarianceHidden,
-  isDisabled,
-}: {
-  varianceHidden: boolean;
-  setVarianceHidden: (value: boolean) => void;
-  isDisabled: boolean;
-}) => {
-  const form = useFormContext();
-  const {
-    control,
-    formState: { errors },
-  } = form;
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "variance",
-  });
-
-  const watchLatestFromVal = useWatch({
-    control,
-    name: `variance.${fields.length - 1}.from`,
-  });
-  const watchSalaryVal = useWatch({
-    control,
-    name: "amount",
-  });
-  const watchVarianceArr = useWatch({
-    control,
-    name: "variance",
-  });
-
-  useEffect(() => {
-    if (errors.variance && errors.variance.message) {
-      showToast(errors.variance.message as string, "error");
-    }
-  }, [errors.variance]);
-
-  return (
-    <div>
-      <div className="mb-4 flex items-center space-x-2">
-        <div className="flex items-center space-x-1">
-          <Label className="mb-0">Variance</Label>
-          <Tooltip
-            content={
-              <p className="text-center">
-                Your salary increase over time.
-                <br />
-                Input the starting year and how much you expect to make <br />{" "}
-                until the next period.
-              </p>
-            }
-          >
-            <div className="-ml-1 self-center rounded p-2 hover:bg-gray-200">
-              <FiInfo className="h-3 w-3" />
-            </div>
-          </Tooltip>
-        </div>
-        <Tooltip
-          content={`${varianceHidden ? "Add" : "Remove"} variance periods`}
-        >
-          <div className="self-center rounded-md p-2 hover:bg-gray-200">
-            <Switch
-              name="Hidden"
-              checked={!varianceHidden}
-              onCheckedChange={() => {
-                form.setValue("salary", watchSalaryVal, { shouldDirty: true });
-
-                if (!varianceHidden) {
-                  remove();
-                } else {
-                  append({
-                    from: 1,
-                    amount: watchSalaryVal,
-                  });
-                }
-
-                setVarianceHidden(!varianceHidden);
-              }}
-            />
-          </div>
-        </Tooltip>
-      </div>
-      {!varianceHidden && (
-        <>
-          <ul className="space-y-4">
-            {fields.map((field, index) => (
-              <li key={field.id}>
-                <div className="flex items-center space-x-3" key={index}>
-                  <PeriodInput
-                    position={index}
-                    label="From"
-                    control={control}
-                    name={`variance.${index}.from`}
-                    varianceArr={watchVarianceArr}
-                  />
-                  <PeriodInput
-                    position={index}
-                    label="Amount"
-                    control={control}
-                    name={`variance.${index}.amount`}
-                  />
-                  <Button
-                    color="primary"
-                    disabled={isDisabled}
-                    className="mt-3"
-                    onClick={() => remove(index)}
-                  >
-                    <FiX className="h-4 w-4" />
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <Button
-            color="primary"
-            disabled={isDisabled}
-            className="mt-3"
-            onClick={() => {
-              append({
-                from: Number(watchLatestFromVal) + 1 || 1,
-                amount: watchSalaryVal,
-              });
-            }}
-          >
-            <FiPlus className="h-4 w-4" />
-          </Button>
-        </>
-      )}
-    </div>
-  );
-};
-
-const SalaryForm = ({
-  user,
-}: {
-  user: AppRouterTypes["user"]["me"]["output"];
-}) => {
+const SalaryForm = () => {
   const [varianceHidden, setVarianceHidden] = useState<boolean>(false);
+  const { data: user } = trpc.user.me.useQuery();
 
+  // form
   const salaryForm = useForm<SalaryFormValues>({
     resolver: zodResolver(
       salaryDataClient.extend({
@@ -254,6 +116,29 @@ const SalaryForm = ({
   const { reset, register, control, formState, setFocus } = salaryForm;
   const { isSubmitting, isDirty } = formState;
 
+  // watch values
+  const fieldArray = useFieldArray<SalaryFormValues>({
+    control,
+    name: "variance",
+  });
+  const { fields, append, remove } = fieldArray;
+
+  const watchLatestFromVal = useWatch({
+    control,
+    name: `variance.${fields.length - 1}.from`,
+  });
+
+  const watchVarianceArr = useWatch({
+    control,
+    name: "variance",
+  });
+
+  const watchAmountVal = useWatch({
+    control,
+    name: "amount",
+  });
+
+  // mutation
   const utils = trpc.useContext();
   const salaryMutation = trpc.simulation.salary.updateOrCreate.useMutation({
     onSuccess: async () => {
@@ -268,6 +153,7 @@ const SalaryForm = ({
     },
   });
 
+  // default form values
   useEffect(() => {
     if (user) {
       const salary = user.salary;
@@ -280,8 +166,7 @@ const SalaryForm = ({
     }
   }, [reset, user]);
 
-  const isDisabled = isSubmitting || !isDirty;
-
+  // onSubmit
   const onSalarySubmit = (values: SalaryFormValues) => {
     let input;
     if (!varianceHidden && (values.variance?.length as number) > 0) {
@@ -296,10 +181,10 @@ const SalaryForm = ({
       };
     }
 
-    return salaryMutation.mutate(
-      input as unknown as z.infer<typeof salaryDataServer>
-    );
+    salaryMutation.mutate(input as unknown as z.infer<typeof salaryDataServer>);
   };
+
+  const isDisabled = isSubmitting || !isDirty;
 
   return (
     <Form<SalaryFormValues>
@@ -311,6 +196,7 @@ const SalaryForm = ({
         <TextField label="Title" placeholder="Salary" {...register("title")} />
       </div>
       <div className="flex space-x-3">
+        {/* amount  */}
         <div className="flex-[1_1_80%]">
           <NumberInput<SalaryFormValues>
             control={control}
@@ -319,18 +205,74 @@ const SalaryForm = ({
             placeholder="Current salary..."
           />
         </div>
+        {/* currency */}
         <div>
-          <CurrencyInput control={control as unknown as Control} />
+          <ControlledSelect<SalaryFormValues>
+            control={control}
+            options={getCurrencyOptions}
+            name="currency"
+            label="Currency"
+          />
         </div>
       </div>
 
-      <div>
-        <Variance
-          isDisabled={salaryMutation.isLoading}
-          varianceHidden={varianceHidden}
-          setVarianceHidden={setVarianceHidden}
-        />
-      </div>
+      <RecordsList<SalaryFormValues>
+        name="variance"
+        infoCont={
+          <>
+            Your salary increase over time.
+            <br />
+            Input the starting year and how much you expect to make <br /> until
+            the next period.
+          </>
+        }
+        hidden={varianceHidden}
+        isDisabled={salaryMutation.isLoading}
+        fieldArray={fieldArray}
+        newRecordShape={{
+          from: Number(watchLatestFromVal) + 1 || 1,
+          amount: watchAmountVal,
+        }}
+        switchOnChecked={() => {
+          salaryForm.setValue("amount", watchAmountVal, { shouldDirty: true });
+
+          if (!varianceHidden) {
+            remove();
+          } else {
+            append({
+              from: 1,
+              amount: watchAmountVal,
+            });
+          }
+          setVarianceHidden(!varianceHidden);
+        }}
+      >
+        {(index: number) => (
+          <>
+            <PeriodInput
+              position={index}
+              label="From"
+              control={control as unknown as Control}
+              name={`variance.${index}.from`}
+              varianceArr={watchVarianceArr}
+            />
+            <PeriodInput
+              position={index}
+              label="Amount"
+              control={control as unknown as Control}
+              name={`variance.${index}.amount`}
+            />
+            <Button
+              color="primary"
+              disabled={isDisabled}
+              className="mt-3"
+              onClick={() => remove(index)}
+            >
+              <FiX className="h-4 w-4" />
+            </Button>
+          </>
+        )}
+      </RecordsList>
 
       <Button
         type="submit"

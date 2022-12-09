@@ -5,17 +5,17 @@ import { SingleValue } from "react-select";
 import { SelectOption } from "utils/sim-settings";
 import { trpc } from "utils/trpc";
 
-const updateInflation = <T extends FieldValues>({
-  inflName,
-}: {
-  inflName: string;
-}) => {
+const useUpdateInflation = <T extends FieldValues>() => {
   const [isLoadingInfl, setIsLoadingInfl] = useState<boolean | null>(null);
   const [isValidInfl, setIsValidInfl] = useState<boolean | null>(null);
   const utils = trpc.useContext();
 
   const updateInflation = useCallback(
-    async (countryData: SingleValue<SelectOption>, form: UseFormReturn<T>) => {
+    async (
+      countryData: SingleValue<SelectOption>,
+      form: UseFormReturn<T>,
+      inflName: string
+    ) => {
       let inflation = [];
       if (countryData) {
         const countryName = countryData.value;
@@ -54,4 +54,4 @@ const updateInflation = <T extends FieldValues>({
 
   return { updateInflation, isLoadingInfl, isValidInfl };
 };
-export default updateInflation;
+export default useUpdateInflation;

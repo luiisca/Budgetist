@@ -308,8 +308,7 @@ export const getTotalBalance = (years: number) => {
 
               // helpers
               const perCatIncome = crrCat.type === "income";
-              const perRecIncome =
-                crrCat.type === "perRec" && crrRec.type === "income";
+              const perRecIncome = crrRec.type === "income";
               const noInflation =
                 !crrCat.inflType || perCatIncome || perRecIncome;
               const frequency =

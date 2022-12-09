@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const nonEmptyString = z.string().min(1, { message: "Cannot be empty" });
+export const nonEmptyString = z.string().min(1, { message: "Cannot be empty" });
 const equalTo = (value: string) => {
   return z
     .string()
@@ -71,7 +71,7 @@ export const categoryDataClient = z.object({
   title: nonEmptyString,
   budget: nonEmptyString.or(z.number().positive()),
   currency: z.union([equalTo("perRec"), z.string().optional()]), // pass default
-  type: z.union([equalTo("income"), equalTo("outcome"), equalTo("perRec")]),
+  type: z.union([equalTo("income"), equalTo("outcome")]),
   inflType: z.union([equalTo(""), equalTo("perCat"), equalTo("perRec")]),
   country: z.string().optional(), // pass default
   inflVal: nonEmptyString.or(z.number().positive()).optional(), // pass default
@@ -84,7 +84,9 @@ export const categoryDataClient = z.object({
           title: z.string().optional(),
           amount: nonEmptyString.or(z.number().positive()),
           type: z.union([equalTo("income"), equalTo("outcome")]),
-          frequency: nonEmptyString.or(z.number().positive()).optional(), // pass default
+          frequency: nonEmptyString.or(z.number().positive()).optional(), // pass default // must be between 1 & 12
+          inflType: z.boolean(),
+          country: z.string().optional(), // pass default
           inflation: nonEmptyString.or(z.number().positive()).optional(), // parent default
           currency: z.string().optional(), // pass default
         })
@@ -111,6 +113,8 @@ export const categoryDataServer = categoryDataClient.extend({
           amount: z.number().positive(),
           type: z.union([equalTo("income"), equalTo("outcome")]),
           frequency: z.number().positive(),
+          inflType: z.boolean(),
+          country: z.string(),
           inflation: z.number().positive(),
           currency: z.string(),
         })

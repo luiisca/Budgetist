@@ -116,17 +116,22 @@ export const ValueComponent = (
 
 export const CountrySelect = <T extends FieldValues>({
   form,
+  name,
   control,
   updateCurrencyActive,
   updateInflation,
+  inflName,
 }: {
   form: UseFormReturn<T>;
+  name: string;
   control: Control<T>;
   updateCurrencyActive?: boolean;
-  updateInflation?: (
+  updateInflation: (
     countryData: SingleValue<SelectOption>,
-    form: UseFormReturn<T, any>
+    form: UseFormReturn<T, any>,
+    inflName: string
   ) => Promise<void>;
+  inflName: string;
 }) => {
   const options = useMemo(getCountryOptions, []);
 
@@ -147,7 +152,7 @@ export const CountrySelect = <T extends FieldValues>({
   return (
     <Controller
       control={control}
-      name={"country" as Path<T>}
+      name={name as Path<T>}
       render={({ field }) => (
         <>
           <Label className="text-gray-900">Country</Label>
@@ -156,12 +161,8 @@ export const CountrySelect = <T extends FieldValues>({
             options={options}
             onChange={async (e) => {
               field.onChange(e);
-              {
-                updateCurrencyActive && updateCurrency(e, form);
-              }
-              {
-                updateInflation && updateInflation(e, form);
-              }
+              updateCurrencyActive && updateCurrency(e, form);
+              updateInflation(e, form, inflName);
             }}
             components={{
               Option: OptionComponent,

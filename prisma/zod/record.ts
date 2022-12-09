@@ -4,10 +4,12 @@ import { CompleteCategory, CategoryModel } from "./index"
 
 export const _RecordModel = z.object({
   id: z.number().int(),
-  title: z.string(),
+  title: z.string().nullish(),
   amount: z.number().int(),
   type: z.string(),
   frequency: z.number().int(),
+  inflType: z.boolean(),
+  country: z.string(),
   inflation: z.number().int(),
   currency: z.string(),
   categoryId: z.number().int(),

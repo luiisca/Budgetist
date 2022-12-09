@@ -15,9 +15,7 @@ export const SimSettingsFields = ({
   const { control } = form;
 
   const { updateInflation, isLoadingInfl, isValidInfl } =
-    useUpdateInflation<SettingsFormValues>({
-      inflName: "inflation",
-    });
+    useUpdateInflation<SettingsFormValues>();
 
   return (
     <>
@@ -25,9 +23,11 @@ export const SimSettingsFields = ({
       <div>
         <CountrySelect<SettingsFormValues>
           form={form}
+          name="country"
           control={control}
           updateCurrencyActive
           updateInflation={updateInflation}
+          inflName="inflation"
         />
       </div>
 

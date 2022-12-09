@@ -1,11 +1,13 @@
 import {
   Button,
   Form,
+  Label,
   NumberInput,
   SkeletonButton,
   SkeletonContainer,
   SkeletonText,
   TextField,
+  Tooltip,
 } from "components/ui";
 import { AppRouterTypes, trpc } from "utils/trpc";
 import _ from "lodash";
@@ -16,6 +18,7 @@ import {
   categoryDataClient,
   CategoryDataInputTypeClient,
   categoryDataServer,
+  nonEmptyString,
 } from "prisma/*";
 import { Control, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,19 +29,28 @@ import {
   SelectOption,
   selectOptionsData,
 } from "utils/sim-settings";
-import { useEffect, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import showToast from "components/ui/core/notifications";
 import { z } from "zod";
 import {
-  CATEGORY_TYPES,
   DEFAULT_FREQUENCY,
-  DEFAULT_FREQUENCY_TYPE,
   CATEGORY_INFL_TYPES,
+  FREQUENCY_TYPES,
+  PER_CAT_VAL,
+  PER_CAT_LABEL,
+  OUTCOME_VAL,
+  OUTCOME_LABEL,
+  INCOME_VAL,
+  INCOME_LABEL,
+  genOption,
+  OptionsType,
+  TYPES,
 } from "utils/constants";
 import { LabelWithInfo, RecordsList } from "./components";
 import { ControlledSelect } from "components/ui/core/form/select/Select";
 import useUpdateInflation from "utils/hooks/useUpdateInflation";
 import { CountryInflInput, CountrySelect } from "./fields";
+import Switch from "components/ui/core/Switch";
 
 type CategoryFormValues = Omit<
   CategoryDataInputTypeClient,
@@ -50,12 +62,14 @@ type CategoryFormValues = Omit<
   country?: SelectOption;
   freqType?: SelectOption;
   records?: {
-    title: string;
+    title: string | undefined;
     amount: number | string;
     type: SelectOption;
     frequency: string | number;
+    inflType: boolean;
+    country: SelectOption;
     inflation: string | number;
-    currency: string;
+    currency: SelectOption;
   }[];
 };
 
@@ -76,14 +90,94 @@ const SkeletonLoader = () => {
   );
 };
 
+const recordsInflTypeReducer = (
+  recordsInflType: { disabled: boolean; index: number }[],
+  action: { type: string; index?: number }
+) => {
+  switch (action.type) {
+    case "ADD": {
+      return [
+        ...recordsInflType,
+        {
+          disabled: false,
+          index: recordsInflType.length,
+        },
+      ];
+    }
+    case "UPDATE": {
+      return recordsInflType.map((rec) => {
+        if (rec.index === action.index) {
+          return {
+            disabled: !rec.disabled,
+            index: rec.index,
+          };
+        } else {
+          return rec;
+        }
+      });
+    }
+    case "REMOVE": {
+      return recordsInflType.filter((rec) => rec.index !== action.index);
+    }
+    case "REMOVE_ALL": {
+      return [];
+    }
+
+    default: {
+      throw Error("Unknown action: " + action.type);
+    }
+  }
+};
+const recordsTypeReducer = (
+  recordsType: { type: string; index: number }[],
+  action: { type: string; catType?: OptionsType; index?: number }
+) => {
+  switch (action.type) {
+    case "ADD": {
+      return [
+        ...recordsType,
+        {
+          type: action.catType || "outcome",
+          index: recordsType.length,
+        },
+      ];
+    }
+    case "UPDATE": {
+      return recordsType.map((rec) => {
+        if (rec.index === action.index) {
+          return {
+            type: action.catType || "outcome",
+            index: rec.index,
+          };
+        } else {
+          return rec;
+        }
+      });
+    }
+    case "REMOVE": {
+      return recordsType.filter((rec) => rec.index !== action.index);
+    }
+    case "REMOVE_ALL": {
+      return [];
+    }
+
+    default: {
+      throw Error("Unknown action: " + action.type);
+    }
+  }
+};
+
 const CategoryForm = ({
   category,
 }: {
   category?: AppRouterTypes["simulation"]["categories"]["get"]["output"][0];
 }) => {
   const [recordsDisabled, setRecordsDisabled] = useState<boolean>(false);
-  const [catInflDisabled, setCatInflDisabled] = useState<boolean>(false);
-  const [crrRecordType, setCrrRecordType] = useState<SelectOption>();
+  const [recordsInflType, dispatchRecordsInflType] = useReducer(
+    recordsInflTypeReducer,
+    []
+  );
+  const [recordsType, dispatchRecordsType] = useReducer(recordsTypeReducer, []);
 
   // user data
   const {
@@ -107,12 +201,9 @@ const CategoryForm = ({
           .array(
             z
               .object({
-                title: z.string().optional(),
-                amount: z.number().positive(),
                 type: selectOptionsData,
-                frequency: z.number().positive(),
-                inflation: z.number().positive(),
-                currency: z.string(),
+                country: selectOptionsData,
+                currency: selectOptionsData,
               })
               .required()
           )
@@ -125,16 +216,14 @@ const CategoryForm = ({
   const { isSubmitting, isDirty } = formState;
 
   const { updateInflation, isLoadingInfl, isValidInfl } =
-    useUpdateInflation<CategoryFormValues>({
-      inflName: "inflVal",
-    });
+    useUpdateInflation<CategoryFormValues>();
 
   // fieldArray
   const fieldArray = useFieldArray({
     control,
     name: "records",
   });
-  const { fields, append, remove } = fieldArray;
+  const { append, remove } = fieldArray;
 
   const watchTitleVal = useWatch({
     control,
@@ -157,6 +246,23 @@ const CategoryForm = ({
     name: "currency",
   });
 
+  const newRecordShapeRef = useRef({
+    title: "",
+    amount: "",
+    type: {
+      value: watchType?.value === "income" ? INCOME_VAL : OUTCOME_VAL,
+      label: watchType?.value === "income" ? INCOME_LABEL : OUTCOME_LABEL,
+    } as SelectOption,
+    frequency: DEFAULT_FREQUENCY,
+    inflType: recordsInflType[recordsInflType.length - 1]?.disabled || false,
+    country: {
+      value: category?.country || user?.country,
+      label: getCountryLabel(category?.country || (user?.country as string)),
+    } as SelectOption,
+    inflation: category?.inflVal || (user?.inflation as number),
+    currency: getCurrency(category?.currency || (user?.currency as string)),
+  });
+
   // mutation
   const utils = trpc.useContext();
   const categoryMutation =
@@ -173,36 +279,46 @@ const CategoryForm = ({
 
   // default form values
   useEffect(() => {
-    if (category) {
-      reset({
-        ...category,
-        currency: getCurrency(category.currency),
+    reset({
+      ...category,
+      currency: getCurrency(category?.currency || (user?.currency as string)),
+      type: {
+        value: category?.type || OUTCOME_VAL,
+        label: category?.type.toUpperCase() || OUTCOME_LABEL,
+      },
+      inflType: {
+        value: category?.inflType || PER_CAT_VAL,
+        label: category?.inflType.toUpperCase() || PER_CAT_LABEL,
+      },
+      inflVal: category?.inflVal || user?.inflation,
+      country: {
+        value: category?.country || user?.country,
+        label: getCountryLabel(category?.country || (user?.country as string)),
+      },
+      freqType: {
+        value: category?.freqType || PER_CAT_VAL,
+        label: category?.freqType.toUpperCase() || PER_CAT_LABEL,
+      },
+      frequency: DEFAULT_FREQUENCY,
+      records: category?.records.map((record) => ({
+        ...record,
+        title: record.title || "",
         type: {
-          value: category.type,
-          label: category.type.toUpperCase(),
+          value: record.type,
+          label: record.type.charAt(0).toUpperCase() + record.type.slice(1),
         },
-        inflType: {
-          value: category.inflType,
-          label: category.inflType.toUpperCase(),
+        currency: {
+          value: record.currency,
+          label:
+            record.currency.charAt(0).toUpperCase() + record.currency.slice(1),
         },
         country: {
-          value: category.country,
-          label: getCountryLabel(category.country),
+          value: record.country || user?.country,
+          label: getCountryLabel(record.country || (user?.country as string)),
         },
-        freqType: {
-          value: category.freqType,
-          label: category.freqType.toUpperCase(),
-        },
-        records: category.records.map((record) => ({
-          ...record,
-          type: {
-            value: record.type,
-            label: record.type.toUpperCase(),
-          },
-        })),
-      });
-    }
-  }, [category, reset]);
+      })),
+    });
+  }, [user, category, reset]);
 
   // onSubmit
   const onCategorySubmit = (values: CategoryFormValues) => {
@@ -212,7 +328,7 @@ const CategoryForm = ({
       country: values.country || user?.country,
       inflVal: values.inflVal || user?.inflation,
       icon: values.icon || "Icon",
-      freqType: values.freqType || DEFAULT_FREQUENCY_TYPE,
+      freqType: values.freqType || PER_CAT_VAL,
       frequency: values.frequency || DEFAULT_FREQUENCY,
     };
     if (category?.id) {
@@ -259,23 +375,14 @@ const CategoryForm = ({
       >
         {/* title */}
         <div>
-          <TextField
-            label="Title"
-            placeholder="Salary"
-            {...register("title")}
-          />
+          <TextField label="Title" placeholder="Rent" {...register("title")} />
         </div>
 
         {/* type */}
         <div>
           <ControlledSelect<CategoryFormValues>
             control={control}
-            options={() =>
-              CATEGORY_TYPES.map((type) => ({
-                value: type,
-                label: type.toUpperCase(),
-              }))
-            }
+            options={() => TYPES}
             name="type"
             label="Type"
           />
@@ -303,65 +410,78 @@ const CategoryForm = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
-          {/* inflation label */}
-          <LabelWithInfo
-            label="Inflation"
-            infoCont={
-              <>
-                Select "Per record" to apply individual inflation to every
-                expense record.
-                <br />
-                Leave it as is to apply same inflation to the whole category.
-              </>
-            }
-          />
+        {watchType?.value === "outcome" && (
+          <>
+            <div>
+              {/* inflation label */}
+              <LabelWithInfo
+                label="Inflation"
+                infoCont={
+                  <>
+                    Select "Per record" to apply individual inflation to every
+                    expense record.
+                    <br />
+                    Leave it as is to apply same inflation to the whole
+                    category.
+                  </>
+                }
+              />
 
-          {/* inflType select */}
-          <ControlledSelect
-            control={control as unknown as Control}
-            name="inflType"
-            options={() =>
-              CATEGORY_INFL_TYPES.map((type) => ({
-                value: type,
-                label: type === "" ? "Disabled" : type.toUpperCase(),
-              }))
-            }
-            onChange={(e) => {
-              console.log("INFLTYPE OPTIONS ONCHANGE", e);
-              setCatInflDisabled(e.value === "" || e.value === "perRec");
+              {/* inflType select */}
+              <ControlledSelect
+                control={control as unknown as Control}
+                name="inflType"
+                options={() => CATEGORY_INFL_TYPES}
+              />
+            </div>
 
-              return { ...e };
-            }}
+            {watchType?.value === "outcome" &&
+              watchInflType?.value === "perCat" && (
+                <div className="flex space-x-3">
+                  {/* country Select */}
+                  <div className="flex-[1_1_80%]">
+                    <CountrySelect<CategoryFormValues>
+                      form={categoryForm}
+                      name="country"
+                      control={control}
+                      updateInflation={updateInflation}
+                      inflName="inflation"
+                    />
+                  </div>
+
+                  {/* country inflation */}
+                  <div>
+                    <CountryInflInput<CategoryFormValues>
+                      control={control}
+                      name="inflation"
+                      isLoadingInfl={isLoadingInfl}
+                      isValidInfl={isValidInfl}
+                    />
+                  </div>
+                </div>
+              )}
+          </>
+        )}
+        {/* frequency type */}
+        <div>
+          <ControlledSelect<CategoryFormValues>
+            control={control}
+            options={() => FREQUENCY_TYPES}
+            name="freqType"
+            label="Frequency Type"
           />
         </div>
-
-        <div className="flex space-x-3">
-          {/* country Select */}
+        {/* frequency */}
+        {watchFreqType?.value === "perCat" && (
           <div className="flex-[1_1_80%]">
-            <CountrySelect<CategoryFormValues>
-              form={categoryForm}
+            <NumberInput<CategoryFormValues>
               control={control}
-              updateInflation={updateInflation}
+              name="frequency"
+              label="Frequency"
+              placeholder={`${DEFAULT_FREQUENCY}`}
             />
           </div>
-
-          {/* country inflation */}
-          {/* TODO: review this condition */}
-          {watchInflType.value === "perCat" &&
-            watchType.value === "outcome" && (
-              <div>
-                {catInflDisabled && (
-                  <CountryInflInput<CategoryFormValues>
-                    control={control}
-                    name="inflVal"
-                    isLoadingInfl={isLoadingInfl}
-                    isValidInfl={isValidInfl}
-                  />
-                )}
-              </div>
-            )}
-        </div>
+        )}
 
         {/* expenses records */}
         <RecordsList<CategoryFormValues>
@@ -380,17 +500,7 @@ const CategoryForm = ({
           hidden={recordsDisabled}
           isDisabled={categoryMutation.isLoading}
           fieldArray={fieldArray}
-          newRecordShape={{
-            title: "",
-            amount: "",
-            type: {
-              value: watchType?.value === "income" ? "income" : "outcome",
-              label: watchType?.value === "income" ? "Income" : "Outcome",
-            },
-            frequency: DEFAULT_FREQUENCY,
-            inflation: user.inflation,
-            currency: user.currency,
-          }}
+          newRecordShape={newRecordShapeRef.current}
           switchOnChecked={() => {
             categoryForm.setValue("title", watchTitleVal, {
               shouldDirty: true,
@@ -398,19 +508,33 @@ const CategoryForm = ({
 
             if (!recordsDisabled) {
               remove();
+              dispatchRecordsInflType({
+                type: "REMOVE_ALL",
+              });
+              dispatchRecordsType({
+                type: "REMOVE_ALL",
+              });
             } else {
-              append({
-                title: "",
-                amount: "",
-                type: {
-                  value: watchType?.value === "income" ? "income" : "outcome",
-                  label: watchType?.value === "income" ? "Income" : "Outcome",
-                },
-                frequency: DEFAULT_FREQUENCY,
-                inflation: user.inflation,
-                currency: user.currency,
+              append(newRecordShapeRef.current);
+              dispatchRecordsType({
+                type: "ADD",
+                catType: watchType.value as OptionsType,
+              });
+              dispatchRecordsInflType({
+                type: "ADD",
               });
             }
+
+            setRecordsDisabled(!recordsDisabled);
+          }}
+          onAddRecord={() => {
+            dispatchRecordsType({
+              type: "ADD",
+              catType: watchType.value as OptionsType,
+            });
+            dispatchRecordsInflType({
+              type: "ADD",
+            });
           }}
         >
           {(index: number) => (
@@ -436,14 +560,13 @@ const CategoryForm = ({
               <div>
                 <ControlledSelect<CategoryFormValues>
                   control={control}
-                  options={() =>
-                    ["income", "outcome"].map((option) => ({
-                      value: option,
-                      label: option.toUpperCase(),
-                    }))
-                  }
+                  options={() => TYPES}
                   onChange={(option) => {
-                    setCrrRecordType(option);
+                    dispatchRecordsType({
+                      type: "UPDATE",
+                      catType: option.value,
+                      index,
+                    });
 
                     return option;
                   }}
@@ -463,20 +586,6 @@ const CategoryForm = ({
                   />
                 </div>
               )}
-              {/* inflType === 'perRec' && type !== 'income' && records.type !== 'income' => <Inflation /> */}
-              {watchInflType?.value === "perRec" &&
-                watchType?.value !== "income" &&
-                crrRecordType?.value !== "income" && (
-                  <div>
-                    <NumberInput<CategoryFormValues>
-                      control={control}
-                      name={`records.${index}.inflation`}
-                      label="Inflation"
-                      placeholder=""
-                      addOnSuffix={<FiPercent />}
-                    />
-                  </div>
-                )}
               {/* currency === 'perRec' => <Currency /> */}
               {watchCurrency?.value === "perRec" && (
                 <div>
@@ -488,11 +597,93 @@ const CategoryForm = ({
                   />
                 </div>
               )}
+              <>
+                {console.log(
+                  "RECORDSINFL TYPE",
+                  recordsInflType,
+                  recordsInflType[index],
+                  "INDEX",
+                  index
+                )}
+              </>
+              <>
+                {console.log(
+                  "RECORDS TYPE",
+                  recordsType,
+                  recordsType[index],
+                  "INDEX",
+                  index
+                )}
+              </>
+              {((watchType?.value === "income" &&
+                recordsType[index].type === "outcome") ||
+                (watchType?.value === "outcome" &&
+                  watchInflType?.value === "perRec" &&
+                  recordsType[index].type === "outcome")) && (
+                <>
+                  {/* <Inflation switch /> */}
+                  <div className="mb-4 flex items-center space-x-2">
+                    <Label>Inflation</Label>
+                    <Tooltip
+                      content={`${
+                        recordsInflType[index].disabled ? "Enable" : "Disable"
+                      } inflation`}
+                    >
+                      <div className="self-center rounded-md p-2 hover:bg-gray-200">
+                        <Switch
+                          name="Hidden"
+                          checked={!recordsInflType[index].disabled}
+                          onCheckedChange={() => {
+                            dispatchRecordsInflType({
+                              type: "UPDATE",
+                              index,
+                            });
+                          }}
+                        />
+                      </div>
+                    </Tooltip>
+                  </div>
+                  {!recordsInflType[index].disabled && (
+                    <div className="flex space-x-3">
+                      {/* country Select */}
+                      <div className="flex-[1_1_80%]">
+                        <CountrySelect<CategoryFormValues>
+                          form={categoryForm}
+                          name={`records.${index}.country`}
+                          control={control}
+                          updateInflation={updateInflation}
+                          inflName={`records.${index}.inflation`}
+                        />
+                      </div>
+
+                      {/* country inflation */}
+                      <div>
+                        <CountryInflInput<CategoryFormValues>
+                          control={control}
+                          name={`records.${index}.inflation`}
+                          isLoadingInfl={isLoadingInfl}
+                          isValidInfl={isValidInfl}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
               <Button
                 color="primary"
                 disabled={isDisabled}
                 className="mt-3"
-                onClick={() => remove(index)}
+                onClick={() => {
+                  remove(index);
+                  dispatchRecordsType({
+                    type: "REMOVE",
+                    index,
+                  });
+                  dispatchRecordsInflType({
+                    type: "REMOVE",
+                    index,
+                  });
+                }}
               >
                 <FiX className="h-4 w-4" />
               </Button>
@@ -541,7 +732,7 @@ const Categories = () => {
         >
           New Category
         </Button>
-        <div className="space-y-4">
+        <div className="mb-4 space-y-4">
           {categories?.map((category) => (
             <CategoryForm category={category} />
           ))}
@@ -549,7 +740,7 @@ const Categories = () => {
             <CategoryForm />
           ))}
         </div>
-        {categories?.length === 0 && (
+        {categories?.length === 0 && newCategories?.length === 0 && (
           <EmptyScreen
             Icon={FiPlus}
             headline="New category"

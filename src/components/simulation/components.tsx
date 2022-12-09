@@ -38,6 +38,7 @@ export const RecordsList = <T extends FieldValues>({
   fieldArray,
   newRecordShape,
   switchOnChecked,
+  onAddRecord,
   children,
 }: {
   name: string;
@@ -47,6 +48,7 @@ export const RecordsList = <T extends FieldValues>({
   fieldArray: UseFieldArrayReturn<T>;
   newRecordShape: FieldArray<T, ArrayPath<T>>;
   switchOnChecked: () => void;
+  onAddRecord?: () => void;
   children: (index: number) => ReactNode;
 }) => {
   const form = useFormContext();
@@ -66,7 +68,10 @@ export const RecordsList = <T extends FieldValues>({
   return (
     <div>
       <div className="mb-4 flex items-center space-x-2">
-        <LabelWithInfo label={name.toUpperCase()} infoCont={infoCont} />
+        <LabelWithInfo
+          label={name.charAt(0).toUpperCase() + name.slice(1)}
+          infoCont={infoCont}
+        />
         <Tooltip content={`${hidden ? "Enable" : "Disable"} ${name}`}>
           <div className="self-center rounded-md p-2 hover:bg-gray-200">
             <Switch
@@ -98,6 +103,7 @@ export const RecordsList = <T extends FieldValues>({
             className="mt-3"
             onClick={() => {
               append(newRecordShape);
+              onAddRecord && onAddRecord();
             }}
           >
             <FiPlus className="h-4 w-4" />

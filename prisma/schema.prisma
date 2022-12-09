@@ -142,6 +142,8 @@ model Record {
   amount     Int
   type       String
   frequency Int
+  inflType  Boolean @default(true)
+  country String
   inflation  Int
   currency   String
 

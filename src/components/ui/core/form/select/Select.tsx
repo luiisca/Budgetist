@@ -11,7 +11,7 @@ import ReactSelect, {
   MultiValue,
   SelectComponentsConfig,
 } from "react-select";
-import { Label } from "../fields";
+import { Errors, Label } from "../fields";
 
 import {
   ControlComponent,
@@ -68,8 +68,9 @@ const Select = <
 >({
   className,
   components,
+  name,
   ...props
-}: SelectProps<Option, IsMulti, Group>) => {
+}: SelectProps<Option, IsMulti, Group> & { name?: string }) => {
   const reactSelectProps = React.useMemo(() => {
     return getReactSelectProps<Option, IsMulti, Group>({
       className,
@@ -78,22 +79,25 @@ const Select = <
   }, [className, components]);
 
   return (
-    <ReactSelect
-      {...reactSelectProps}
-      {...props}
-      styles={{
-        option: (defaultStyles, state) => ({
-          ...defaultStyles,
-          backgroundColor: state.isSelected
-            ? state.isFocused
-              ? "var(--brand-color)"
-              : "var(--brand-color)"
-            : state.isFocused
-            ? "var(--brand-color-dark-mode)"
-            : "var(--brand-text-color)",
-        }),
-      }}
-    />
+    <>
+      <ReactSelect
+        {...reactSelectProps}
+        {...props}
+        styles={{
+          option: (defaultStyles, state) => ({
+            ...defaultStyles,
+            backgroundColor: state.isSelected
+              ? state.isFocused
+                ? "var(--brand-color)"
+                : "var(--brand-color)"
+              : state.isFocused
+              ? "var(--brand-color-dark-mode)"
+              : "var(--brand-text-color)",
+          }),
+        }}
+      />
+      {name && <Errors fieldName={name} />}
+    </>
   );
 };
 
@@ -234,6 +238,7 @@ export const ControlledSelect = <T extends FieldValues>({
         <>
           {label && <Label className="text-gray-900">{label}</Label>}
           <Select
+            name={name}
             value={field.value}
             options={selectOptions}
             onChange={(e) =>

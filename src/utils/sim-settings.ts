@@ -2,6 +2,7 @@ import clm from "country-locale-map";
 import {
   DEFAULT_COUNTRY,
   DEFAULT_CURRENCY,
+  genOption,
   MAYOR_CURRENCY_CODES,
 } from "utils/constants";
 import * as countryFlags from "country-flag-icons/react/3x2";
@@ -62,7 +63,7 @@ export const getCountryLabel = (countryCode: string) => {
     : "Other";
 };
 
-export const getCurrencyOptions = () => {
+export const getCurrencyOptions = (type: "perRec" | "perCat" = "perCat") => {
   const getUniqCurrencies = (currencies: string[]) => {
     const seen: Record<string, boolean> = {};
     return currencies.filter(function (currency) {
@@ -70,9 +71,16 @@ export const getCurrencyOptions = () => {
     });
   };
 
-  return getUniqCurrencies([...MAYOR_CURRENCY_CODES, ...cc.codes()]).map(
-    (code) => getCurrency(code)
-  );
+  const currencies = getUniqCurrencies([
+    ...MAYOR_CURRENCY_CODES,
+    ...cc.codes(),
+  ]).map((code) => getCurrency(code));
+
+  if (type === "perRec") {
+    return [genOption("perRec"), ...currencies];
+  } else {
+    return currencies;
+  }
 };
 
 export const getCountryOptions = () => {

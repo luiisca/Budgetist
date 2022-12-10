@@ -38,7 +38,6 @@ export const RecordsList = <T extends FieldValues>({
   fieldArray,
   newRecordShape,
   switchOnChecked,
-  onAddRecord,
   children,
 }: {
   name: string;
@@ -48,7 +47,6 @@ export const RecordsList = <T extends FieldValues>({
   fieldArray: UseFieldArrayReturn<T>;
   newRecordShape: FieldArray<T, ArrayPath<T>>;
   switchOnChecked: () => void;
-  onAddRecord?: () => void;
   children: (index: number) => ReactNode;
 }) => {
   const form = useFormContext();
@@ -103,7 +101,6 @@ export const RecordsList = <T extends FieldValues>({
             className="mt-3"
             onClick={() => {
               append(newRecordShape);
-              onAddRecord && onAddRecord();
             }}
           >
             <FiPlus className="h-4 w-4" />

@@ -77,6 +77,9 @@ export const simulationRouter = router({
         where: {
           userId: user.id,
         },
+        orderBy: {
+          id: "asc",
+        },
         include: {
           records: true,
         },

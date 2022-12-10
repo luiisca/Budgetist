@@ -54,6 +54,17 @@ export type OptionsType =
   | "perRec"
   | "perCat"
   | "disabled";
+export const getLabel = (type: OptionsType) =>
+  type === "income"
+    ? INCOME_LABEL
+    : type === "outcome"
+    ? OUTCOME_LABEL
+    : type === "perRec"
+    ? PER_REC_LABEL
+    : type === "perCat"
+    ? PER_CAT_LABEL
+    : DISABLED_LABEL;
+
 export const genOption = (type: OptionsType) => {
   const getPropVal = (prop: "value" | "label") =>
     type === "income"

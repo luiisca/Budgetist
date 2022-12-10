@@ -256,12 +256,18 @@ const SalaryForm = () => {
               name={`variance.${index}.from`}
               varianceArr={watchVarianceArr}
             />
-            <PeriodInput
-              position={index}
-              label="Amount"
+            <NumberInput
               control={control as unknown as Control}
               name={`variance.${index}.amount`}
+              label="Amount"
+              placeholder=""
             />
+            {/* <PeriodInput */}
+            {/*   position={index} */}
+            {/*   label="Amount" */}
+            {/*   control={control as unknown as Control} */}
+            {/*   name={`variance.${index}.amount`} */}
+            {/* /> */}
             <Button
               color="primary"
               disabled={isDisabled}

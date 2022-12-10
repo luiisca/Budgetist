@@ -50,7 +50,7 @@ export function Label(props: JSX.IntrinsicElements["label"]) {
   );
 }
 
-function Errors<T extends FieldValues = FieldValues>(props: {
+export function Errors<T extends FieldValues = FieldValues>(props: {
   fieldName: string;
 }) {
   const methods = useFormContext() as ReturnType<typeof useFormContext> | null;

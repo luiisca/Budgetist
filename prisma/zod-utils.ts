@@ -87,7 +87,7 @@ export const categoryDataClient = z.object({
           frequency: nonEmptyString.or(z.number().positive()).optional(), // pass default // must be between 1 & 12
           inflType: z.boolean(),
           country: z.string().optional(), // pass default
-          inflation: nonEmptyString.or(z.number().positive()).optional(), // parent default
+          inflation: z.string().or(z.number().positive()).optional(), // parent default
           currency: z.string().optional(), // pass default
         })
         .required()

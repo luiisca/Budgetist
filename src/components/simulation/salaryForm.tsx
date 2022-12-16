@@ -3,9 +3,13 @@ import {
   Button,
   Form,
   NumberInput,
+  SkeletonButton,
+  SkeletonContainer,
+  SkeletonText,
   TextField,
   transIntoInt,
 } from "components/ui";
+import { Alert } from "components/ui/Alert";
 import { ControlledSelect } from "components/ui/core/form/select/Select";
 import showToast from "components/ui/core/notifications";
 import _ from "lodash";
@@ -23,18 +27,26 @@ import {
   useWatch,
 } from "react-hook-form";
 import { FiX } from "react-icons/fi";
-import {
-  getCurrency,
-  getCurrencyOptions,
-  SelectOption,
-  selectOptionsData,
-} from "utils/sim-settings";
+import { getCurrency, getCurrencyOptions } from "utils/sim-settings";
 import { trpc } from "utils/trpc";
 import { z } from "zod";
 import { RecordsList } from "./components";
 
-type SalaryFormValues = Omit<SalaryDataInputTypeClient, "currency"> & {
-  currency?: SelectOption;
+const SkeletonLoader = () => {
+  return (
+    <SkeletonContainer>
+      <div className="mt-6 mb-8 space-y-6 divide-y">
+        <SkeletonText className="h-8 w-full" />
+        <div className="flex space-x-3">
+          <SkeletonText className="h-8 w-full flex-[1_1_80%]" />
+          <SkeletonText className="h-8 w-full" />
+        </div>
+        <SkeletonText className="h-8 w-full" />
+
+        <SkeletonButton className="mr-6 h-8 w-20 rounded-md p-5" />
+      </div>
+    </SkeletonContainer>
+  );
 };
 
 const PeriodInput = ({
@@ -102,22 +114,24 @@ const PeriodInput = ({
 
 const SalaryForm = () => {
   const [varianceHidden, setVarianceHidden] = useState<boolean>(false);
+  const {
+    data: salary,
+    isLoading,
+    isError,
+    error,
+  } = trpc.simulation.salary.get.useQuery();
   const { data: user } = trpc.user.me.useQuery();
 
   // form
-  const salaryForm = useForm<SalaryFormValues>({
-    resolver: zodResolver(
-      salaryDataClient.extend({
-        currency: selectOptionsData,
-      })
-    ),
+  const salaryForm = useForm<SalaryDataInputTypeClient>({
+    resolver: zodResolver(salaryDataClient),
     reValidateMode: "onChange",
   });
   const { reset, register, control, formState, setFocus } = salaryForm;
   const { isSubmitting, isDirty } = formState;
 
   // watch values
-  const fieldArray = useFieldArray<SalaryFormValues>({
+  const fieldArray = useFieldArray<SalaryDataInputTypeClient>({
     control,
     name: "variance",
   });
@@ -143,31 +157,30 @@ const SalaryForm = () => {
   const salaryMutation = trpc.simulation.salary.updateOrCreate.useMutation({
     onSuccess: async () => {
       showToast("Salary updated successfully", "success");
-      await utils.user.me.invalidate();
+      await utils.simulation.salary.invalidate();
     },
     onError: async (e) => {
       const [message, inputIndex] = e.message.split(",");
       setFocus(`variance.${Number(inputIndex)}.from`);
       showToast(message, "error");
-      await utils.user.me.invalidate();
+      await utils.simulation.salary.invalidate();
     },
   });
 
   // default form values
   useEffect(() => {
-    if (user) {
-      const salary = user.salary;
+    if (salary) {
       reset({
-        title: salary?.title,
-        currency: getCurrency(salary?.currency as string),
-        amount: salary?.amount,
-        variance: salary?.variance,
+        title: salary.title,
+        currency: getCurrency(salary.currency),
+        amount: salary.amount,
+        variance: salary.variance,
       });
     }
-  }, [reset, user]);
+  }, [reset, salary]);
 
   // onSubmit
-  const onSalarySubmit = (values: SalaryFormValues) => {
+  const onSalarySubmit = (values: SalaryDataInputTypeClient) => {
     let input;
     if (!varianceHidden && (values.variance?.length as number) > 0) {
       input = {
@@ -186,8 +199,19 @@ const SalaryForm = () => {
 
   const isDisabled = isSubmitting || !isDirty;
 
+  if (isLoading) return <SkeletonLoader />;
+
+  if (isError)
+    return (
+      <Alert
+        severity="error"
+        title="Something went wrong"
+        message={error.message}
+      />
+    );
+
   return (
-    <Form<SalaryFormValues>
+    <Form<SalaryDataInputTypeClient>
       form={salaryForm}
       handleSubmit={onSalarySubmit}
       className="space-y-6"
@@ -198,7 +222,7 @@ const SalaryForm = () => {
       <div className="flex space-x-3">
         {/* amount  */}
         <div className="flex-[1_1_80%]">
-          <NumberInput<SalaryFormValues>
+          <NumberInput<SalaryDataInputTypeClient>
             control={control}
             name="amount"
             label="Salary"
@@ -207,7 +231,7 @@ const SalaryForm = () => {
         </div>
         {/* currency */}
         <div>
-          <ControlledSelect<SalaryFormValues>
+          <ControlledSelect<SalaryDataInputTypeClient>
             control={control}
             options={getCurrencyOptions}
             name="currency"
@@ -216,7 +240,7 @@ const SalaryForm = () => {
         </div>
       </div>
 
-      <RecordsList<SalaryFormValues>
+      <RecordsList<SalaryDataInputTypeClient>
         name="variance"
         infoCont={
           <>
@@ -234,7 +258,9 @@ const SalaryForm = () => {
           amount: watchAmountVal,
         }}
         switchOnChecked={() => {
-          salaryForm.setValue("amount", watchAmountVal, { shouldDirty: true });
+          salaryForm.setValue("amount", watchAmountVal, {
+            shouldDirty: true,
+          });
 
           if (!varianceHidden) {
             remove();

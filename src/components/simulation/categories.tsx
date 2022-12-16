@@ -18,7 +18,6 @@ import {
   categoryDataClient,
   CategoryDataInputTypeClient,
   categoryDataServer,
-  nonEmptyString,
 } from "prisma/*";
 import {
   Control,
@@ -34,7 +33,6 @@ import {
   getCurrency,
   getCurrencyOptions,
   SelectOption,
-  selectOptionsData,
 } from "utils/sim-settings";
 import { useEffect, useState } from "react";
 import showToast from "components/ui/core/notifications";
@@ -59,27 +57,6 @@ import useUpdateInflation from "utils/hooks/useUpdateInflation";
 import { CountryInflInput, CountrySelect } from "./fields";
 import Switch from "components/ui/core/Switch";
 
-type CategoryFormValues = Omit<
-  CategoryDataInputTypeClient,
-  "currency" | "type" | "inflType" | "country" | "freqType" | "records"
-> & {
-  currency?: SelectOption;
-  type: SelectOption;
-  inflType: SelectOption;
-  country?: SelectOption;
-  freqType?: SelectOption;
-  records?: {
-    title: string | undefined;
-    amount: number | string;
-    type: SelectOption;
-    frequency: string | number;
-    inflType: boolean;
-    country: SelectOption;
-    inflation: string | number;
-    currency: SelectOption;
-  }[];
-};
-
 const SkeletonLoader = () => {
   return (
     <SkeletonContainer>
@@ -102,15 +79,15 @@ const Record = ({
   fieldArray,
 }: {
   index: number;
-  fieldArray: UseFieldArrayReturn<CategoryFormValues>;
+  fieldArray: UseFieldArrayReturn<CategoryDataInputTypeClient>;
 }) => {
   const [inflDisabled, setInflDisabled] = useState(false);
-  const categoryForm = useFormContext<CategoryFormValues>();
+  const categoryForm = useFormContext<CategoryDataInputTypeClient>();
   const { register, control } = categoryForm;
   const { remove } = fieldArray;
 
   const { updateInflation, isLoadingInfl, isValidInfl } =
-    useUpdateInflation<CategoryFormValues>();
+    useUpdateInflation<CategoryDataInputTypeClient>();
 
   const watchType = useWatch({
     control,
@@ -146,7 +123,7 @@ const Record = ({
       </div>
       {/* <Amount /> */}
       <div>
-        <NumberInput<CategoryFormValues>
+        <NumberInput<CategoryDataInputTypeClient>
           control={control}
           name={`records.${index}.amount`}
           label="Amount"
@@ -155,7 +132,7 @@ const Record = ({
       </div>
       {/* <SelectType /> */}
       <div>
-        <ControlledSelect<CategoryFormValues>
+        <ControlledSelect<CategoryDataInputTypeClient>
           control={control}
           options={() => TYPES}
           onChange={(option) => {
@@ -192,7 +169,7 @@ const Record = ({
             <div className="flex space-x-3">
               {/* country Select */}
               <div className="flex-[1_1_80%]">
-                <CountrySelect<CategoryFormValues>
+                <CountrySelect<CategoryDataInputTypeClient>
                   form={categoryForm}
                   name={`records.${index}.country`}
                   control={control}
@@ -203,7 +180,7 @@ const Record = ({
 
               {/* country inflation */}
               <div>
-                <CountryInflInput<CategoryFormValues>
+                <CountryInflInput<CategoryDataInputTypeClient>
                   control={control}
                   name={`records.${index}.inflation`}
                   isLoadingInfl={isLoadingInfl}
@@ -217,7 +194,7 @@ const Record = ({
       {/* freqType === 'perRec' => <Frequency /> */}
       {watchFreqType?.value === "perRec" && (
         <div>
-          <NumberInput<CategoryFormValues>
+          <NumberInput<CategoryDataInputTypeClient>
             control={control}
             name={`records.${index}.frequency`}
             label="Frequency"
@@ -229,7 +206,7 @@ const Record = ({
       {/* currency === 'perRec' => <Currency /> */}
       {watchCurrency?.value === "perRec" && (
         <div>
-          <ControlledSelect<CategoryFormValues>
+          <ControlledSelect<CategoryDataInputTypeClient>
             control={control}
             options={getCurrencyOptions}
             name={`records.${index}.currency`}
@@ -267,38 +244,14 @@ const CategoryForm = ({
   } = trpc.user.me.useQuery();
 
   // form
-  const categoryForm = useForm<CategoryFormValues>({
-    resolver: zodResolver(
-      categoryDataClient.extend({
-        currency: selectOptionsData,
-        type: selectOptionsData,
-        inflType: selectOptionsData,
-        country: selectOptionsData,
-        freqType: selectOptionsData,
-        records: z
-          .array(
-            z
-              .object({
-                title: z.string().optional(),
-                amount: nonEmptyString.or(z.number().positive()),
-                frequency: nonEmptyString.or(z.number().positive()).optional(), // pass default // must be between 1 & 12
-                inflType: z.boolean(),
-                inflation: z.string().or(z.number().positive()).optional(), // parent default
-                type: selectOptionsData,
-                country: selectOptionsData,
-                currency: selectOptionsData.optional(),
-              })
-              .required()
-          )
-          .optional(),
-      })
-    ),
+  const categoryForm = useForm<CategoryDataInputTypeClient>({
+    resolver: zodResolver(categoryDataClient),
     reValidateMode: "onChange",
   });
   const { reset, register, control } = categoryForm;
 
   const { updateInflation, isLoadingInfl, isValidInfl } =
-    useUpdateInflation<CategoryFormValues>();
+    useUpdateInflation<CategoryDataInputTypeClient>();
 
   // fieldArray
   const fieldArray = useFieldArray({
@@ -400,7 +353,7 @@ const CategoryForm = ({
   }, [user, category, reset]);
 
   // onSubmit
-  const onCategorySubmit = (values: CategoryFormValues) => {
+  const onCategorySubmit = (values: CategoryDataInputTypeClient) => {
     let selectInputsData = {
       currency: values.currency?.value || user?.currency,
       type: values.type.value,
@@ -459,7 +412,7 @@ const CategoryForm = ({
 
   if (isSuccess) {
     return (
-      <Form<CategoryFormValues>
+      <Form<CategoryDataInputTypeClient>
         form={categoryForm}
         handleSubmit={onCategorySubmit}
         className="space-y-6"
@@ -471,7 +424,7 @@ const CategoryForm = ({
 
         {/* type */}
         <div>
-          <ControlledSelect<CategoryFormValues>
+          <ControlledSelect<CategoryDataInputTypeClient>
             control={control}
             options={() => TYPES}
             name="type"
@@ -482,7 +435,7 @@ const CategoryForm = ({
         <div className="flex space-x-3">
           {/* budget */}
           <div className="flex-[1_1_80%]">
-            <NumberInput<CategoryFormValues>
+            <NumberInput<CategoryDataInputTypeClient>
               control={control}
               name="budget"
               label="Budget"
@@ -492,7 +445,7 @@ const CategoryForm = ({
 
           {/* currency Select*/}
           <div>
-            <ControlledSelect<CategoryFormValues>
+            <ControlledSelect<CategoryDataInputTypeClient>
               control={control}
               options={() => getCurrencyOptions("perRec")}
               name="currency"
@@ -531,7 +484,7 @@ const CategoryForm = ({
                 <div className="flex space-x-3">
                   {/* country Select */}
                   <div className="flex-[1_1_80%]">
-                    <CountrySelect<CategoryFormValues>
+                    <CountrySelect<CategoryDataInputTypeClient>
                       form={categoryForm}
                       name="country"
                       control={control}
@@ -542,7 +495,7 @@ const CategoryForm = ({
 
                   {/* country inflation */}
                   <div>
-                    <CountryInflInput<CategoryFormValues>
+                    <CountryInflInput<CategoryDataInputTypeClient>
                       control={control}
                       name="inflation"
                       isLoadingInfl={isLoadingInfl}
@@ -555,7 +508,7 @@ const CategoryForm = ({
         )}
         {/* frequency type */}
         <div>
-          <ControlledSelect<CategoryFormValues>
+          <ControlledSelect<CategoryDataInputTypeClient>
             control={control}
             options={() => FREQUENCY_TYPES}
             name="freqType"
@@ -565,7 +518,7 @@ const CategoryForm = ({
         {/* frequency */}
         {watchFreqType?.value === "perCat" && (
           <div className="flex-[1_1_80%]">
-            <NumberInput<CategoryFormValues>
+            <NumberInput<CategoryDataInputTypeClient>
               control={control}
               name="frequency"
               label="Frequency"
@@ -575,7 +528,7 @@ const CategoryForm = ({
         )}
 
         {/* expenses records */}
-        <RecordsList<CategoryFormValues>
+        <RecordsList<CategoryDataInputTypeClient>
           name="records"
           infoCont={
             <>
@@ -649,33 +602,32 @@ const Categories = () => {
       />
     );
 
-  if (isSuccess)
-    return (
-      <div>
-        <Button
-          className="mb-4"
-          StartIcon={FiPlus}
-          onClick={() => setNewCategories([...newCategories, 0])}
-        >
-          New Category
-        </Button>
-        <div className="mb-4 space-y-4">
-          {categories?.map((category) => (
-            <CategoryForm category={category} />
-          ))}
-          {newCategories.map(() => (
-            <CategoryForm />
-          ))}
-        </div>
-        {categories?.length === 0 && newCategories?.length === 0 && (
-          <EmptyScreen
-            Icon={FiPlus}
-            headline="New category"
-            description="Budget categories helps you define all your yearly expenses to fine-tune the simulation's result"
-          />
-        )}
+  return (
+    <div>
+      <Button
+        className="mb-4"
+        StartIcon={FiPlus}
+        onClick={() => setNewCategories([...newCategories, 0])}
+      >
+        New Category
+      </Button>
+      <div className="mb-4 space-y-4">
+        {categories?.map((category) => (
+          <CategoryForm category={category} />
+        ))}
+        {newCategories.map(() => (
+          <CategoryForm />
+        ))}
       </div>
-    );
+      {categories?.length === 0 && newCategories?.length === 0 && (
+        <EmptyScreen
+          Icon={FiPlus}
+          headline="New category"
+          description="Budget categories helps you define all your yearly expenses to fine-tune the simulation's result"
+        />
+      )}
+    </div>
+  );
 
   // impossible state
   return null;

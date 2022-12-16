@@ -24,6 +24,11 @@ export const investPerc = z
   )
   .optional();
 
+export const selectOptions = z.object({
+  value: z.string().optional(),
+  label: z.string().optional(),
+});
+
 export const profileData = z.object({
   username,
   name: z.string().optional(),
@@ -39,7 +44,7 @@ export const profileData = z.object({
 // salary
 export const salaryDataClient = z.object({
   title: z.string().optional(),
-  currency: z.string().optional(),
+  currency: selectOptionsData,
   amount: z.number().positive(),
   variance: z
     .array(
@@ -70,10 +75,10 @@ export const categoryDataClient = z.object({
   id: z.number().optional(),
   title: nonEmptyString,
   budget: nonEmptyString.or(z.number().positive()),
-  currency: z.union([equalTo("perRec"), z.string().optional()]), // pass default
-  type: z.union([equalTo("income"), equalTo("outcome")]),
-  inflType: z.union([equalTo(""), equalTo("perCat"), equalTo("perRec")]),
-  country: z.string().optional(), // pass default
+  currency: selectOptions,
+  type: selectOptions,
+  inflType: selectOptions,
+  country: selectOptions,
   inflVal: nonEmptyString.or(z.number().positive()).optional(), // pass default
   icon: z.string().optional(), // pass random default
 
@@ -83,17 +88,17 @@ export const categoryDataClient = z.object({
         .object({
           title: z.string().optional(),
           amount: nonEmptyString.or(z.number().positive()),
-          type: z.union([equalTo("income"), equalTo("outcome")]),
           frequency: nonEmptyString.or(z.number().positive()).optional(), // pass default // must be between 1 & 12
           inflType: z.boolean(),
-          country: z.string().optional(), // pass default
           inflation: z.string().or(z.number().positive()).optional(), // parent default
-          currency: z.string().optional(), // pass default
+          type: selectOptions,
+          country: selectOptions,
+          currency: selectOptions.optional(),
         })
         .required()
     )
     .optional(),
-  freqType: z.union([equalTo("perRec"), equalTo("perCat")]).optional(),
+  freqType: selectOptions,
   frequency: z.union([nonEmptyString, z.number().positive()]).optional(), // pass default
 });
 
@@ -125,6 +130,11 @@ export const categoryDataServer = categoryDataClient.extend({
   frequency: z.number().positive(),
 });
 
+// run simulation
+export const runSimulationData = z.object({
+  years: nonEmptyString.or(z.number().positive()),
+});
+
 export type ProfileDataInputType = z.infer<typeof profileData>;
 
 export type SalaryDataInputTypeClient = z.infer<typeof salaryDataClient>;
@@ -132,3 +142,5 @@ export type SalaryDataInputTypeServer = z.infer<typeof salaryDataServer>;
 
 export type CategoryDataInputTypeClient = z.infer<typeof categoryDataClient>;
 export type CategoryDataInputTypeServer = z.infer<typeof categoryDataServer>;
+
+export type RunSimulationDataType = z.infer<typeof runSimulationData>;

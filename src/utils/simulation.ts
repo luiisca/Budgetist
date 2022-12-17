@@ -1,10 +1,4 @@
-import { AppRouter } from "server/trpc/router/_app";
-import {
-  DEFAULT_FREQUENCY,
-  DEFAULT_INDEX_RETURN,
-  MAX_YEARS,
-  MIN_YEARS,
-} from "./constants";
+import { DEFAULT_FREQUENCY, MAX_YEARS, MIN_YEARS } from "./constants";
 import { AppRouterTypes } from "./trpc";
 
 // const user = {
@@ -189,13 +183,19 @@ const getSalaryByYear = (year: number, salary: any) => {
 
 type Category = AppRouterTypes["simulation"]["categories"]["get"]["output"];
 
-export const getTotalBalance = (
-  categories: Category,
-  salary: any,
-  years: number,
-  investPerc: number,
-  indexReturn: number
-): number => {
+export const getTotalBalance = ({
+  categories,
+  salary,
+  years,
+  investPerc,
+  indexReturn,
+}: {
+  categories: Category;
+  salary: any;
+  years: number;
+  investPerc: number;
+  indexReturn: number;
+}): number => {
   years =
     years && years <= 0 ? MIN_YEARS : years > MAX_YEARS ? MAX_YEARS : years;
 
@@ -242,7 +242,9 @@ export const getTotalBalance = (
             const crrYearCatExp =
               crrCat.budget * getFrequency(frequency) * INCOME_MOD;
             // console.log(`Current year spent for ${crr.title}: ${crrYearCatExp}`);
+            catsAccExp[crrCatI].spent = crrYearCatExp;
 
+            console.log(`${crrCat.title} EXPENSES`, catsAccExp[crrCatI]);
             return prevCat + crrYearCatExp;
           }
 
@@ -266,6 +268,7 @@ export const getTotalBalance = (
             catsAccExp[crrCatI].spent = crrYearCatExp;
             // console.log(`Current year spent for ${crr.title}: ${crrYearSpent}`);
 
+            console.log(`${crrCat.title} EXPENSES`, catsAccExp[crrCatI]);
             return prevCat + crrYearCatExp;
           }
         } else {
@@ -303,13 +306,14 @@ export const getTotalBalance = (
               //
 
               if (inflationDisabled) {
-                const crrYearSpent =
+                const crrYearRecExp =
                   crrRec.amount * getFrequency(frequency) * INCOME_MOD;
                 // console.log(
                 //   `Current year spent for ${crrRec.title}: ${crrYearSpent}`
                 // );
+                catsAccExp[crrCatI].records[crrRecI].spent = crrYearRecExp;
 
-                return prevRec + crrYearSpent;
+                return prevRec + crrYearRecExp;
               }
               if (inflationEnabled) {
                 const crrAccRecExp = catsAccExp[crrCatI].records[crrRecI].spent;
@@ -322,6 +326,7 @@ export const getTotalBalance = (
                     : getRate(crrCat.inflVal);
 
                 const crrYearRecSpent = P * (1 + i);
+                console.log("P", P, "i", i, "crrYearRecSpent", crrYearRecSpent);
 
                 // console.log(
                 //   `Current year spent for ${crrRec.title}: ${crrYearSpent}`
@@ -340,6 +345,7 @@ export const getTotalBalance = (
                 //     ? getRate(crrRec.inflation)
                 //     : getRate(crr.inflVal)
                 // );
+                // console.log("CATEGORIES", categories);
                 catsAccExp[crrCatI].records[crrRecI].spent = crrYearRecSpent;
 
                 return prevRec + crrYearRecSpent;
@@ -351,6 +357,8 @@ export const getTotalBalance = (
           );
 
           // console.log(`${crr.title} expenses: `, yearCatExpenses);
+
+          console.log(`${crrCat.title} EXPENSES`, catsAccExp[crrCatI]);
 
           return prevCat + crrYearCatExp;
         }
@@ -378,6 +386,7 @@ export const getTotalBalance = (
     const i = getRate(indexReturn);
     total = P * (1 + i);
 
+    console.log("this function now receives data from the backend");
     console.log("NEW TOTAL", total);
   }
 

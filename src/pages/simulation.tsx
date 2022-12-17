@@ -1,10 +1,26 @@
-import { SkeletonButton, SkeletonContainer, SkeletonText } from "components/ui";
+import {
+  Button,
+  Form,
+  Input,
+  NumberInput,
+  SkeletonButton,
+  SkeletonContainer,
+  SkeletonText,
+} from "components/ui";
 import Head from "next/head";
 import Shell from "components/ui/core/Shell";
 import { trpc } from "utils/trpc";
 import _ from "lodash";
 import SalaryForm from "components/simulation/salaryForm";
 import Categories from "components/simulation/categories";
+import { Dispatch, useRef, useState } from "react";
+import { getTotalBalance } from "utils/simulation";
+import showToast from "components/ui/core/notifications";
+import { useForm } from "react-hook-form";
+import { MIN_YEARS } from "utils/constants";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { runSimulationData, RunSimulationDataType } from "prisma/*";
 
 const SkeletonLoader = () => {
   return (
@@ -24,13 +40,8 @@ const SkeletonLoader = () => {
 };
 
 export default function Simulation() {
-  const { data: user, isLoading } = trpc.user.me.useQuery(undefined, {
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  });
-  // const yearsEl = useRef<HTMLInputElement>(null);
-  // const [balance, setBalance] = useState<number>(salary.amount);
+  const yearsEl = useRef<HTMLInputElement>(null);
+  const [balance, setBalance] = useState<number | null>(null);
 
   return (
     <>
@@ -41,48 +52,88 @@ export default function Simulation() {
       <Shell
         heading="Current balance"
         subtitle="As of 12/11/2022"
-        // CTA={
-        //   balance ? (
-        //     <div className="text-3xl text-black">{Math.round(balance)}</div>
-        //   ) : null
-        // }
+        CTA={
+          balance ? (
+            <div className="text-3xl text-black">{Math.round(balance)}</div>
+          ) : null
+        }
       >
-        {/* salary form */}
-        {isLoading || !user ? (
-          <SkeletonLoader />
-        ) : (
-          <>
-            <div className="mb-8">
-              <h2 className="mb-4 text-lg font-medium">Salary</h2>
-              <SalaryForm />
-            </div>
+        <div className="flex flex-col space-y-8">
+          <div>
+            <h2 className="mb-4 text-lg font-medium">Run Simulation</h2>
+            <RunSimForm setBalance={setBalance} />
+          </div>
+          <div>
+            <h2 className="mb-4 text-lg font-medium">Salary</h2>
+            <SalaryForm />
+          </div>
 
-            <div>
-              <h2 className="mb-4 text-lg font-medium">Categories</h2>
-              <Categories />
-            </div>
-          </>
-        )}
-        {/* run simulation */}
-        {/* <div className="mt-6 flex justify-start"> */}
-        {/*   <Input */}
-        {/*     id="years" */}
-        {/*     name="years" */}
-        {/*     required */}
-        {/*     type="number" */}
-        {/*     ref={yearsEl} */}
-        {/*     className="w-auto rounded-r-none" */}
-        {/*   /> */}
-        {/*   <Button */}
-        {/*     onClick={() => { */}
-        {/*       setBalance(getTotalBalance(Number(yearsEl?.current?.value))); */}
-        {/*     }} */}
-        {/*     className="rounded-l-none py-2 px-4" */}
-        {/*   > */}
-        {/*     Run */}
-        {/*   </Button> */}
-        {/* </div> */}
+          <div>
+            <h2 className="mb-4 text-lg font-medium">Categories</h2>
+            <Categories />
+          </div>
+        </div>
       </Shell>
     </>
   );
 }
+
+const RunSimForm = ({
+  setBalance,
+}: {
+  setBalance: Dispatch<React.SetStateAction<number | null>>;
+}) => {
+  const { data: user, isLoading: userLoading } = trpc.user.me.useQuery();
+  const { data: salary } = trpc.simulation.salary.get.useQuery();
+  const { data: categories } = trpc.simulation.categories.get.useQuery();
+
+  const runSimForm = useForm<RunSimulationDataType>({
+    resolver: zodResolver(runSimulationData),
+    defaultValues: {
+      years: MIN_YEARS,
+    },
+  });
+  const { control } = runSimForm;
+
+  if (!user || userLoading) {
+    return <SkeletonLoader />;
+  }
+
+  return (
+    <Form
+      form={runSimForm}
+      handleSubmit={(values: RunSimulationDataType) => {
+        if (!categories || !salary) {
+          showToast(
+            `Please add at least one ${
+              !categories ? "category" : "salary"
+            } first`,
+            "error"
+          );
+
+          return;
+        }
+        setBalance(
+          getTotalBalance({
+            categories,
+            salary: salary,
+            years: Number(values.years),
+            investPerc: user.investPerc,
+            indexReturn: user.indexReturn,
+          })
+        );
+      }}
+      className="my-6 flex justify-start"
+    >
+      <NumberInput
+        label="Years"
+        control={control}
+        name="years"
+        className="mb-0 w-auto rounded-r-none"
+      />
+      <Button type="submit" className="self-end rounded-l-none py-2 px-4">
+        Run
+      </Button>
+    </Form>
+  );
+};

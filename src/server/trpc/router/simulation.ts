@@ -5,6 +5,18 @@ import { protectedProcedure, router } from "../trpc";
 
 export const simulationRouter = router({
   salary: router({
+    get: protectedProcedure.query(async ({ ctx }) => {
+      const { prisma, user } = ctx;
+
+      return await prisma.salary.findUnique({
+        where: {
+          userId: user.id,
+        },
+        include: {
+          variance: true,
+        },
+      });
+    }),
     updateOrCreate: protectedProcedure
       .input(salaryDataServer)
       .mutation(async ({ input, ctx }) => {
@@ -73,12 +85,13 @@ export const simulationRouter = router({
   categories: router({
     get: protectedProcedure.query(async ({ ctx }) => {
       const { prisma, user } = ctx;
+
       return await prisma.category.findMany({
         where: {
           userId: user.id,
         },
         orderBy: {
-          id: "asc",
+          id: "desc",
         },
         include: {
           records: true,

@@ -44,7 +44,7 @@ export const profileData = z.object({
 // salary
 export const salaryDataClient = z.object({
   title: z.string().optional(),
-  currency: selectOptionsData,
+  currency: selectOptions,
   amount: z.number().positive(),
   variance: z
     .array(
@@ -58,6 +58,7 @@ export const salaryDataClient = z.object({
     .optional(),
 });
 export const salaryDataServer = salaryDataClient.extend({
+  currency: z.string().optional(),
   variance: z
     .array(
       z
@@ -103,10 +104,11 @@ export const categoryDataClient = z.object({
 });
 
 export const categoryDataServer = categoryDataClient.extend({
-  id: z.number().optional(),
-  country: z.string(),
   budget: z.number().positive(),
+  currency: z.union([equalTo("perRec"), z.string().optional()]), // pass default
+  type: z.union([equalTo("income"), equalTo("outcome")]),
   inflType: z.union([equalTo(""), equalTo("perCat"), equalTo("perRec")]),
+  country: z.string(),
   inflVal: z.number().positive(),
   icon: z.string(),
 
@@ -116,11 +118,11 @@ export const categoryDataServer = categoryDataClient.extend({
         .object({
           title: z.string().optional(),
           amount: z.number().positive(),
-          type: z.union([equalTo("income"), equalTo("outcome")]),
           frequency: z.number().positive(),
           inflType: z.boolean(),
-          country: z.string(),
           inflation: z.number().positive(),
+          type: z.union([equalTo("income"), equalTo("outcome")]),
+          country: z.string(),
           currency: z.string(),
         })
         .required()

@@ -27,7 +27,6 @@ export const userRouter = router({
         currency: user.currency,
         investPerc: user.investPerc,
         indexReturn: user.indexReturn,
-        salary: user.salary,
       };
     }
   }),

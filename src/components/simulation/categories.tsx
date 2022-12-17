@@ -34,7 +34,7 @@ import {
   getCurrencyOptions,
   SelectOption,
 } from "utils/sim-settings";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import showToast from "components/ui/core/notifications";
 import { z } from "zod";
 import {
@@ -291,8 +291,8 @@ const CategoryForm = ({
     frequency: DEFAULT_FREQUENCY,
     inflType: watchLatestRecordInflType?.value !== "income",
     country: {
-      value: category?.country || user?.country,
-      label: getCountryLabel(category?.country || (user?.country as string)),
+      value: user?.country,
+      label: getCountryLabel(user?.country as string),
     } as SelectOption,
     inflation: category?.inflVal || (user?.inflation as number),
     currency: getCurrency(category?.currency || (user?.currency as string)),
@@ -314,16 +314,22 @@ const CategoryForm = ({
 
   // default form values
   useEffect(() => {
+    console.log("RESETTING CAT VALUES FOR HEALTH");
+    console.log(category?.title === "Health" && category);
     reset({
       ...category,
       currency: getCurrency(category?.currency || (user?.currency as string)),
       type: {
         value: category?.type || OUTCOME_VAL,
-        label: getLabel(category?.type as OptionsType) || OUTCOME_LABEL,
+        label:
+          (category?.type && getLabel(category?.type as OptionsType)) ||
+          OUTCOME_LABEL,
       },
       inflType: {
         value: category?.inflType || PER_CAT_VAL,
-        label: getLabel(category?.inflType as OptionsType) || PER_CAT_LABEL,
+        label:
+          (category?.inflType && getLabel(category?.inflType as OptionsType)) ||
+          PER_CAT_LABEL,
       },
       inflVal: category?.inflVal || user?.inflation,
       country: {
@@ -332,9 +338,11 @@ const CategoryForm = ({
       },
       freqType: {
         value: category?.freqType || PER_CAT_VAL,
-        label: getLabel(category?.freqType as OptionsType) || PER_CAT_LABEL,
+        label:
+          (category?.freqType && getLabel(category?.freqType as OptionsType)) ||
+          PER_CAT_LABEL,
       },
-      frequency: DEFAULT_FREQUENCY,
+      frequency: category?.frequency || DEFAULT_FREQUENCY,
       records: category?.records.map((record) => ({
         ...record,
         title: record.title || "",
@@ -390,8 +398,8 @@ const CategoryForm = ({
         ..._.omit(selectInputsData, ["records"]),
       };
     }
-    console.log("CATEGORY VALUES");
-    console.table(values);
+    // console.log("CATEGORY VALUES");
+    // console.table(values);
 
     categoryMutation.mutate(
       input as unknown as z.infer<typeof categoryDataServer>
@@ -489,7 +497,7 @@ const CategoryForm = ({
                       name="country"
                       control={control}
                       updateInflation={updateInflation}
-                      inflName="inflation"
+                      inflName="inflVal"
                     />
                   </div>
 
@@ -497,7 +505,7 @@ const CategoryForm = ({
                   <div>
                     <CountryInflInput<CategoryDataInputTypeClient>
                       control={control}
-                      name="inflation"
+                      name="inflVal"
                       isLoadingInfl={isLoadingInfl}
                       isValidInfl={isValidInfl}
                     />
@@ -570,7 +578,7 @@ const CategoryForm = ({
         >
           {category ? "Update" : "Create"}
         </Button>
-        <>{console.log("FORM ERRORS", categoryForm.formState.errors)}</>
+        {/* <>{console.log("FORM ERRORS", categoryForm.formState.errors)}</> */}
       </Form>
     );
   }
@@ -580,9 +588,21 @@ const CategoryForm = ({
 };
 
 const Categories = () => {
-  const [newCategories, setNewCategories] = useState<Array<number | undefined>>(
-    []
-  );
+  const [newCategories, setNewCategories] = useState<Array<any>>([]);
+  const newCatShape = useRef({
+    type: {
+      value: OUTCOME_VAL,
+      label: OUTCOME_LABEL,
+    },
+    inflType: {
+      value: PER_CAT_VAL,
+      label: PER_CAT_LABEL,
+    },
+    freqType: {
+      value: PER_CAT_VAL,
+      label: PER_CAT_LABEL,
+    },
+  });
 
   const {
     data: categories,
@@ -602,32 +622,33 @@ const Categories = () => {
       />
     );
 
-  return (
-    <div>
-      <Button
-        className="mb-4"
-        StartIcon={FiPlus}
-        onClick={() => setNewCategories([...newCategories, 0])}
-      >
-        New Category
-      </Button>
-      <div className="mb-4 space-y-4">
-        {categories?.map((category) => (
-          <CategoryForm category={category} />
-        ))}
-        {newCategories.map(() => (
-          <CategoryForm />
-        ))}
+  if (isSuccess)
+    return (
+      <div>
+        <Button
+          className="mb-4"
+          StartIcon={FiPlus}
+          onClick={() => setNewCategories([...newCategories, newCatShape])}
+        >
+          New Category
+        </Button>
+        <div className="mb-4 space-y-4">
+          {newCategories.map(() => (
+            <CategoryForm />
+          ))}
+          {categories?.map((category) => (
+            <CategoryForm category={category} />
+          ))}
+        </div>
+        {categories?.length === 0 && newCategories?.length === 0 && (
+          <EmptyScreen
+            Icon={FiPlus}
+            headline="New category"
+            description="Budget categories helps you define all your yearly expenses to fine-tune the simulation's result"
+          />
+        )}
       </div>
-      {categories?.length === 0 && newCategories?.length === 0 && (
-        <EmptyScreen
-          Icon={FiPlus}
-          headline="New category"
-          description="Budget categories helps you define all your yearly expenses to fine-tune the simulation's result"
-        />
-      )}
-    </div>
-  );
+    );
 
   // impossible state
   return null;

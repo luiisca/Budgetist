@@ -288,12 +288,6 @@ const SalaryForm = () => {
               label="Amount"
               placeholder=""
             />
-            {/* <PeriodInput */}
-            {/*   position={index} */}
-            {/*   label="Amount" */}
-            {/*   control={control as unknown as Control} */}
-            {/*   name={`variance.${index}.amount`} */}
-            {/* /> */}
             <Button
               color="primary"
               disabled={isDisabled}

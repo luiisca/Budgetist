@@ -6,6 +6,8 @@ import {
   SkeletonButton,
   SkeletonContainer,
   SkeletonText,
+  Tooltip,
+  transIntoInt,
 } from "components/ui";
 import Head from "next/head";
 import Shell from "components/ui/core/Shell";
@@ -17,10 +19,11 @@ import { Dispatch, useRef, useState } from "react";
 import { getTotalBalance } from "utils/simulation";
 import showToast from "components/ui/core/notifications";
 import { useForm } from "react-hook-form";
-import { MIN_YEARS } from "utils/constants";
+import { MAX_YEARS, MIN_YEARS } from "utils/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { runSimulationData, RunSimulationDataType } from "prisma/*";
+import Switch from "components/ui/core/Switch";
 
 const SkeletonLoader = () => {
   return (
@@ -62,6 +65,9 @@ export default function Simulation() {
           <div>
             <h2 className="mb-4 text-lg font-medium">Run Simulation</h2>
             <RunSimForm setBalance={setBalance} />
+          </div>
+          <div>
+            <BalanceHistory />
           </div>
           <div>
             <h2 className="mb-4 text-lg font-medium">Salary</h2>
@@ -130,10 +136,41 @@ const RunSimForm = ({
         control={control}
         name="years"
         className="mb-0 w-auto rounded-r-none"
+        onChange={(e) => {
+          const years = e.target.value;
+          const parsedYears = transIntoInt(years);
+
+          if (parsedYears > MAX_YEARS) return MAX_YEARS;
+
+          return parsedYears;
+        }}
       />
       <Button type="submit" className="self-end rounded-l-none py-2 px-4">
         Run
       </Button>
     </Form>
+  );
+};
+
+const BalanceHistory = () => {
+  const [hidden, setHidden] = useState(false);
+
+  return (
+    <>
+      <div className="mb-4 flex items-center space-x-2">
+        <h2 className="text-lg font-medium">Balance History</h2>
+        <Tooltip content={`${hidden ? "Enable" : "Disable"} balance history`}>
+          <div className="self-center rounded-md p-2 hover:bg-gray-200">
+            <Switch
+              name="Hidden"
+              checked={!hidden}
+              onCheckedChange={() => {
+                setHidden(!hidden);
+              }}
+            />
+          </div>
+        </Tooltip>
+      </div>
+    </>
   );
 };

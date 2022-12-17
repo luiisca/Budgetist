@@ -217,7 +217,7 @@ export const EmailField = forwardRef<HTMLInputElement, InputFieldProps>(
 
 export const transIntoInt = (value: string) => {
   const parsedVal = parseInt(value as string, 10);
-  return parsedVal === 0
+  return parsedVal <= 0
     ? 1
     : Number.isNaN(parsedVal)
     ? ""

@@ -172,12 +172,12 @@ const SalaryForm = () => {
     if (salary) {
       reset({
         title: salary.title,
-        currency: getCurrency(salary.currency),
+        currency: getCurrency(salary.currency, user?.country),
         amount: salary.amount,
         variance: salary.variance,
       });
     }
-  }, [reset, salary]);
+  }, [user, reset, salary]);
 
   // onSubmit
   const onSalarySubmit = (values: SalaryDataInputTypeClient) => {

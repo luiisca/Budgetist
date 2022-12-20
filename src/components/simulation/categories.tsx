@@ -295,7 +295,10 @@ const CategoryForm = ({
       label: getCountryLabel(user?.country as string),
     } as SelectOption,
     inflation: category?.inflVal || (user?.inflation as number),
-    currency: getCurrency(category?.currency || (user?.currency as string)),
+    currency: getCurrency(
+      category?.currency || (user?.currency as string),
+      user?.country
+    ),
   };
 
   // mutation
@@ -318,7 +321,10 @@ const CategoryForm = ({
     console.log(category?.title === "Health" && category);
     reset({
       ...category,
-      currency: getCurrency(category?.currency || (user?.currency as string)),
+      currency: getCurrency(
+        category?.currency || (user?.currency as string),
+        user?.country
+      ),
       type: {
         value: category?.type || OUTCOME_VAL,
         label:
@@ -355,7 +361,10 @@ const CategoryForm = ({
           label: getCountryLabel(record.country || (user?.country as string)),
         },
         inflation: record.inflation || user?.inflation,
-        currency: getCurrency(record.currency || (user?.currency as string)),
+        currency: getCurrency(
+          record.currency || (user?.currency as string),
+          user?.country
+        ),
       })),
     });
   }, [user, category, reset]);

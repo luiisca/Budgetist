@@ -34,7 +34,7 @@ const SimSettings = ({ user }: { user: User }) => {
     defaultValues: {
       country: { value: user.country, label: getCountryLabel(user.country) },
       inflation: user.inflation || 0,
-      currency: getCurrency(user.currency),
+      currency: getCurrency(user.currency, user.country),
       investPerc: user.investPerc || 0,
       indexReturn: user.indexReturn || 0,
     },

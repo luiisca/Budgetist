@@ -137,13 +137,14 @@ export const CountrySelect = <T extends FieldValues>({
 
   const updateCurrency = useCallback(
     (countryData: SingleValue<SelectOption>, form: UseFormReturn<T, any>) => {
+      const countryCode = countryData?.value;
       const currencyCode =
-        countryData?.value &&
-        countryToCurrency[countryData.value as keyof SingleValue<SelectOption>];
+        countryCode &&
+        countryToCurrency[countryCode as keyof SingleValue<SelectOption>];
 
       form.setValue(
         "currency" as Path<T>,
-        getCurrency(currencyCode || "USD") as PathValue<T, Path<T>>
+        getCurrency(currencyCode || "USD", countryCode) as PathValue<T, Path<T>>
       );
     },
     []

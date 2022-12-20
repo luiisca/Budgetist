@@ -85,7 +85,7 @@ const ProfileView = () => {
             label: getCountryLabel(user.country),
           },
           inflation: user.inflation,
-          currency: getCurrency(user.currency),
+          currency: getCurrency(user.currency, user.country),
           investPerc: user.investPerc,
           indexReturn: user.indexReturn,
         },

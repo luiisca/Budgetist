@@ -27,10 +27,11 @@ export const selectOptionsData = z.object({
   label: z.string().optional(),
 });
 
-export const getCurrency = (code: string) => {
+export const getCurrency = (code: string, countryCode: string = "US") => {
   code = code || DEFAULT_CURRENCY;
 
-  const label = new Intl.NumberFormat("en", {
+  const lang = clm.getCountryByAlpha2(countryCode)?.languages[0];
+  const label = new Intl.NumberFormat(lang, {
     style: "currency",
     currency: code,
     maximumSignificantDigits: 1,
@@ -42,6 +43,17 @@ export const getCurrency = (code: string) => {
     value: code,
     label,
   };
+};
+export const formatAmount = (value: number) => {
+  let formatted = new Intl.NumberFormat("en", {
+    style: "currency",
+    currency: "USD",
+  }).format(value);
+  if (formatted.slice(-2) === "00") {
+    formatted = formatted.slice(0, -3);
+  }
+
+  return formatted as unknown as number;
 };
 
 const listAllCountries = () => {
@@ -57,9 +69,9 @@ export const getCountryLabel = (countryCode: string) => {
     ? countryCode
     : DEFAULT_COUNTRY;
 
-  const locale = clm.getCountryByAlpha2(countryCode)?.languages[0];
+  const lang = clm.getCountryByAlpha2(countryCode)?.languages[0];
   return countryCode !== "default"
-    ? new Intl.DisplayNames(locale, { type: "region" }).of(countryCode) || ""
+    ? new Intl.DisplayNames(lang, { type: "region" }).of(countryCode) || ""
     : "Other";
 };
 

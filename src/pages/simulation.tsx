@@ -1,7 +1,7 @@
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import {
   Button,
   Form,
-  Input,
   NumberInput,
   SkeletonButton,
   SkeletonContainer,
@@ -16,14 +16,17 @@ import _ from "lodash";
 import SalaryForm from "components/simulation/salaryForm";
 import Categories from "components/simulation/categories";
 import { Dispatch, useRef, useState } from "react";
-import { getTotalBalance } from "utils/simulation";
+import { CatsAccExpType, getTotalBalance } from "utils/simulation";
 import showToast from "components/ui/core/notifications";
 import { useForm } from "react-hook-form";
 import { MAX_YEARS, MIN_YEARS } from "utils/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { runSimulationData, RunSimulationDataType } from "prisma/*";
 import Switch from "components/ui/core/Switch";
+import EmptyScreen from "components/ui/core/EmptyScreen";
+import { FiClock } from "react-icons/fi";
+import { ListItem } from "components/ui/ListItem";
+import { formatAmount } from "utils/sim-settings";
 
 const SkeletonLoader = () => {
   return (
@@ -43,8 +46,10 @@ const SkeletonLoader = () => {
 };
 
 export default function Simulation() {
-  const yearsEl = useRef<HTMLInputElement>(null);
-  const [balance, setBalance] = useState<number | null>(null);
+  const [totalBalance, setTotalBalance] = useState<number | null>(null);
+  const [balanceHistory, setBalanceHistory] = useState<CatsAccExpType[] | []>(
+    []
+  );
 
   return (
     <>
@@ -56,18 +61,23 @@ export default function Simulation() {
         heading="Current balance"
         subtitle="As of 12/11/2022"
         CTA={
-          balance ? (
-            <div className="text-3xl text-black">{Math.round(balance)}</div>
+          totalBalance ? (
+            <div className="text-3xl text-black">
+              {formatAmount(totalBalance)}
+            </div>
           ) : null
         }
       >
         <div className="flex flex-col space-y-8">
           <div>
             <h2 className="mb-4 text-lg font-medium">Run Simulation</h2>
-            <RunSimForm setBalance={setBalance} />
+            <RunSimForm
+              setTotalBalance={setTotalBalance}
+              setBalanceHistory={setBalanceHistory}
+            />
           </div>
           <div>
-            <BalanceHistory />
+            <BalanceHistory balanceHistory={balanceHistory} />
           </div>
           <div>
             <h2 className="mb-4 text-lg font-medium">Salary</h2>
@@ -85,9 +95,11 @@ export default function Simulation() {
 }
 
 const RunSimForm = ({
-  setBalance,
+  setTotalBalance,
+  setBalanceHistory,
 }: {
-  setBalance: Dispatch<React.SetStateAction<number | null>>;
+  setTotalBalance: Dispatch<React.SetStateAction<number | null>>;
+  setBalanceHistory: Dispatch<React.SetStateAction<CatsAccExpType[] | []>>;
 }) => {
   const { data: user, isLoading: userLoading } = trpc.user.me.useQuery();
   const { data: salary } = trpc.simulation.salary.get.useQuery();
@@ -119,15 +131,15 @@ const RunSimForm = ({
 
           return;
         }
-        setBalance(
-          getTotalBalance({
-            categories,
-            salary: salary,
-            years: Number(values.years),
-            investPerc: user.investPerc,
-            indexReturn: user.indexReturn,
-          })
-        );
+        const { total, balanceHistory } = getTotalBalance({
+          categories,
+          salary: salary,
+          years: Number(values.years),
+          investPerc: user.investPerc,
+          indexReturn: user.indexReturn,
+        });
+        setTotalBalance(total);
+        setBalanceHistory(balanceHistory);
       }}
       className="my-6 flex justify-start"
     >
@@ -152,24 +164,79 @@ const RunSimForm = ({
   );
 };
 
-const BalanceHistory = () => {
+const BalanceHistory = ({
+  balanceHistory,
+}: {
+  balanceHistory: CatsAccExpType[] | [];
+}) => {
   const [hidden, setHidden] = useState(false);
+  const [animationParentRef] = useAutoAnimate<HTMLDivElement>();
+  const [ulAnimationParentRef] = useAutoAnimate<HTMLUListElement>();
 
   return (
     <>
-      <div className="mb-4 flex items-center space-x-2">
-        <h2 className="text-lg font-medium">Balance History</h2>
-        <Tooltip content={`${hidden ? "Enable" : "Disable"} balance history`}>
-          <div className="self-center rounded-md p-2 hover:bg-gray-200">
-            <Switch
-              name="Hidden"
-              checked={!hidden}
-              onCheckedChange={() => {
-                setHidden(!hidden);
-              }}
-            />
-          </div>
-        </Tooltip>
+      <div className="mb-4 flex flex-col space-y-4" ref={animationParentRef}>
+        <div className="flex items-center space-x-2">
+          <h2 className="text-lg font-medium">Balance History</h2>
+          <Tooltip content={`${hidden ? "Enable" : "Disable"} balance history`}>
+            <div className="self-center rounded-md p-2 hover:bg-gray-200">
+              <Switch
+                name="Hidden"
+                checked={!hidden}
+                onCheckedChange={() => {
+                  setHidden(!hidden);
+                }}
+              />
+            </div>
+          </Tooltip>
+          <>{console.log("BALANCE HISTORY", balanceHistory)}</>
+        </div>
+        {!hidden && (
+          <>
+            {balanceHistory.length === 0 ? (
+              <div className="flex justify-center">
+                <EmptyScreen
+                  Icon={FiClock}
+                  headline="Run Simulation"
+                  description="Before viewing your expenses and incomes, run the simulation to see them reflected in this area."
+                />
+              </div>
+            ) : (
+              <div className="mb-16 overflow-hidden rounded-md border border-gray-200 bg-white">
+                <ul
+                  className="divide-y divide-neutral-200"
+                  data-testid="schedules"
+                  ref={ulAnimationParentRef}
+                >
+                  {balanceHistory[0].map((category, index) => {
+                    if (category.records.length > 0) {
+                      return category.records.map((record, index) => (
+                        <ListItem
+                          key={index}
+                          category={{
+                            ...record,
+                            spent: formatAmount(record.spent),
+                            parentTitle: category.title,
+                            record: true,
+                          }}
+                        />
+                      ));
+                    }
+                    return (
+                      <ListItem
+                        key={index}
+                        category={{
+                          ...category,
+                          spent: formatAmount(category.spent),
+                        }}
+                      />
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </>
   );

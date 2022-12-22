@@ -1,7 +1,22 @@
+import { Button, NumberInput, transIntoInt } from "components/ui";
+import Dropdown, {
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "components/ui/Dropdown";
+import { capitalize } from "lodash";
 import Head from "next/head";
-import Image from "next/image";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { FiChevronDown } from "react-icons/fi";
 
+const typeOptions = ["all", "income", "outcome", "salary"];
 export default function Home() {
+  const [typeFilterValue, setTypeFilterValue] = useState(
+    capitalize(typeOptions[0])
+  );
+  const { control } = useForm();
+
   return (
     <div>
       <Head>
@@ -10,67 +25,64 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="h-[3000px]">
-        <h1>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
+      <div className="flex flex-col space-y-4">
+        <div className="flex items-center space-x-2 self-end">
+          <Dropdown>
+            <DropdownMenuTrigger asChild className="px-4">
+              <Button
+                type="button"
+                size="icon"
+                color="secondary"
+                EndIcon={() => <FiChevronDown className="ml-1 -mb-[2px]" />}
+                className="w-28"
+              >
+                {typeFilterValue}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {typeOptions.map((type) => {
+                const capType = capitalize(type);
 
-        <p>
-          Get started by editing <code>pages/index.tsx</code>
-        </p>
+                return (
+                  <DropdownMenuItem>
+                    <Button
+                      onClick={() => {
+                        setTypeFilterValue(capType);
+                      }}
+                      type="button"
+                      color="minimal"
+                      className="w-full font-normal"
+                    >
+                      {capType}
+                    </Button>
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </Dropdown>
 
-        <div>
-          <a href="https://nextjs.org/docs">
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn">
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a href="https://github.com/vercel/next.js/tree/canary/examples">
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
+          <form>
+            <NumberInput
+              control={control}
+              defaultValue={1}
+              name="year"
+              onChange={(e) => {
+                // const balanceYears = balanceHistory.length;
+                let parsedYear = transIntoInt(e.target.value);
+                //
+                // if (parsedYear > balanceYears) {
+                //   parsedYear = balanceYears;
+                // }
+                //
+                // setYear(parsedYear as unknown as number);
+                return parsedYear;
+              }}
+              className="!mb-0 !w-32"
+              placeholder="Year Balance"
+            />
+          </form>
         </div>
-      </main>
-
-      <footer>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{" "}
-          <span>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
-      <button
-        onClick={() => {
-          window.scrollTo({
-            left: 0,
-            top: 0,
-            behavior: "smooth",
-          });
-        }}
-      >
-        Button
-      </button>
+      </div>
     </div>
   );
 }

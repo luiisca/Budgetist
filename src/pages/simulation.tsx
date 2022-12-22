@@ -12,11 +12,11 @@ import {
 import Head from "next/head";
 import Shell from "components/ui/core/Shell";
 import { trpc } from "utils/trpc";
-import _ from "lodash";
+import _, { capitalize } from "lodash";
 import SalaryForm from "components/simulation/salaryForm";
 import Categories from "components/simulation/categories";
-import { Dispatch, useRef, useState } from "react";
-import { CatsAccExpType, getTotalBalance } from "utils/simulation";
+import { Dispatch, useState } from "react";
+import { getTotalBalance, YearBalanceType } from "utils/simulation";
 import showToast from "components/ui/core/notifications";
 import { useForm } from "react-hook-form";
 import { MAX_YEARS, MIN_YEARS } from "utils/constants";
@@ -24,9 +24,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { runSimulationData, RunSimulationDataType } from "prisma/*";
 import Switch from "components/ui/core/Switch";
 import EmptyScreen from "components/ui/core/EmptyScreen";
-import { FiClock } from "react-icons/fi";
+import { FiChevronDown, FiClock } from "react-icons/fi";
 import { ListItem } from "components/ui/ListItem";
 import { formatAmount } from "utils/sim-settings";
+import classNames from "classnames";
+import { TitleWithInfo } from "components/simulation/components";
+import Dropdown, {
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "components/ui/Dropdown";
 
 const SkeletonLoader = () => {
   return (
@@ -47,7 +54,7 @@ const SkeletonLoader = () => {
 
 export default function Simulation() {
   const [totalBalance, setTotalBalance] = useState<number | null>(null);
-  const [balanceHistory, setBalanceHistory] = useState<CatsAccExpType[] | []>(
+  const [balanceHistory, setBalanceHistory] = useState<YearBalanceType[] | []>(
     []
   );
 
@@ -99,7 +106,7 @@ const RunSimForm = ({
   setBalanceHistory,
 }: {
   setTotalBalance: Dispatch<React.SetStateAction<number | null>>;
-  setBalanceHistory: Dispatch<React.SetStateAction<CatsAccExpType[] | []>>;
+  setBalanceHistory: Dispatch<React.SetStateAction<YearBalanceType[] | []>>;
 }) => {
   const { data: user, isLoading: userLoading } = trpc.user.me.useQuery();
   const { data: salary } = trpc.simulation.salary.get.useQuery();
@@ -164,21 +171,36 @@ const RunSimForm = ({
   );
 };
 
+const typeOptions = ["all", "income", "outcome", "salary"];
+
 const BalanceHistory = ({
   balanceHistory,
 }: {
-  balanceHistory: CatsAccExpType[] | [];
+  balanceHistory: YearBalanceType[];
 }) => {
   const [hidden, setHidden] = useState(false);
+  const [year, setYear] = useState(1);
+  const [typeFilterValue, setTypeFilterValue] = useState(typeOptions[0]);
   const [animationParentRef] = useAutoAnimate<HTMLDivElement>();
   const [ulAnimationParentRef] = useAutoAnimate<HTMLUListElement>();
+
+  const { control } = useForm();
 
   return (
     <>
       <div className="mb-4 flex flex-col space-y-4" ref={animationParentRef}>
         <div className="flex items-center space-x-2">
-          <h2 className="text-lg font-medium">Balance History</h2>
-          <Tooltip content={`${hidden ? "Enable" : "Disable"} balance history`}>
+          <TitleWithInfo
+            Title={() => <h2 className="text-lg font-medium">Balance</h2>}
+            infoCont={
+              <>
+                It gives you a clear picture of how much <br />
+                you would have spent in <br />
+                each category for the inputted year. <br />
+              </>
+            }
+          />
+          <Tooltip content={`${hidden ? "Enable" : "Disable"} balance`}>
             <div className="self-center rounded-md p-2 hover:bg-gray-200">
               <Switch
                 name="Hidden"
@@ -189,7 +211,6 @@ const BalanceHistory = ({
               />
             </div>
           </Tooltip>
-          <>{console.log("BALANCE HISTORY", balanceHistory)}</>
         </div>
         {!hidden && (
           <>
@@ -202,37 +223,141 @@ const BalanceHistory = ({
                 />
               </div>
             ) : (
-              <div className="mb-16 overflow-hidden rounded-md border border-gray-200 bg-white">
-                <ul
-                  className="divide-y divide-neutral-200"
-                  data-testid="schedules"
-                  ref={ulAnimationParentRef}
+              <div className="flex flex-col space-y-4">
+                <div className="flex items-center space-x-4 self-end">
+                  <Dropdown>
+                    <DropdownMenuTrigger asChild className="px-4">
+                      <Button
+                        type="button"
+                        size="icon"
+                        color="secondary"
+                        EndIcon={() => (
+                          <FiChevronDown className="ml-1 -mb-[2px]" />
+                        )}
+                        className="w-28"
+                      >
+                        {typeFilterValue}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      {typeOptions.map((type) => {
+                        const capType = capitalize(type);
+
+                        return (
+                          <DropdownMenuItem>
+                            <Button
+                              onClick={() => {
+                                setTypeFilterValue(capType);
+                              }}
+                              type="button"
+                              color="minimal"
+                              className="w-full font-normal"
+                            >
+                              {capType}
+                            </Button>
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </Dropdown>
+
+                  <form>
+                    <NumberInput
+                      control={control}
+                      defaultValue={year}
+                      name="year"
+                      onChange={(e) => {
+                        const balanceYears = balanceHistory.length;
+                        let parsedYear = transIntoInt(e.target.value);
+
+                        if (parsedYear > balanceYears) {
+                          parsedYear = balanceYears;
+                        }
+
+                        setYear(parsedYear as unknown as number);
+                        return parsedYear;
+                      }}
+                      className="!mb-0 !w-32"
+                      placeholder="Year balance"
+                    />
+                  </form>
+                </div>
+                <div
+                  className={classNames(
+                    "mb-16 overflow-hidden rounded-md border border-transparent bg-white",
+                    balanceHistory[year - 1] && "!border-gray-200"
+                  )}
                 >
-                  {balanceHistory[0].map((category, index) => {
-                    if (category.records.length > 0) {
-                      return category.records.map((record, index) => (
+                  <ul
+                    className="divide-y divide-neutral-200"
+                    data-testid="schedules"
+                    ref={ulAnimationParentRef}
+                  >
+                    {(typeFilterValue === "salary" ||
+                      typeFilterValue === "all") &&
+                      balanceHistory[year - 1]?.salaryBalance && (
                         <ListItem
-                          key={index}
+                          infoBubble={false}
                           category={{
-                            ...record,
-                            spent: formatAmount(record.spent),
-                            parentTitle: category.title,
-                            record: true,
+                            ...balanceHistory[year - 1].salaryBalance,
+                            spent: formatAmount(
+                              Math.abs(
+                                balanceHistory[year - 1].salaryBalance.amount
+                              )
+                            ),
                           }}
                         />
-                      ));
-                    }
-                    return (
-                      <ListItem
-                        key={index}
-                        category={{
-                          ...category,
-                          spent: formatAmount(category.spent),
-                        }}
-                      />
-                    );
-                  })}
-                </ul>
+                      )}
+                    {typeFilterValue !== "salary" &&
+                      balanceHistory[year - 1]?.categoriesBalance
+                        .filter((category) => category.type === typeFilterValue)
+                        .map((category, index) => {
+                          if (category.records.length > 0) {
+                            return category.records.map((record, index) => (
+                              <ListItem
+                                key={index}
+                                category={{
+                                  ...record,
+                                  spent: formatAmount(Math.abs(record.spent)),
+                                  parentTitle: category.title,
+                                  record: true,
+                                }}
+                              />
+                            ));
+                          }
+                          return (
+                            <ListItem
+                              key={index}
+                              category={{
+                                ...category,
+                                spent: formatAmount(Math.abs(category.spent)),
+                              }}
+                            />
+                          );
+                        })}
+                  </ul>
+                </div>
+
+                {year && (
+                  <div className="mt-4 flex w-full justify-between px-3">
+                    <p className="text-md text-green-400">
+                      INCOME:{" "}
+                      <span className="text-xl">
+                        {formatAmount(
+                          Math.abs(balanceHistory[year - 1]?.income)
+                        )}
+                      </span>
+                    </p>
+                    <p className="text-md text-red-400">
+                      OUTCOME:{" "}
+                      <span className="text-xl">
+                        {formatAmount(
+                          Math.abs(balanceHistory[year - 1]?.outcome)
+                        )}
+                      </span>
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </>

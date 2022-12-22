@@ -51,7 +51,7 @@ import {
   getLabel,
   OptionsType,
 } from "utils/constants";
-import { LabelWithInfo, RecordsList } from "./components";
+import { RecordsList, TitleWithInfo } from "./components";
 import { ControlledSelect } from "components/ui/core/form/select/Select";
 import useUpdateInflation from "utils/hooks/useUpdateInflation";
 import { CountryInflInput, CountrySelect } from "./fields";
@@ -475,8 +475,8 @@ const CategoryForm = ({
           <>
             <div>
               {/* inflation label */}
-              <LabelWithInfo
-                label="Inflation"
+              <TitleWithInfo
+                Title={() => <Label>Inflation</Label>}
                 infoCont={
                   <>
                     Select "Per record" to apply individual inflation to every

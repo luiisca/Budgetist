@@ -1,13 +1,18 @@
+import { TitleWithInfo } from "components/simulation/components";
 import { Badge } from "./Badge";
 
 export function ListItem({
   category,
+  infoBubble = true,
 }: {
+  infoBubble?: boolean;
   category: {
     icon?: string;
     title: string | null;
     parentTitle?: string;
     type: string;
+    inflation?: number;
+    frequency?: number;
     spent: number;
     record?: boolean;
   };
@@ -22,7 +27,11 @@ export function ListItem({
                 {category.title}
               </span>
               <Badge
-                variant={category.type === "income" ? "green" : "red"}
+                variant={
+                  category.type === "income" || category.type === "salary"
+                    ? "green"
+                    : "red"
+                }
                 className="text-xs"
               >
                 {category.type}
@@ -35,10 +44,28 @@ export function ListItem({
             )}
           </div>
         </div>
-        <p className="mr-5 text-lg font-medium text-neutral-900">
-          {category.spent}
-        </p>
-        {/* dropdwn for seeing balance of selected category at specified year */}
+        {infoBubble ? (
+          <TitleWithInfo
+            Title={() => (
+              <p className="mx-1 mr-5 text-lg font-medium text-neutral-900">
+                {category.spent}
+              </p>
+            )}
+            infoCont={
+              <div className="grid grid-cols-2 justify-items-start gap-x-2">
+                <p>Inflation: </p>
+                <p>{category.inflation}%</p>
+                <p>Frequency: </p>
+                <p>{category.frequency} / 12 </p>
+              </div>
+            }
+            className="flex-row-reverse"
+          />
+        ) : (
+          <p className="mx-1 mr-5 text-lg font-medium text-neutral-900">
+            {category.spent}
+          </p>
+        )}
       </div>
     </li>
   );

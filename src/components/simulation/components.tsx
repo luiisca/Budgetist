@@ -1,3 +1,4 @@
+import classNames from "classnames";
 import { Button, Label, Tooltip } from "components/ui";
 import showToast from "components/ui/core/notifications";
 import Switch from "components/ui/core/Switch";
@@ -11,16 +12,18 @@ import {
 } from "react-hook-form";
 import { FiInfo, FiPlus } from "react-icons/fi";
 
-export const LabelWithInfo = ({
-  label,
+export const TitleWithInfo = ({
+  Title,
   infoCont,
+  className,
 }: {
-  label: string;
+  Title: React.ElementType;
   infoCont: ReactNode;
+  className?: string;
 }) => {
   return (
-    <div className="flex items-center space-x-1">
-      <Label className="mb-0">{label}</Label>
+    <div className={classNames("flex items-center space-x-1", className)}>
+      <Title className="mb-0" />
       <Tooltip content={<p className="text-center">{infoCont}</p>}>
         <div className="-ml-1 self-center rounded p-2 hover:bg-gray-200">
           <FiInfo className="h-3 w-3" />
@@ -66,8 +69,10 @@ export const RecordsList = <T extends FieldValues>({
   return (
     <div>
       <div className="mb-4 flex items-center space-x-2">
-        <LabelWithInfo
-          label={name.charAt(0).toUpperCase() + name.slice(1)}
+        <TitleWithInfo
+          Title={() => (
+            <Label>{name.charAt(0).toUpperCase() + name.slice(1)}</Label>
+          )}
           infoCont={infoCont}
         />
         <Tooltip content={`${hidden ? "Enable" : "Disable"} ${name}`}>

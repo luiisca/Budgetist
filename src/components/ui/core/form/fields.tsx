@@ -16,7 +16,6 @@ import classNames from "classnames";
 import { getErrorFromUnknown } from "utils/errors";
 import showToast from "components/ui/core/notifications";
 import { FiInfo } from "react-icons/fi";
-import { ProfileDataInputType } from "prisma/*";
 
 type InputProps = JSX.IntrinsicElements["input"];
 
@@ -96,7 +95,7 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
     const id = useId();
     const name = props.name || "";
     const {
-      label = name,
+      label,
       labelProps,
       labelClassName,
       placeholder = "",
@@ -114,7 +113,7 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
 
     return (
       <div className={classNames(containerClassName)}>
-        {!!name && (
+        {!!label && (
           <Label
             htmlFor={id}
             {...labelProps}

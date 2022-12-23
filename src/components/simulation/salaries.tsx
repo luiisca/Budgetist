@@ -166,32 +166,35 @@ const SalaryForm = ({
 
   // mutation
   const utils = trpc.useContext();
-  const salaryMutation = trpc.simulation.salaries.updateOrCreate.useMutation({
+  const salaryMutation = trpc.simulation.salaries.createOrUpdate.useMutation({
     onSuccess: async () => {
       showToast(
         `Salary ${salary?.id ? "updated" : "created"} successfully`,
         "success"
       );
       await utils.simulation.salaries.invalidate();
+      onRemove && onRemove();
     },
     onError: async (e) => {
       const [message, inputIndex] = e.message.split(",");
       setFocus(`variance.${Number(inputIndex)}.from`);
       showToast(message, "error");
       await utils.simulation.salaries.invalidate();
+      onRemove && onRemove();
     },
   });
 
   // default form values
   useEffect(() => {
-    if (salary) {
-      reset({
-        title: salary.title,
-        currency: getCurrency(salary.currency, user?.country),
-        amount: salary.amount,
-        variance: salary.variance,
-      });
-    }
+    reset({
+      title: salary?.title,
+      currency: getCurrency(
+        salary?.currency || (user?.currency as string),
+        user?.country
+      ),
+      amount: salary?.amount,
+      variance: salary?.variance,
+    });
   }, [user, reset, salary]);
 
   // onSubmit
@@ -348,7 +351,7 @@ const SalaryForm = ({
             color="primary"
             loading={salaryMutation.isLoading}
           >
-            Update
+            {salary ? "Update" : "Create"}
           </Button>
           {salary ? (
             <Dialog open={deleteSalaryOpen} onOpenChange={setDeleteSalaryOpen}>
@@ -409,14 +412,6 @@ const Salaries = () => {
     isSuccess,
     error,
   } = trpc.simulation.salaries.get.useQuery();
-  const { data: user } = trpc.user.me.useQuery();
-
-  const newSalaryShape = {
-    title: "",
-    currency: user?.currency,
-    amount: "",
-    variance: [],
-  };
 
   if (isLoading) return <SkeletonLoader />;
   if (isError)
@@ -434,7 +429,7 @@ const Salaries = () => {
         <Button
           className="mb-4"
           StartIcon={FiPlus}
-          onClick={() => setNewSalaries([...newSalaries, newSalaryShape])}
+          onClick={() => setNewSalaries([...newSalaries, {}])}
         >
           New Salary
         </Button>

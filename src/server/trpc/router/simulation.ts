@@ -21,27 +21,24 @@ export const simulationRouter = router({
         },
       });
     }),
-    updateOrCreate: protectedProcedure
+    createOrUpdate: protectedProcedure
       .input(salaryDataServer)
       .mutation(async ({ input, ctx }) => {
         const { prisma, user } = ctx;
+
+        let salary;
 
         if (input.variance) {
           input.variance.reduce((prev, crr, index) => {
             if (prev.from >= crr.from) {
               throw new TRPCError({
                 code: "PARSE_ERROR",
-                message: `Invalid periods order. Please try again., ${index}`,
+                message: `Invalid periods order. Please try again. ${index}`,
               });
             }
 
             return crr;
           });
-        }
-
-        let salary;
-
-        if (input.variance) {
           salary = {
             ...input,
             variance: {

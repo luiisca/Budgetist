@@ -12,7 +12,7 @@ import {
   UseFieldArrayReturn,
   useFormContext,
 } from "react-hook-form";
-import { FiInfo, FiPlus } from "react-icons/fi";
+import { FiPlus } from "react-icons/fi";
 import { BsInfoCircle } from "react-icons/bs";
 
 export const TitleWithInfo = ({

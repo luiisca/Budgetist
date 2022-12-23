@@ -104,7 +104,7 @@ export default function Simulation() {
             <BalanceHistory balanceHistory={balanceHistory} />
           </div>
           <div>
-            <h2 className="mb-4 text-lg font-medium">Salary</h2>
+            <h2 className="mb-4 text-lg font-medium">Salaries</h2>
             <Salaries />
           </div>
 

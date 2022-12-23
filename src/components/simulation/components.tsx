@@ -3,6 +3,7 @@ import classNames from "classnames";
 import { Button, Label, Tooltip } from "components/ui";
 import showToast from "components/ui/core/notifications";
 import Switch from "components/ui/core/Switch";
+import { capitalize } from "lodash";
 import { ReactNode, useEffect } from "react";
 import {
   ArrayPath,
@@ -12,22 +13,25 @@ import {
   useFormContext,
 } from "react-hook-form";
 import { FiInfo, FiPlus } from "react-icons/fi";
+import { BsInfoCircle } from "react-icons/bs";
 
 export const TitleWithInfo = ({
   Title,
   infoCont,
   className,
+  infoIconClassName,
 }: {
   Title: React.ElementType;
   infoCont: ReactNode;
   className?: string;
+  infoIconClassName?: string;
 }) => {
   return (
     <div className={classNames("flex items-center space-x-1", className)}>
       <Title className="mb-0" />
       <Tooltip content={<p className="text-center">{infoCont}</p>}>
         <div className="-ml-1 self-center rounded p-2 hover:bg-gray-200">
-          <FiInfo className="h-3 w-3" />
+          <BsInfoCircle className={classNames("h-3 w-3", infoIconClassName)} />
         </div>
       </Tooltip>
     </div>
@@ -72,9 +76,7 @@ export const RecordsList = <T extends FieldValues>({
     <div>
       <div className="mb-4 flex items-center space-x-2">
         <TitleWithInfo
-          Title={() => (
-            <Label>{name.charAt(0).toUpperCase() + name.slice(1)}</Label>
-          )}
+          Title={() => <Label className="!m-0">{capitalize(name)}</Label>}
           infoCont={infoCont}
         />
         <Tooltip content={`${hidden ? "Enable" : "Disable"} ${name}`}>

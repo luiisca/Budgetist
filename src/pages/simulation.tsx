@@ -69,9 +69,26 @@ export default function Simulation() {
         subtitle="As of 12/11/2022"
         CTA={
           totalBalance ? (
-            <div className="text-3xl text-black">
-              {formatAmount(totalBalance)}
-            </div>
+            <TitleWithInfo
+              Title={() => (
+                <div className="ml-2 text-3xl text-black">
+                  {formatAmount(totalBalance)}
+                </div>
+              )}
+              infoCont={
+                <div className="text-md px-3 py-2">
+                  Your total balance after{" "}
+                  {balanceHistory.length === 1 ? "one" : balanceHistory.length}
+                  {balanceHistory.length === 1 ? " year" : " years"} based{" "}
+                  <br />
+                  on salary variations, expenses, incomes, and yearly
+                  investments <br />
+                  on an index fund.
+                </div>
+              }
+              infoIconClassName="!h-4 !w-4"
+              className="flex-row-reverse"
+            />
           ) : null
         }
       >

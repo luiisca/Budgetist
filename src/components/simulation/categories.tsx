@@ -199,7 +199,7 @@ const Record = ({
           <NumberInput<CategoryDataInputTypeClient>
             control={control}
             name={`records.${index}.frequency`}
-            label="Frequency"
+            label="Yearly Frequency"
             placeholder=""
             addOnSuffix={<span>p.a.</span>}
           />
@@ -342,8 +342,6 @@ const CategoryForm = ({
 
   // default form values
   useEffect(() => {
-    console.log("RESETTING CAT VALUES FOR HEALTH");
-    console.log(category?.title === "Health" && category);
     reset({
       ...category,
       currency: getCurrency(
@@ -480,7 +478,7 @@ const CategoryForm = ({
             <NumberInput<CategoryDataInputTypeClient>
               control={control}
               name="budget"
-              label="Budget"
+              label="Monthly Budget"
               placeholder="Budget"
             />
           </div>
@@ -563,7 +561,7 @@ const CategoryForm = ({
             <NumberInput<CategoryDataInputTypeClient>
               control={control}
               name="frequency"
-              label="Frequency"
+              label="Yearly Frequency"
               placeholder={`${DEFAULT_FREQUENCY}`}
             />
           </div>
@@ -573,15 +571,7 @@ const CategoryForm = ({
         <RecordsList<CategoryDataInputTypeClient>
           name="records"
           infoCont={
-            <>
-              Your monthly expenses for {watchTitleVal} category
-              <br />
-              expressed on a year basis.
-              <br />
-              Frequency defines how many months per year you expect to
-              <br />
-              make that expense
-            </>
+            <>Your monthly expenses for {watchTitleVal || "current"} category</>
           }
           hidden={recordsDisabled}
           isDisabled={categoryMutation.isLoading}
@@ -630,7 +620,7 @@ const CategoryForm = ({
               </DialogTrigger>
               <DialogContent
                 title="Delete Category"
-                description="Are you sure you want to delete the current Category?"
+                description="Are you sure you want to delete the current category?"
                 type="confirmation"
                 actionText="Delete category"
                 Icon={FiAlertTriangle}
@@ -712,7 +702,7 @@ const Categories = () => {
         >
           New Category
         </Button>
-        <div className="mb-4 space-y-4" ref={categoriesAnimationParentRef}>
+        <div className="mb-4 space-y-12" ref={categoriesAnimationParentRef}>
           {newCategories.map((_, i) => (
             <CategoryForm
               onRemove={() =>

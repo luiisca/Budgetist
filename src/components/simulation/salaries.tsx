@@ -266,7 +266,7 @@ const SalaryForm = ({
             <NumberInput<SalaryDataInputTypeClient>
               control={control}
               name="amount"
-              label="Salary"
+              label="Yearly Salary"
               placeholder="Current salary..."
             />
           </div>
@@ -341,12 +341,11 @@ const SalaryForm = ({
           )}
         </RecordsList>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 pt-3">
           <Button
             type="submit"
             disabled={isDisabled}
             color="primary"
-            className="mt-6"
             loading={salaryMutation.isLoading}
           >
             Update
@@ -360,15 +359,15 @@ const SalaryForm = ({
                   }}
                   type="button"
                   color="destructive"
-                  className="mt-1 w-full border-2 font-normal"
-                  StartIcon={FiTrash2}
+                  className="border-2 px-3 font-normal"
+                  StartIcon={() => <FiTrash2 className="m-0" />}
                 />
               </DialogTrigger>
               <DialogContent
-                title="Delete Account"
-                description="Are you sure you want to delete the current Salary?"
-                type="creation"
-                actionText="Delete my account"
+                title="Delete Salary"
+                description="Are you sure you want to delete the current salary?"
+                type="confirmation"
+                actionText="Delete salary"
                 Icon={FiAlertTriangle}
                 actionOnClick={(e) =>
                   e &&
@@ -387,8 +386,8 @@ const SalaryForm = ({
               }}
               type="button"
               color="destructive"
-              className="mt-1 w-full border-2 font-normal"
-              StartIcon={FiTrash2}
+              className="border-2 px-3 font-normal"
+              StartIcon={() => <FiTrash2 className="m-0" />}
             />
           )}
         </div>
@@ -437,9 +436,9 @@ const Salaries = () => {
           StartIcon={FiPlus}
           onClick={() => setNewSalaries([...newSalaries, newSalaryShape])}
         >
-          New Category
+          New Salary
         </Button>
-        <div className="mb-4 space-y-4" ref={salariesAnimationParentRef}>
+        <div className="mb-4 space-y-12" ref={salariesAnimationParentRef}>
           {newSalaries.map((_, i) => (
             <SalaryForm
               onRemove={() =>

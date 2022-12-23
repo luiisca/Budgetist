@@ -1,16 +1,20 @@
 import { TRPCError } from "@trpc/server";
 import _ from "lodash";
 import { categoryDataServer, salaryDataServer } from "prisma/*";
+import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 
 export const simulationRouter = router({
-  salary: router({
+  salaries: router({
     get: protectedProcedure.query(async ({ ctx }) => {
       const { prisma, user } = ctx;
 
-      return await prisma.salary.findUnique({
+      return await prisma.salary.findMany({
         where: {
           userId: user.id,
+        },
+        orderBy: {
+          id: "desc",
         },
         include: {
           variance: true,
@@ -21,7 +25,6 @@ export const simulationRouter = router({
       .input(salaryDataServer)
       .mutation(async ({ input, ctx }) => {
         const { prisma, user } = ctx;
-        let salary;
 
         if (input.variance) {
           input.variance.reduce((prev, crr, index) => {
@@ -36,23 +39,7 @@ export const simulationRouter = router({
           });
         }
 
-        const userToUpdate = await prisma.user.findUnique({
-          where: {
-            id: user?.id,
-          },
-        });
-
-        if (!userToUpdate) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
-        }
-
-        await prisma.period.deleteMany({
-          where: {
-            salary: {
-              userId: user.id,
-            },
-          },
-        });
+        let salary;
 
         if (input.variance) {
           salary = {
@@ -63,21 +50,43 @@ export const simulationRouter = router({
           };
         } else {
           salary = {
-            ...input,
+            ..._.omit(input, ["variance"]),
           };
         }
 
-        await prisma.user.update({
-          where: {
-            id: user?.id,
-          },
-          data: {
-            salary: {
-              upsert: {
-                update: salary,
-                create: salary,
+        if (input.id) {
+          await prisma.period.deleteMany({
+            where: {
+              salaryId: input.id,
+            },
+          });
+          await prisma.salary.update({
+            where: {
+              id: input.id,
+            },
+            data: salary,
+          });
+        } else {
+          await prisma.salary.create({
+            data: {
+              ..._.omit(salary, ["id"]),
+              user: {
+                connect: {
+                  id: user.id,
+                },
               },
             },
+          });
+        }
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().positive() }))
+      .mutation(async ({ input, ctx }) => {
+        const { prisma } = ctx;
+
+        await prisma.salary.delete({
+          where: {
+            id: input.id,
           },
         });
       }),
@@ -98,20 +107,21 @@ export const simulationRouter = router({
         },
       });
     }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number().positive() }))
+      .mutation(async ({ input, ctx }) => {
+        const { prisma } = ctx;
+
+        await prisma.category.delete({
+          where: {
+            id: input.id,
+          },
+        });
+      }),
     createOrUpdate: protectedProcedure
       .input(categoryDataServer)
       .mutation(async ({ input, ctx }) => {
         const { prisma, user } = ctx;
-
-        const userToUpdate = await prisma.user.findUnique({
-          where: {
-            id: user.id,
-          },
-        });
-
-        if (!userToUpdate) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
-        }
 
         let category;
 

@@ -24,7 +24,7 @@ export interface CompleteUser extends z.infer<typeof _UserModel> {
   accounts: CompleteAccount[]
   sessions: CompleteSession[]
   Feedback: CompleteFeedback[]
-  salary?: CompleteSalary | null
+  salary: CompleteSalary[]
   categories: CompleteCategory[]
 }
 
@@ -37,6 +37,6 @@ export const UserModel: z.ZodSchema<CompleteUser> = z.lazy(() => _UserModel.exte
   accounts: AccountModel.array(),
   sessions: SessionModel.array(),
   Feedback: FeedbackModel.array(),
-  salary: SalaryModel.nullish(),
+  salary: SalaryModel.array(),
   categories: CategoryModel.array(),
 }))

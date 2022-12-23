@@ -11,7 +11,7 @@ import {
 } from "components/ui";
 import { AppRouterTypes, trpc } from "utils/trpc";
 import _ from "lodash";
-import { FiPlus, FiX } from "react-icons/fi";
+import { FiAlertTriangle, FiPlus, FiTrash2, FiX } from "react-icons/fi";
 import { Alert } from "components/ui/Alert";
 import EmptyScreen from "components/ui/core/EmptyScreen";
 import {
@@ -56,6 +56,7 @@ import { ControlledSelect } from "components/ui/core/form/select/Select";
 import useUpdateInflation from "utils/hooks/useUpdateInflation";
 import { CountryInflInput, CountrySelect } from "./fields";
 import Switch from "components/ui/core/Switch";
+import { Dialog, DialogContent, DialogTrigger } from "components/ui/Dialog";
 
 const SkeletonLoader = () => {
   return (
@@ -228,11 +229,14 @@ const Record = ({
 };
 
 const CategoryForm = ({
+  onRemove,
   category,
 }: {
+  onRemove?: () => void;
   category?: AppRouterTypes["simulation"]["categories"]["get"]["output"][0];
 }) => {
   const [recordsDisabled, setRecordsDisabled] = useState<boolean>(false);
+  const [deleteCategoryOpen, setDeleteCategoryOpen] = useState(false);
 
   // user data
   const {
@@ -306,7 +310,10 @@ const CategoryForm = ({
   const categoryMutation =
     trpc.simulation.categories.createOrUpdate.useMutation({
       onSuccess: async () => {
-        showToast("New category added successfully", "success");
+        showToast(
+          `Category ${category?.id ? "updated" : "created"} successfully`,
+          "success"
+        );
         await utils.simulation.categories.invalidate();
       },
       onError: async () => {
@@ -314,6 +321,21 @@ const CategoryForm = ({
         await utils.simulation.categories.invalidate();
       },
     });
+
+  // deleteMutation
+  const deleteCategoryMutation = trpc.simulation.categories.delete.useMutation({
+    onSuccess: async () => {
+      showToast("Category deleted", "success");
+      await utils.simulation.categories.invalidate();
+    },
+    onError: async () => {
+      showToast("Could not delete category. Please try again.", "error");
+      await utils.simulation.categories.invalidate();
+    },
+    async onSettled() {
+      await utils.simulation.categories.invalidate();
+    },
+  });
 
   // default form values
   useEffect(() => {
@@ -579,14 +601,59 @@ const CategoryForm = ({
           {(index: number) => <Record index={index} fieldArray={fieldArray} />}
         </RecordsList>
 
-        <Button
-          type="submit"
-          color="primary"
-          disabled={categoryMutation.isLoading}
-          className="mt-3"
-        >
-          {category ? "Update" : "Create"}
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button
+            type="submit"
+            color="primary"
+            disabled={categoryMutation.isLoading}
+            className="mt-3"
+          >
+            {category ? "Update" : "Create"}
+          </Button>
+          {category ? (
+            <Dialog
+              open={deleteCategoryOpen}
+              onOpenChange={setDeleteCategoryOpen}
+            >
+              <DialogTrigger asChild>
+                <Button
+                  onClick={() => {
+                    console.log("salary deleted");
+                  }}
+                  type="button"
+                  color="destructive"
+                  className="mt-1 w-full border-2 font-normal"
+                  StartIcon={FiTrash2}
+                />
+              </DialogTrigger>
+              <DialogContent
+                title="Delete Account"
+                description="Are you sure you want to delete the current Salary?"
+                type="creation"
+                actionText="Delete my account"
+                Icon={FiAlertTriangle}
+                actionOnClick={(e) =>
+                  e &&
+                  ((e: Event | React.MouseEvent<HTMLElement, MouseEvent>) => {
+                    e.preventDefault();
+                    deleteCategoryMutation.mutate({ id: category.id });
+                  })(e)
+                }
+              />
+            </Dialog>
+          ) : (
+            <Button
+              onClick={() => {
+                console.log("salary deleted");
+                onRemove && onRemove();
+              }}
+              type="button"
+              color="destructive"
+              className="mt-1 w-full border-2 font-normal"
+              StartIcon={FiTrash2}
+            />
+          )}
+        </div>
         {/* <>{console.log("FORM ERRORS", categoryForm.formState.errors)}</> */}
       </Form>
     );
@@ -642,8 +709,15 @@ const Categories = () => {
           New Category
         </Button>
         <div className="mb-4 space-y-4">
-          {newCategories.map(() => (
-            <CategoryForm />
+          {newCategories.map((_, i) => (
+            <CategoryForm
+              onRemove={() =>
+                setNewCategories([
+                  ...newCategories.slice(0, i),
+                  ...newCategories.slice(i + 1),
+                ])
+              }
+            />
           ))}
           {categories?.map((category) => (
             <CategoryForm category={category} />

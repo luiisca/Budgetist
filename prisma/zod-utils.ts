@@ -58,6 +58,7 @@ export const salaryDataClient = z.object({
     .optional(),
 });
 export const salaryDataServer = salaryDataClient.extend({
+  id: z.number().positive().optional(),
   currency: z.string().optional(),
   variance: z
     .array(
@@ -104,6 +105,7 @@ export const categoryDataClient = z.object({
 });
 
 export const categoryDataServer = categoryDataClient.extend({
+  id: z.number().positive().optional(),
   budget: z.number().positive(),
   currency: z.union([equalTo("perRec"), z.string().optional()]), // pass default
   type: z.union([equalTo("income"), equalTo("outcome")]),

@@ -73,7 +73,7 @@ export type CatBalanceType = {
       }>
     | [];
 };
-type SalaryBalanceType = {
+type SalBalanceType = {
   title: string;
   type: "salary";
   amount: number;
@@ -83,18 +83,18 @@ export type YearBalanceType = {
   income: number;
   outcome: number;
   categoriesBalance: CatBalanceType[];
-  salaryBalance: SalaryBalanceType;
+  salariesBalance: SalBalanceType[];
 };
 
 export const getTotalBalance = ({
   categories,
-  salary,
+  salaries,
   years,
   investPerc,
   indexReturn,
 }: {
   categories: CategoryType;
-  salary: Salary;
+  salaries: Salary[];
   years: number;
   investPerc: number;
   indexReturn: number;
@@ -110,42 +110,36 @@ export const getTotalBalance = ({
 
   const balanceHistory: YearBalanceType[] = new Array(years)
     .fill(null)
-    .map((_, i) => {
-      const yearSalary = salary.variance
-        ? getSalaryByYear(i + 1, salary)
-        : salary.amount;
-
-      return {
-        income: 0,
-        outcome: 0,
-        categoriesBalance: categories.map((cat) => ({
-          icon: cat.icon,
-          title: cat.title,
-          type: cat.type,
-          inflation: cat.inflType === "income" ? 0 : cat.inflVal,
-          frequency: cat.frequency,
-          spent: cat.budget,
-          records:
-            cat.records === null
-              ? []
-              : cat.records.map((record) => ({
-                  title: record.title,
-                  type: record.type,
-                  inflation: record.type === "income" ? 0 : record.inflation,
-                  frequency:
-                    cat.freqType === "perCat"
-                      ? cat.frequency
-                      : record.frequency,
-                  spent: record.amount,
-                })),
-        })),
-        salaryBalance: {
-          title: salary.title,
-          type: "salary",
-          amount: yearSalary,
-        },
-      };
-    });
+    .map((_, i) => ({
+      income: 0,
+      outcome: 0,
+      categoriesBalance: categories.map((cat) => ({
+        icon: cat.icon,
+        title: cat.title,
+        type: cat.type,
+        inflation: cat.inflType === "income" ? 0 : cat.inflVal,
+        frequency: cat.frequency,
+        spent: cat.budget,
+        records:
+          cat.records === null
+            ? []
+            : cat.records.map((record) => ({
+                title: record.title,
+                type: record.type,
+                inflation: record.type === "income" ? 0 : record.inflation,
+                frequency:
+                  cat.freqType === "perCat" ? cat.frequency : record.frequency,
+                spent: record.amount,
+              })),
+      })),
+      salariesBalance: salaries.map((salary) => ({
+        title: salary.title,
+        type: "salary",
+        amount: salary.variance
+          ? getSalaryByYear(i + 1, salary)
+          : salary.amount,
+      })),
+    }));
 
   for (let year = 1; year <= years; year++) {
     console.log(`YEAR ${year}`);
@@ -293,9 +287,10 @@ export const getTotalBalance = ({
     );
     console.log(`Expenses for year ${year}`, yearExpenses);
 
-    const yearSalary = (
-      salary.variance ? getSalaryByYear(year, salary) : salary.amount
-    ) as number;
+    const yearSalary = balanceHistory[year - 1].salariesBalance.reduce(
+      (prevSal: number, crrSal) => prevSal + crrSal.amount,
+      0
+    );
     balanceHistory[year - 1].income += yearSalary;
 
     console.log(`SALARY AT YEAR ${year}: ${yearSalary}`);

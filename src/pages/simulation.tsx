@@ -13,7 +13,7 @@ import Head from "next/head";
 import Shell from "components/ui/core/Shell";
 import { trpc } from "utils/trpc";
 import _, { capitalize } from "lodash";
-import SalaryForm from "components/simulation/salaryForm";
+import Salaries from "components/simulation/salaries";
 import Categories from "components/simulation/categories";
 import { Dispatch, useState } from "react";
 import { getTotalBalance, YearBalanceType } from "utils/simulation";
@@ -88,7 +88,7 @@ export default function Simulation() {
           </div>
           <div>
             <h2 className="mb-4 text-lg font-medium">Salary</h2>
-            <SalaryForm />
+            <Salaries />
           </div>
 
           <div>
@@ -109,7 +109,7 @@ const RunSimForm = ({
   setBalanceHistory: Dispatch<React.SetStateAction<YearBalanceType[] | []>>;
 }) => {
   const { data: user, isLoading: userLoading } = trpc.user.me.useQuery();
-  const { data: salary } = trpc.simulation.salary.get.useQuery();
+  const { data: salaries } = trpc.simulation.salaries.get.useQuery();
   const { data: categories } = trpc.simulation.categories.get.useQuery();
 
   const runSimForm = useForm<RunSimulationDataType>({
@@ -128,10 +128,17 @@ const RunSimForm = ({
     <Form
       form={runSimForm}
       handleSubmit={(values: RunSimulationDataType) => {
-        if (!categories || !salary) {
+        const noCategories = !categories || categories.length === 0;
+        const noSalaries = !salaries || salaries.length === 0;
+
+        if (noCategories || noSalaries) {
           showToast(
-            `Please add at least one ${
-              !categories ? "category" : "salary"
+            `Please add at least ${
+              noCategories && noSalaries
+                ? "some category or salary"
+                : "one " + !categories
+                ? "category"
+                : "salary"
             } first`,
             "error"
           );
@@ -140,7 +147,7 @@ const RunSimForm = ({
         }
         const { total, balanceHistory } = getTotalBalance({
           categories,
-          salary: salary,
+          salaries,
           years: Number(values.years),
           investPerc: user.investPerc,
           indexReturn: user.indexReturn,
@@ -295,18 +302,16 @@ const BalanceHistory = ({
                   >
                     {(typeFilterValue === "salary" ||
                       typeFilterValue === "all") &&
-                      balanceHistory[year - 1]?.salaryBalance && (
-                        <ListItem
-                          infoBubble={false}
-                          category={{
-                            ...balanceHistory[year - 1].salaryBalance,
-                            spent: formatAmount(
-                              Math.abs(
-                                balanceHistory[year - 1].salaryBalance.amount
-                              )
-                            ),
-                          }}
-                        />
+                      balanceHistory[year - 1]?.salariesBalance.map(
+                        (salary) => (
+                          <ListItem
+                            infoBubble={false}
+                            category={{
+                              ...salary,
+                              spent: formatAmount(Math.abs(salary.amount)),
+                            }}
+                          />
+                        )
                       )}
                     {typeFilterValue !== "salary" &&
                       balanceHistory[year - 1]?.categoriesBalance

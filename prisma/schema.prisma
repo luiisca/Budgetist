@@ -68,7 +68,7 @@ model User {
   investPerc  Int    @default(80)
   indexReturn Int    @default(7)
 
-  salary Salary?
+  salary Salary[]
   categories Category[]
 }
 

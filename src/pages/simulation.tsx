@@ -260,12 +260,12 @@ const BalanceHistory = ({
                         )}
                         className="w-28"
                       >
-                        {typeFilterValue}
+                        {capitalize(typeFilterValue)}
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       {typeOptions.map((type) => {
-                        const capType = capitalize(type);
+                        const capType = type;
 
                         return (
                           <DropdownMenuItem>
@@ -277,7 +277,7 @@ const BalanceHistory = ({
                               color="minimal"
                               className="w-full font-normal"
                             >
-                              {capType}
+                              {capitalize(capType)}
                             </Button>
                           </DropdownMenuItem>
                         );
@@ -332,7 +332,10 @@ const BalanceHistory = ({
                       )}
                     {typeFilterValue !== "salary" &&
                       balanceHistory[year - 1]?.categoriesBalance
-                        .filter((category) => category.type === typeFilterValue)
+                        .filter((category) => {
+                          if (typeFilterValue === "all") return true;
+                          return category.type === typeFilterValue;
+                        })
                         .map((category, index) => {
                           if (category.records.length > 0) {
                             return category.records.map((record, index) => (

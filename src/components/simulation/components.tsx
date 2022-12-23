@@ -1,3 +1,4 @@
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import classNames from "classnames";
 import { Button, Label, Tooltip } from "components/ui";
 import showToast from "components/ui/core/notifications";
@@ -53,6 +54,7 @@ export const RecordsList = <T extends FieldValues>({
   children: (index: number) => ReactNode;
 }) => {
   const form = useFormContext();
+  const [recordsAnimationParentRef] = useAutoAnimate<HTMLUListElement>();
 
   const { fields, append } = fieldArray;
 
@@ -90,7 +92,7 @@ export const RecordsList = <T extends FieldValues>({
 
       {!hidden && (
         <>
-          <ul className="space-y-4">
+          <ul className="space-y-4" ref={recordsAnimationParentRef}>
             {fields.map((field, index) => (
               <li key={field.id}>
                 <div className="flex items-center space-x-3" key={index}>

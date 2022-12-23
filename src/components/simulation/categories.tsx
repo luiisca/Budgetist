@@ -57,6 +57,7 @@ import useUpdateInflation from "utils/hooks/useUpdateInflation";
 import { CountryInflInput, CountrySelect } from "./fields";
 import Switch from "components/ui/core/Switch";
 import { Dialog, DialogContent, DialogTrigger } from "components/ui/Dialog";
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 
 const SkeletonLoader = () => {
   return (
@@ -315,10 +316,12 @@ const CategoryForm = ({
           "success"
         );
         await utils.simulation.categories.invalidate();
+        onRemove && onRemove();
       },
       onError: async () => {
         showToast("Could not add category. Please try again", "error");
         await utils.simulation.categories.invalidate();
+        onRemove && onRemove();
       },
     });
 
@@ -601,12 +604,11 @@ const CategoryForm = ({
           {(index: number) => <Record index={index} fieldArray={fieldArray} />}
         </RecordsList>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 pt-3">
           <Button
             type="submit"
             color="primary"
             disabled={categoryMutation.isLoading}
-            className="mt-3"
           >
             {category ? "Update" : "Create"}
           </Button>
@@ -618,19 +620,19 @@ const CategoryForm = ({
               <DialogTrigger asChild>
                 <Button
                   onClick={() => {
-                    console.log("salary deleted");
+                    console.log("category deleted");
                   }}
                   type="button"
                   color="destructive"
-                  className="mt-1 w-full border-2 font-normal"
-                  StartIcon={FiTrash2}
+                  className="border-2 px-3 font-normal"
+                  StartIcon={() => <FiTrash2 className="m-0" />}
                 />
               </DialogTrigger>
               <DialogContent
-                title="Delete Account"
-                description="Are you sure you want to delete the current Salary?"
-                type="creation"
-                actionText="Delete my account"
+                title="Delete Category"
+                description="Are you sure you want to delete the current Category?"
+                type="confirmation"
+                actionText="Delete category"
                 Icon={FiAlertTriangle}
                 actionOnClick={(e) =>
                   e &&
@@ -649,8 +651,8 @@ const CategoryForm = ({
               }}
               type="button"
               color="destructive"
-              className="mt-1 w-full border-2 font-normal"
-              StartIcon={FiTrash2}
+              className="border-2 px-3 font-normal"
+              StartIcon={() => <FiTrash2 className="m-0" />}
             />
           )}
         </div>
@@ -665,6 +667,8 @@ const CategoryForm = ({
 
 const Categories = () => {
   const [newCategories, setNewCategories] = useState<Array<any>>([]);
+  const [categoriesAnimationParentRef] = useAutoAnimate<HTMLDivElement>();
+
   const newCatShape = useRef({
     type: {
       value: OUTCOME_VAL,
@@ -708,7 +712,7 @@ const Categories = () => {
         >
           New Category
         </Button>
-        <div className="mb-4 space-y-4">
+        <div className="mb-4 space-y-4" ref={categoriesAnimationParentRef}>
           {newCategories.map((_, i) => (
             <CategoryForm
               onRemove={() =>

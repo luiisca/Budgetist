@@ -1,3 +1,4 @@
+import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Button,
@@ -400,6 +401,8 @@ const SalaryForm = ({
 
 const Salaries = () => {
   const [newSalaries, setNewSalaries] = useState<Array<any>>([]);
+  const [salariesAnimationParentRef] = useAutoAnimate<HTMLDivElement>();
+
   const {
     data: salaries,
     isLoading,
@@ -436,7 +439,7 @@ const Salaries = () => {
         >
           New Category
         </Button>
-        <div className="mb-4 space-y-4">
+        <div className="mb-4 space-y-4" ref={salariesAnimationParentRef}>
           {newSalaries.map((_, i) => (
             <SalaryForm
               onRemove={() =>

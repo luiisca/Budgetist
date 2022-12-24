@@ -50,7 +50,6 @@ const ProfileView = () => {
 
   const mutation = trpc.user.updateProfile.useMutation({
     onSuccess: async (_, input) => {
-      console.log(input);
       showToast(
         input.name || input.username
           ? "Settings updated successfully"

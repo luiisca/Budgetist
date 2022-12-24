@@ -3,9 +3,9 @@ import { Badge } from "./Badge";
 
 export function ListItem({
   category,
-  infoBubble = true,
+  infoBubble,
 }: {
-  infoBubble?: boolean;
+  infoBubble?: React.ReactNode;
   category: {
     icon?: string;
     title: string | null;
@@ -53,10 +53,7 @@ export function ListItem({
             )}
             infoCont={
               <div className="grid grid-cols-2 justify-items-start gap-x-2">
-                <p>Inflation: </p>
-                <p>{category.inflation}%</p>
-                <p>Frequency: </p>
-                <p>{category.frequency} / 12 </p>
+                {infoBubble}
               </div>
             }
             className="flex-row-reverse"

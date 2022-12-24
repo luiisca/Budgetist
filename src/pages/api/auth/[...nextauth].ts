@@ -38,7 +38,7 @@ const providers: Provider[] = [
 ];
 
 if (true) {
-  console.log("CURRENT WORKING DIRECTORY", process.cwd());
+  // console.log("CURRENT WORKING DIRECTORY", process.cwd());
   const emailsDir = path.resolve(
     process.cwd(),
     "src/utils/emails",
@@ -94,10 +94,10 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     // called when a JWT token is created (at sign in) or updated (users access the website after some time)
     async jwt({ token, user, account }) {
-      console.log("JWT CALLBACK");
-      console.log("JWT token", token);
-      console.log("JWT user", user);
-      console.log("JWT account", account);
+      // console.log("JWT CALLBACK");
+      // console.log("JWT token", token);
+      // console.log("JWT user", user);
+      // console.log("JWT account", account);
       const autoMergeIdentities = async () => {
         const existingUser = await prisma.user.findFirst({
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -166,12 +166,12 @@ export const authOptions: NextAuthOptions = {
       return customSession;
     },
     async signIn(params) {
-      console.log("SIGNIN CALLBACK");
+      // console.log("SIGNIN CALLBACK");
       const { user, account } = params;
       const profile = params.profile as Profile & { email_verified: Date };
-      console.log("SIGNIN account", account);
-      console.log("SIGNIN user", user);
-      console.log("SIGNIN profile", profile);
+      // console.log("SIGNIN account", account);
+      // console.log("SIGNIN user", user);
+      // console.log("SIGNIN profile", profile);
 
       // maybe because we don't send verification email when using credentials?
       if (account?.provider === "email") {
@@ -203,7 +203,7 @@ export const authOptions: NextAuthOptions = {
         // Only google oauth on this path
         const provider = account.provider.toUpperCase() as IdentityProvider;
 
-        console.log("SIGNIN CALLBACK BEFORE EXISTING USER");
+        // console.log("SIGNIN CALLBACK BEFORE EXISTING USER");
         const existingUser = await prisma.user.findFirst({
           include: {
             accounts: {
@@ -218,9 +218,9 @@ export const authOptions: NextAuthOptions = {
           },
         });
 
-        console.log("SIGNIN CALLBACK AFTER EXISTING USER", existingUser);
+        // console.log("SIGNIN CALLBACK AFTER EXISTING USER", existingUser);
         if (existingUser) {
-          console.log("EXISTING USER IN SIGNIN", existingUser);
+          // console.log("EXISTING USER IN SIGNIN", existingUser);
           // In this case there's an existing user and their email address
           // hasn't changed since they last logged in.
           if (existingUser.email === user.email) {
@@ -296,14 +296,14 @@ export const authOptions: NextAuthOptions = {
             return true;
           }
 
-          console.log(
-            "SIGNIN CALLBACK, there is an existing user with this email",
-            existingUserWithEmail
-          );
+          // console.log(
+          //   "SIGNIN CALLBACK, there is an existing user with this email",
+          //   existingUserWithEmail
+          // );
           return "/auth/error?error=use-identity-login";
         }
 
-        console.log("SIGNIN CALLBACK: A NEW USER IS ABOUT TO BE CREATED ");
+        // console.log("SIGNIN CALLBACK: A NEW USER IS ABOUT TO BE CREATED ");
         const newUser = await prisma.user.create({
           data: {
             // Slugify the incoming name and append a few random characters to
@@ -316,7 +316,7 @@ export const authOptions: NextAuthOptions = {
             identityProviderId: user.id as string,
           },
         });
-        console.log("SIGNIN CALLBACK: New user created", newUser);
+        // console.log("SIGNIN CALLBACK: New user created", newUser);
         const linkAccountNewUserData = { ...account, userId: newUser.id };
         await budgetistAdapter.linkAccount(linkAccountNewUserData);
 
@@ -326,8 +326,8 @@ export const authOptions: NextAuthOptions = {
       return false;
     },
     async redirect({ url, baseUrl }) {
-      console.log("REDIRECT CALLBACK");
-      console.log("REDIRECT URL + BASEURL", url, baseUrl);
+      // console.log("REDIRECT CALLBACK");
+      // console.log("REDIRECT URL + BASEURL", url, baseUrl);
       // Allows relative callback URLs
       if (url.startsWith("/")) return `${baseUrl}${url}`;
       // Allows callback URLs on the same domain

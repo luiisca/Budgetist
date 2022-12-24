@@ -2,60 +2,18 @@ import _ from "lodash";
 import { DEFAULT_FREQUENCY, MAX_YEARS, MIN_YEARS } from "./constants";
 import { AppRouterTypes } from "./trpc";
 
-type Salary = {
+export type Salary = {
   title: string;
   amount: number;
+  taxPercent: number;
   variance: {
     from: number;
     amount: number;
   }[];
 };
 
-const convertToUSD = (currency: string, amount: number) => {
-  if (currency !== "USD") {
-    // console.log("no USD currency set");
-    // console.log("converting to USD");
-    // return toUSD(currency, amount)
-  }
-  return amount;
-};
-
-const getRate = (x: number) => x / 100;
-const getFrequency = (freq: number) => {
-  if (!freq) return DEFAULT_FREQUENCY;
-  return freq < 1 ? 1 : freq > DEFAULT_FREQUENCY ? DEFAULT_FREQUENCY : freq;
-};
-
-const getSalaryByYear = (year: number, salary: Salary) => {
-  let yearlyAmount = salary.amount;
-  const v = salary.variance;
-
-  if (v) {
-    for (let period = 0; period < v.length; period++) {
-      const betweenCrrPeriod =
-        year >= v[period].from && year < v[period + 1].from;
-      const lastV = v[v.length - 1];
-      const latestPeriod = year >= lastV.from;
-
-      if (betweenCrrPeriod) {
-        // console.log("THIS YEAR", year, v[period]);
-        yearlyAmount = v[period].amount;
-
-        return yearlyAmount;
-      }
-
-      if (latestPeriod) {
-        yearlyAmount = lastV.amount;
-
-        return yearlyAmount;
-      }
-    }
-  }
-
-  return yearlyAmount;
-};
-
-type CategoryType = AppRouterTypes["simulation"]["categories"]["get"]["output"];
+export type CategoriesType =
+  AppRouterTypes["simulation"]["categories"]["get"]["output"];
 export type CatBalanceType = {
   icon: string;
   title: string;
@@ -76,7 +34,9 @@ export type CatBalanceType = {
 type SalBalanceType = {
   title: string;
   type: "salary";
-  amount: number;
+  amountBefTax: number;
+  amountAftTax: number;
+  taxPercent: number;
 };
 
 export type YearBalanceType = {
@@ -86,6 +46,51 @@ export type YearBalanceType = {
   salariesBalance: SalBalanceType[];
 };
 
+const convertToUSD = (currency: string, amount: number) => {
+  if (currency !== "USD") {
+    // console.log("no USD currency set");
+    // console.log("converting to USD");
+    // return toUSD(currency, amount)
+  }
+  return amount;
+};
+
+const getRate = (x: number) => x / 100;
+const getFrequency = (freq: number) => {
+  if (!freq) return DEFAULT_FREQUENCY;
+  return freq < 1 ? 1 : freq > DEFAULT_FREQUENCY ? DEFAULT_FREQUENCY : freq;
+};
+
+const getSalaryAfterTax = (amount: number, taxPercent: number) =>
+  amount * (1 - getRate(taxPercent));
+const getSalaryByYear = (year: number, salary: Salary) => {
+  let yearlyAmount = salary.amount;
+  const v = salary.variance;
+
+  if (v) {
+    for (let period = 0; period < v.length; period++) {
+      const betweenCrrPeriod =
+        year >= v[period].from && year < v[period + 1].from;
+      const lastV = v[v.length - 1];
+      const latestPeriod = year >= lastV.from;
+
+      if (betweenCrrPeriod) {
+        yearlyAmount = v[period].amount;
+
+        return yearlyAmount;
+      }
+
+      if (latestPeriod) {
+        yearlyAmount = lastV.amount;
+
+        return yearlyAmount;
+      }
+    }
+  }
+
+  return yearlyAmount;
+};
+
 export const getTotalBalance = ({
   categories,
   salaries,
@@ -93,7 +98,7 @@ export const getTotalBalance = ({
   investPerc,
   indexReturn,
 }: {
-  categories: CategoryType;
+  categories: CategoriesType;
   salaries: Salary[];
   years: number;
   investPerc: number;
@@ -135,15 +140,18 @@ export const getTotalBalance = ({
       salariesBalance: salaries.map((salary) => ({
         title: salary.title,
         type: "salary",
-        amount: salary.variance
+        amountBefTax: salary.variance
           ? getSalaryByYear(i + 1, salary)
           : salary.amount,
+        amountAftTax: getSalaryAfterTax(
+          salary.variance ? getSalaryByYear(i + 1, salary) : salary.amount,
+          salary.taxPercent
+        ),
+        taxPercent: salary.taxPercent,
       })),
     }));
 
   for (let year = 1; year <= years; year++) {
-    console.log(`YEAR ${year}`);
-
     yearExpenses = categories.reduce(
       (prevCat: number, crrCat, crrCatI: number) => {
         const INCOME_MOD = -1;
@@ -285,30 +293,20 @@ export const getTotalBalance = ({
       },
       0
     );
-    console.log(`Expenses for year ${year}`, yearExpenses);
 
     const yearSalary = balanceHistory[year - 1].salariesBalance.reduce(
-      (prevSal: number, crrSal) => prevSal + crrSal.amount,
+      (prevSal: number, crrSal) => prevSal + crrSal.amountAftTax,
       0
     );
     balanceHistory[year - 1].income += yearSalary;
 
-    console.log(`SALARY AT YEAR ${year}: ${yearSalary}`);
-
     const yearBalance = yearSalary - yearExpenses;
-    console.log(`YEAR BALANCE AT YEAR ${year}: ${yearBalance}`);
 
     const moneyReadyToInvest = yearBalance * getRate(investPerc);
-    console.log("MONEY READY TO INVEST: ", moneyReadyToInvest);
-
-    console.log("PREVIOUS TOTAL", total);
 
     const P = total + moneyReadyToInvest;
     const i = getRate(indexReturn);
     total = P * (1 + i);
-
-    console.log("this function now receives data from the backend");
-    console.log("NEW TOTAL", total);
   }
 
   return {

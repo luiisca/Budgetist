@@ -117,9 +117,7 @@ const OnboardingPage = (props: IOnboardingPageProps) => {
 export const getServerSideProps = async (
   context: GetServerSidePropsContext
 ) => {
-  console.log("BEFORE GETSESSION() GSSP");
   const session = await getServerAuthSession(context);
-  console.log("AFTER GETSESSION() GSSP");
 
   if (!session?.user?.id) {
     return { redirect: { permanent: false, destination: "/auth/login" } };

@@ -103,6 +103,7 @@ model Salary {
   title    String @default("Salary")
   currency    String @default("USD")
   amount   Int
+  taxPercent Int @default(30)
   variance Period[]
 
   user   User @relation(fields: [userId], references: [id])

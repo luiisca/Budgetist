@@ -34,7 +34,7 @@ import {
   getCurrencyOptions,
   SelectOption,
 } from "utils/sim-settings";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import showToast from "components/ui/core/notifications";
 import { z } from "zod";
 import {
@@ -58,6 +58,7 @@ import { CountryInflInput, CountrySelect } from "./fields";
 import Switch from "components/ui/core/Switch";
 import { Dialog, DialogContent, DialogTrigger } from "components/ui/Dialog";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
+import { BalanceContext } from "pages/simulation";
 
 const SkeletonLoader = () => {
   return (
@@ -236,17 +237,35 @@ const CategoryForm = ({
   onRemove?: () => void;
   category?: AppRouterTypes["simulation"]["categories"]["get"]["output"][0];
 }) => {
+  const {
+    state: { years },
+    userResult: { data: user, isLoading, isError, isSuccess, error },
+    categoriesResult: { data: categories },
+    salariesResult: { data: salaries },
+    dispatch: balanceDispatch,
+  } = useContext(BalanceContext);
+
+  useEffect(() => {
+    if (categories && salaries && user) {
+      balanceDispatch({
+        type: "TOTAL_BAL_LOADING",
+        loading: false,
+      });
+      balanceDispatch({
+        type: "SIM_RUN",
+        payload: {
+          categories,
+          salaries,
+          years: Number(years),
+          investPerc: user.investPerc,
+          indexReturn: user.indexReturn,
+        },
+      });
+    }
+  }, [categories, salaries, user, years]);
+
   const [recordsDisabled, setRecordsDisabled] = useState<boolean>(false);
   const [deleteCategoryOpen, setDeleteCategoryOpen] = useState(false);
-
-  // user data
-  const {
-    data: user,
-    isLoading,
-    isError,
-    error,
-    isSuccess,
-  } = trpc.user.me.useQuery();
 
   // form
   const categoryForm = useForm<CategoryDataInputTypeClient>({
@@ -310,6 +329,12 @@ const CategoryForm = ({
   const utils = trpc.useContext();
   const categoryMutation =
     trpc.simulation.categories.createOrUpdate.useMutation({
+      onMutate: () => {
+        balanceDispatch({
+          type: "TOTAL_BAL_LOADING",
+          loading: true,
+        });
+      },
       onSuccess: async () => {
         showToast(
           `Category ${category?.id ? "updated" : "created"} successfully`,
@@ -327,6 +352,12 @@ const CategoryForm = ({
 
   // deleteMutation
   const deleteCategoryMutation = trpc.simulation.categories.delete.useMutation({
+    onMutate: () => {
+      balanceDispatch({
+        type: "TOTAL_BAL_LOADING",
+        loading: true,
+      });
+    },
     onSuccess: async () => {
       showToast("Category deleted", "success");
       await utils.simulation.categories.invalidate();
@@ -430,12 +461,14 @@ const CategoryForm = ({
         ..._.omit(selectInputsData, ["records"]),
       };
     }
-    // console.log("CATEGORY VALUES");
-    // console.table(values);
 
     categoryMutation.mutate(
       input as unknown as z.infer<typeof categoryDataServer>
     );
+    balanceDispatch({
+      type: "TOTAL_BAL_LOADING",
+      loading: true,
+    });
   };
 
   if (isLoading || !user) return <SkeletonLoader />;
@@ -445,7 +478,7 @@ const CategoryForm = ({
       <Alert
         severity="error"
         title="Something went wrong"
-        message={error.message}
+        message={error?.message}
       />
     );
   }
@@ -609,9 +642,6 @@ const CategoryForm = ({
             >
               <DialogTrigger asChild>
                 <Button
-                  onClick={() => {
-                    console.log("category deleted");
-                  }}
                   type="button"
                   color="destructive"
                   className="border-2 px-3 font-normal"
@@ -636,7 +666,6 @@ const CategoryForm = ({
           ) : (
             <Button
               onClick={() => {
-                console.log("salary deleted");
                 onRemove && onRemove();
               }}
               type="button"
@@ -646,7 +675,6 @@ const CategoryForm = ({
             />
           )}
         </div>
-        {/* <>{console.log("FORM ERRORS", categoryForm.formState.errors)}</> */}
       </Form>
     );
   }
@@ -656,6 +684,16 @@ const CategoryForm = ({
 };
 
 const Categories = () => {
+  const {
+    categoriesResult: {
+      data: categories,
+      isLoading,
+      isError,
+      isSuccess,
+      error,
+    },
+  } = useContext(BalanceContext);
+
   const [newCategories, setNewCategories] = useState<Array<any>>([]);
   const [categoriesAnimationParentRef] = useAutoAnimate<HTMLDivElement>();
 
@@ -674,21 +712,13 @@ const Categories = () => {
     },
   });
 
-  const {
-    data: categories,
-    isLoading,
-    isError,
-    isSuccess,
-    error,
-  } = trpc.simulation.categories.get.useQuery();
-
   if (isLoading) return <SkeletonLoader />;
   if (isError)
     return (
       <Alert
         severity="error"
         title="Something went wrong"
-        message={error.message}
+        message={error?.message}
       />
     );
 

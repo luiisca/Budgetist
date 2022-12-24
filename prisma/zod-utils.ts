@@ -17,12 +17,11 @@ export const username = z
   .min(2, { message: "Must be at least 2 characters long" })
   .optional();
 
-export const investPerc = z
-  .string()
-  .or(
-    z.number().positive().max(100, { message: "Cannot be greater than 100%" })
-  )
-  .optional();
+const percentage = z
+  .number()
+  .positive()
+  .max(100, { message: "Cannot be greater than 100%" });
+export const investPerc = z.string().or(percentage).optional();
 
 export const selectOptions = z.object({
   value: z.string().optional(),
@@ -46,6 +45,7 @@ export const salaryDataClient = z.object({
   title: z.string().optional(),
   currency: selectOptions,
   amount: z.number().positive(),
+  taxPercent: percentage,
   variance: z
     .array(
       z

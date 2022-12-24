@@ -43,6 +43,7 @@ export default function Login() {
         router.query?.error === "OAuthCallback" ||
         router.query?.error === "OAuthAccountNotLinked"
       ) {
+        // TODO: feat: add redirect page for when provider is incorrect
         console.log("UH OH");
       } else {
         setOAuthError(true);
@@ -110,7 +111,6 @@ export default function Login() {
           className="space-y-6"
           onSubmit={form.handleSubmit(async (values) => {
             setErrorMessage(null);
-            console.log("FORM VALUES", values);
             if (values.email && values.email !== "") {
               router.push(
                 new URL(
@@ -132,7 +132,7 @@ export default function Login() {
             defaultValue={router.query.email || ""}
             placeholder="hello@email.com"
             required
-            className="mb-2 block h-9 w-full rounded-md border border-gray-300 py-2 px-3 text-sm placeholder:text-gray-400 hover:border-gray-400 focus:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-800 focus:ring-offset-1"
+            className="mb-2 block h-9 w-full rounded-md border border-gray-300 py-2 px-3 text-sm placeholder:text-gray-400 focus:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-800 focus:ring-offset-1 hover:border-gray-400"
           />
           <div className="flex space-y-2">
             <Button

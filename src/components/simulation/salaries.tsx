@@ -16,12 +16,13 @@ import { ControlledSelect } from "components/ui/core/form/select/Select";
 import showToast from "components/ui/core/notifications";
 import { Dialog, DialogContent, DialogTrigger } from "components/ui/Dialog";
 import _ from "lodash";
+import { BalanceContext } from "pages/simulation";
 import {
   salaryDataClient,
   salaryDataServer,
   SalaryDataInputTypeClient,
 } from "prisma/*";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   Control,
   useFieldArray,
@@ -29,7 +30,14 @@ import {
   useFormContext,
   useWatch,
 } from "react-hook-form";
-import { FiAlertTriangle, FiPlus, FiTrash2, FiX } from "react-icons/fi";
+import {
+  FiAlertTriangle,
+  FiPercent,
+  FiPlus,
+  FiTrash2,
+  FiX,
+} from "react-icons/fi";
+import { DEFAULT_TAX_PERCENT } from "utils/constants";
 import { getCurrency, getCurrencyOptions } from "utils/sim-settings";
 import { AppRouterTypes, trpc } from "utils/trpc";
 import { z } from "zod";
@@ -122,17 +130,36 @@ const SalaryForm = ({
   onRemove?: () => void;
   salary?: AppRouterTypes["simulation"]["salaries"]["get"]["output"][0];
 }) => {
+  const {
+    state: { years },
+    userResult: { data: user, isLoading, isError, isSuccess, error },
+    categoriesResult: { data: categories },
+    salariesResult: { data: salaries },
+    dispatch: balanceDispatch,
+  } = useContext(BalanceContext);
+
+  useEffect(() => {
+    if (categories && salaries && user) {
+      balanceDispatch({
+        type: "TOTAL_BAL_LOADING",
+        loading: false,
+      });
+      balanceDispatch({
+        type: "SIM_RUN",
+        payload: {
+          categories,
+          salaries,
+          years: Number(years),
+          investPerc: user.investPerc,
+          indexReturn: user.indexReturn,
+        },
+      });
+    }
+  }, [categories, salaries, user, years]);
+
   const [varianceHidden, setVarianceHidden] = useState<boolean>(false);
 
   const [deleteSalaryOpen, setDeleteSalaryOpen] = useState(false);
-
-  const {
-    data: user,
-    isLoading,
-    isError,
-    isSuccess,
-    error,
-  } = trpc.user.me.useQuery();
 
   // form
   const salaryForm = useForm<SalaryDataInputTypeClient>({
@@ -167,6 +194,12 @@ const SalaryForm = ({
   // mutation
   const utils = trpc.useContext();
   const salaryMutation = trpc.simulation.salaries.createOrUpdate.useMutation({
+    onMutate: () => {
+      balanceDispatch({
+        type: "TOTAL_BAL_LOADING",
+        loading: true,
+      });
+    },
     onSuccess: async () => {
       showToast(
         `Salary ${salary?.id ? "updated" : "created"} successfully`,
@@ -193,6 +226,7 @@ const SalaryForm = ({
         user?.country
       ),
       amount: salary?.amount,
+      taxPercent: salary?.taxPercent,
       variance: salary?.variance,
     });
   }, [user, reset, salary]);
@@ -223,6 +257,12 @@ const SalaryForm = ({
 
   // deleteMutation
   const deleteSalaryMutation = trpc.simulation.salaries.delete.useMutation({
+    onMutate: () => {
+      balanceDispatch({
+        type: "TOTAL_BAL_LOADING",
+        loading: true,
+      });
+    },
     onSuccess: async () => {
       showToast("Salary deleted", "success");
       await utils.simulation.salaries.invalidate();
@@ -245,7 +285,7 @@ const SalaryForm = ({
       <Alert
         severity="error"
         title="Something went wrong"
-        message={error.message}
+        message={error?.message}
       />
     );
 
@@ -265,12 +305,22 @@ const SalaryForm = ({
         </div>
         <div className="flex space-x-3">
           {/* amount  */}
-          <div className="flex-[1_1_80%]">
+          <div className="flex-[1_1_60%]">
             <NumberInput<SalaryDataInputTypeClient>
               control={control}
               name="amount"
               label="Yearly Salary"
               placeholder="Current salary..."
+            />
+          </div>
+          {/* income taxes */}
+          <div>
+            <NumberInput<SalaryDataInputTypeClient>
+              control={control}
+              name="taxPercent"
+              label="Income Taxes"
+              addOnSuffix={<FiPercent />}
+              placeholder={`${DEFAULT_TAX_PERCENT}`}
             />
           </div>
           {/* currency */}
@@ -357,9 +407,6 @@ const SalaryForm = ({
             <Dialog open={deleteSalaryOpen} onOpenChange={setDeleteSalaryOpen}>
               <DialogTrigger asChild>
                 <Button
-                  onClick={() => {
-                    console.log("salary deleted");
-                  }}
                   type="button"
                   color="destructive"
                   className="border-2 px-3 font-normal"
@@ -384,7 +431,6 @@ const SalaryForm = ({
           ) : (
             <Button
               onClick={() => {
-                console.log("salary deleted");
                 onRemove && onRemove();
               }}
               type="button"
@@ -402,16 +448,11 @@ const SalaryForm = ({
 };
 
 const Salaries = () => {
+  const {
+    salariesResult: { data: salaries, isLoading, isError, isSuccess, error },
+  } = useContext(BalanceContext);
   const [newSalaries, setNewSalaries] = useState<Array<any>>([]);
   const [salariesAnimationParentRef] = useAutoAnimate<HTMLDivElement>();
-
-  const {
-    data: salaries,
-    isLoading,
-    isError,
-    isSuccess,
-    error,
-  } = trpc.simulation.salaries.get.useQuery();
 
   if (isLoading) return <SkeletonLoader />;
   if (isError)
@@ -419,7 +460,7 @@ const Salaries = () => {
       <Alert
         severity="error"
         title="Something went wrong"
-        message={error.message}
+        message={error?.message}
       />
     );
 

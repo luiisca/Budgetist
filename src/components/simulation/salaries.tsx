@@ -37,7 +37,14 @@ import {
   FiTrash2,
   FiX,
 } from "react-icons/fi";
-import { DEFAULT_TAX_PERCENT } from "utils/constants";
+import {
+  BASIC_GROUP_TYPES,
+  DEFAULT_TAX_PERCENT,
+  getLabel,
+  OptionsType,
+  PER_CAT_LABEL,
+  PER_CAT_VAL,
+} from "utils/constants";
 import { getCurrency, getCurrencyOptions } from "utils/sim-settings";
 import { AppRouterTypes, trpc } from "utils/trpc";
 import { z } from "zod";
@@ -191,6 +198,11 @@ const SalaryForm = ({
     name: "amount",
   });
 
+  const watchTaxType = useWatch({
+    control,
+    name: "taxType",
+  });
+
   // mutation
   const utils = trpc.useContext();
   const salaryMutation = trpc.simulation.salaries.createOrUpdate.useMutation({
@@ -226,8 +238,17 @@ const SalaryForm = ({
         user?.country
       ),
       amount: salary?.amount,
-      taxPercent: salary?.taxPercent,
-      variance: salary?.variance,
+      taxType: {
+        value: salary?.taxType || PER_CAT_VAL,
+        label:
+          (salary?.taxType && getLabel(salary?.taxType as OptionsType)) ||
+          PER_CAT_LABEL,
+      },
+      taxPercent: salary?.taxPercent || DEFAULT_TAX_PERCENT,
+      variance: salary?.variance.map((period) => ({
+        ...period,
+        taxPercent: salary?.taxPercent || DEFAULT_TAX_PERCENT,
+      })),
     });
   }, [user, reset, salary]);
 
@@ -313,16 +334,27 @@ const SalaryForm = ({
               placeholder="Current salary..."
             />
           </div>
-          {/* income taxes */}
+          {/* taxType */}
           <div>
-            <NumberInput<SalaryDataInputTypeClient>
+            <ControlledSelect<SalaryDataInputTypeClient>
               control={control}
-              name="taxPercent"
-              label="Income Taxes"
-              addOnSuffix={<FiPercent />}
-              placeholder={`${DEFAULT_TAX_PERCENT}`}
+              options={() => BASIC_GROUP_TYPES}
+              name="freqType"
+              label="Frequency Type"
             />
           </div>
+          {/* income taxes */}
+          {watchTaxType?.value === "perCat" && (
+            <div>
+              <NumberInput<SalaryDataInputTypeClient>
+                control={control}
+                name="taxPercent"
+                label="Income Taxes"
+                addOnSuffix={<FiPercent />}
+                placeholder={`${DEFAULT_TAX_PERCENT}`}
+              />
+            </div>
+          )}
           {/* currency */}
           <div>
             <ControlledSelect<SalaryDataInputTypeClient>
@@ -350,6 +382,7 @@ const SalaryForm = ({
           newRecordShape={{
             from: Number(watchLatestFromVal) + 1 || 1,
             amount: watchAmountVal,
+            taxPercent: DEFAULT_TAX_PERCENT,
           }}
           switchOnChecked={() => {
             salaryForm.setValue("amount", watchAmountVal, {
@@ -362,6 +395,7 @@ const SalaryForm = ({
               append({
                 from: 1,
                 amount: watchAmountVal,
+                taxPercent: DEFAULT_TAX_PERCENT,
               });
             }
             setVarianceHidden(!varianceHidden);
@@ -369,6 +403,7 @@ const SalaryForm = ({
         >
           {(index: number) => (
             <>
+              {/* period */}
               <PeriodInput
                 position={index}
                 label="From"
@@ -376,12 +411,24 @@ const SalaryForm = ({
                 name={`variance.${index}.from`}
                 varianceArr={watchVarianceArr}
               />
+              {/* amount */}
               <NumberInput
                 control={control as unknown as Control}
                 name={`variance.${index}.amount`}
                 label="Amount"
-                placeholder=""
               />
+              {/* taxes */}
+              {watchTaxType?.value === "perRec" && (
+                <div>
+                  <NumberInput<SalaryDataInputTypeClient>
+                    control={control}
+                    name={`variance.${index}.taxPercent`}
+                    label="Income Taxes"
+                    addOnSuffix={<FiPercent />}
+                    placeholder={`${DEFAULT_TAX_PERCENT}`}
+                  />
+                </div>
+              )}
               <Button
                 color="primary"
                 disabled={isDisabled}

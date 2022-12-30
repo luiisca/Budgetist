@@ -94,10 +94,10 @@ export const genOption = (type: OptionsType) => {
   };
 };
 
-export const TYPES = [genOption("income"), genOption("outcome")];
+export const BASIC_BAL_TYPES = [genOption("income"), genOption("outcome")];
+export const BASIC_GROUP_TYPES = [genOption("perCat"), genOption("perRec")];
+
 export const CATEGORY_INFL_TYPES = [
   genOption("disabled"),
-  genOption("perCat"),
-  genOption("perRec"),
+  ...BASIC_GROUP_TYPES,
 ];
-export const FREQUENCY_TYPES = [genOption("perCat"), genOption("perRec")];

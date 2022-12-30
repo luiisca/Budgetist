@@ -40,16 +40,16 @@ import { z } from "zod";
 import {
   DEFAULT_FREQUENCY,
   CATEGORY_INFL_TYPES,
-  FREQUENCY_TYPES,
   PER_CAT_VAL,
   PER_CAT_LABEL,
   OUTCOME_VAL,
   OUTCOME_LABEL,
   INCOME_VAL,
   INCOME_LABEL,
-  TYPES,
   getLabel,
   OptionsType,
+  BASIC_BAL_TYPES,
+  BASIC_GROUP_TYPES,
 } from "utils/constants";
 import { RecordsList, TitleWithInfo } from "./components";
 import { ControlledSelect } from "components/ui/core/form/select/Select";
@@ -137,7 +137,7 @@ const Record = ({
       <div>
         <ControlledSelect<CategoryDataInputTypeClient>
           control={control}
-          options={() => TYPES}
+          options={() => BASIC_BAL_TYPES}
           onChange={(option) => {
             setInflDisabled(option.value === "income");
 
@@ -499,7 +499,7 @@ const CategoryForm = ({
         <div>
           <ControlledSelect<CategoryDataInputTypeClient>
             control={control}
-            options={() => TYPES}
+            options={() => BASIC_BAL_TYPES}
             name="type"
             label="Type"
           />
@@ -583,7 +583,7 @@ const CategoryForm = ({
         <div>
           <ControlledSelect<CategoryDataInputTypeClient>
             control={control}
-            options={() => FREQUENCY_TYPES}
+            options={() => BASIC_GROUP_TYPES}
             name="freqType"
             label="Frequency Type"
           />

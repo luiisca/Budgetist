@@ -6,6 +6,7 @@ export const _PeriodModel = z.object({
   id: z.number().int(),
   from: z.number().int(),
   amount: z.number().int(),
+  taxPercent: z.number().int(),
   salaryId: z.number().int(),
 })
 

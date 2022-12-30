@@ -45,6 +45,7 @@ export const salaryDataClient = z.object({
   title: z.string().optional(),
   currency: selectOptions,
   amount: z.number().positive(),
+  taxType: selectOptions,
   taxPercent: percentage,
   variance: z
     .array(
@@ -52,6 +53,7 @@ export const salaryDataClient = z.object({
         .object({
           from: nonEmptyString.or(z.number().positive()),
           amount: nonEmptyString.or(z.number().positive()),
+          taxPercent: percentage,
         })
         .required()
     )
@@ -60,6 +62,7 @@ export const salaryDataClient = z.object({
 export const salaryDataServer = salaryDataClient.extend({
   id: z.number().positive().optional(),
   currency: z.string().optional(),
+  taxType: z.union([equalTo(""), equalTo("perCat"), equalTo("perRec")]),
   variance: z
     .array(
       z

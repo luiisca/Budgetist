@@ -23,7 +23,6 @@ import { DEFAULT_INFLATION, FLAG_URL } from "utils/constants";
 import {
   getCountryOptions,
   getCurrency,
-  getCurrencyOptions,
   SelectOption,
 } from "utils/sim-settings";
 

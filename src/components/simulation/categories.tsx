@@ -34,7 +34,7 @@ import {
   getCurrencyOptions,
   SelectOption,
 } from "utils/sim-settings";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import showToast from "components/ui/core/notifications";
 import { z } from "zod";
 import {
@@ -262,7 +262,7 @@ const CategoryForm = ({
         },
       });
     }
-  }, [categories, salaries, user, years]);
+  }, [categories, salaries, user, years, balanceDispatch]);
 
   const [recordsDisabled, setRecordsDisabled] = useState<boolean>(false);
   const [deleteCategoryOpen, setDeleteCategoryOpen] = useState(false);
@@ -425,7 +425,7 @@ const CategoryForm = ({
 
   // onSubmit
   const onCategorySubmit = (values: CategoryDataInputTypeClient) => {
-    let selectInputsData = {
+    const selectInputsData = {
       currency: values.currency?.value || user?.currency,
       type: values.type.value,
       inflType: values.inflType?.value,
@@ -535,8 +535,8 @@ const CategoryForm = ({
                 Title={() => <Label>Inflation</Label>}
                 infoCont={
                   <>
-                    Select "Per record" to apply individual inflation to every
-                    expense record.
+                    Select &quot;Per record&quot; to apply individual inflation
+                    to every expense record.
                     <br />
                     Leave it as is to apply same inflation to the whole
                     category.
@@ -694,23 +694,10 @@ const Categories = () => {
     },
   } = useContext(BalanceContext);
 
-  const [newCategories, setNewCategories] = useState<Array<any>>([]);
+  const [newCategories, setNewCategories] = useState<
+    Array<Record<string, unknown>>
+  >([]);
   const [categoriesAnimationParentRef] = useAutoAnimate<HTMLDivElement>();
-
-  const newCatShape = useRef({
-    type: {
-      value: OUTCOME_VAL,
-      label: OUTCOME_LABEL,
-    },
-    inflType: {
-      value: PER_CAT_VAL,
-      label: PER_CAT_LABEL,
-    },
-    freqType: {
-      value: PER_CAT_VAL,
-      label: PER_CAT_LABEL,
-    },
-  });
 
   if (isLoading) return <SkeletonLoader />;
   if (isError)
@@ -728,13 +715,14 @@ const Categories = () => {
         <Button
           className="mb-4"
           StartIcon={FiPlus}
-          onClick={() => setNewCategories([...newCategories, newCatShape])}
+          onClick={() => setNewCategories([...newCategories, {}])}
         >
           New Category
         </Button>
         <div className="mb-4 space-y-12" ref={categoriesAnimationParentRef}>
           {newCategories.map((_, i) => (
             <CategoryForm
+              key={i}
               onRemove={() =>
                 setNewCategories([
                   ...newCategories.slice(0, i),
@@ -743,8 +731,8 @@ const Categories = () => {
               }
             />
           ))}
-          {categories?.map((category) => (
-            <CategoryForm category={category} />
+          {categories?.map((category, i) => (
+            <CategoryForm key={i} category={category} />
           ))}
         </div>
         {categories?.length === 0 && newCategories?.length === 0 && (

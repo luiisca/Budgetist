@@ -77,7 +77,7 @@ const createCtx = <StateType, ActionType>(
     categoriesResult: {} as CategoriesResultType,
   });
 
-  const Provider = (props: PropsWithChildren<{}>) => {
+  const Provider = (props: PropsWithChildren) => {
     const [state, dispatch] = useReducer(reducer, initialState);
     const userResult = trpc.user.me.useQuery();
     const salariesResult = trpc.simulation.salaries.get.useQuery();

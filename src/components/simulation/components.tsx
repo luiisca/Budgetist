@@ -70,7 +70,7 @@ export const RecordsList = <T extends FieldValues>({
     if (errors[name] && errors[name]?.message) {
       showToast(errors[name]?.message as string, "error");
     }
-  }, [errors[name]]);
+  }, [errors, name]);
 
   return (
     <div>

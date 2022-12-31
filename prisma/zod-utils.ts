@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-export const nonEmptyString = z.string().min(1, { message: "Cannot be empty" });
+// helpers
+const nonEmptyString = z.string().min(1, { message: "Cannot be empty" });
+
 const equalTo = (value: string) => {
   return z
     .string()
@@ -11,6 +13,7 @@ const equalTo = (value: string) => {
       message: `Must be equal to ${value}`,
     });
 };
+const range = (init: number, end: number) => z.number().min(init).max(end);
 
 export const username = z
   .string()
@@ -21,13 +24,13 @@ const percentage = z
   .number()
   .positive()
   .max(100, { message: "Cannot be greater than 100%" });
-export const investPerc = z.string().or(percentage).optional();
 
 export const selectOptions = z.object({
   value: z.string().optional(),
   label: z.string().optional(),
 });
 
+// profile
 export const profileData = z.object({
   username,
   name: z.string().optional(),
@@ -35,7 +38,7 @@ export const profileData = z.object({
   country: z.string().optional(),
   inflation: z.string().or(z.number().positive()).optional(),
   currency: z.string().optional(),
-  investPerc,
+  investPerc: z.string().or(percentage).optional(),
   indexReturn: z.string().or(z.number().positive()).optional(),
   completedOnboarding: z.boolean().optional(),
 });
@@ -46,14 +49,14 @@ export const salaryDataClient = z.object({
   currency: selectOptions,
   amount: z.number().positive(),
   taxType: selectOptions,
-  taxPercent: percentage,
+  taxPercent: nonEmptyString.or(range(0, 100)),
   variance: z
     .array(
       z
         .object({
           from: nonEmptyString.or(z.number().positive()),
           amount: nonEmptyString.or(z.number().positive()),
-          taxPercent: percentage,
+          taxPercent: z.string().or(percentage).optional(),
         })
         .required()
     )
@@ -62,13 +65,15 @@ export const salaryDataClient = z.object({
 export const salaryDataServer = salaryDataClient.extend({
   id: z.number().positive().optional(),
   currency: z.string().optional(),
-  taxType: z.union([equalTo(""), equalTo("perCat"), equalTo("perRec")]),
+  taxType: z.union([equalTo("perCat"), equalTo("perRec")]),
+  taxPercent: range(0, 100),
   variance: z
     .array(
       z
         .object({
           from: z.number().positive(),
           amount: z.number().positive(),
+          taxPercent: percentage,
         })
         .required()
     )
@@ -106,7 +111,6 @@ export const categoryDataClient = z.object({
   freqType: selectOptions,
   frequency: z.union([nonEmptyString, z.number().positive()]).optional(), // pass default
 });
-
 export const categoryDataServer = categoryDataClient.extend({
   id: z.number().positive().optional(),
   budget: z.number().positive(),

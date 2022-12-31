@@ -49,7 +49,7 @@ const useUpdateInflation = <T extends FieldValues>() => {
         );
       }
     },
-    []
+    [utils.external.inflation]
   );
 
   return { updateInflation, isLoadingInfl, isValidInfl };

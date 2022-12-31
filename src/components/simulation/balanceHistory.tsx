@@ -86,11 +86,11 @@ export default function BalanceHistory() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      {typeOptions.map((type) => {
+                      {typeOptions.map((type, index) => {
                         const capType = type;
 
                         return (
-                          <DropdownMenuItem>
+                          <DropdownMenuItem key={index}>
                             <Button
                               onClick={() => {
                                 setTypeFilterValue(capType);
@@ -107,7 +107,7 @@ export default function BalanceHistory() {
                     </DropdownMenuContent>
                   </Dropdown>
 
-                  <form>
+                  <form onSubmit={(e) => e.preventDefault()}>
                     <NumberInput
                       control={control}
                       defaultValue={year}
@@ -163,43 +163,64 @@ export default function BalanceHistory() {
                         )
                       )}
                     {typeFilterValue !== "salary" &&
-                      balanceHistory[year - 1]?.categoriesBalance
-                        .filter((category) => {
-                          if (typeFilterValue === "all") return true;
-                          return category.type === typeFilterValue;
-                        })
-                        .map((category, index) => {
+                      balanceHistory[year - 1]?.categoriesBalance.map(
+                        (category, index) => {
                           if (category.records.length > 0) {
-                            return category.records.map((record, index) => (
+                            return category.records.map((record, index) => {
+                              if (
+                                typeFilterValue === "all" ||
+                                record.type === typeFilterValue
+                              ) {
+                                return (
+                                  <ListItem
+                                    key={index}
+                                    infoBubble={
+                                      <>
+                                        <p>Inflation: </p>
+                                        <p>
+                                          {record.type === "outcome"
+                                            ? record.inflation
+                                            : 0}
+                                          %
+                                        </p>
+                                        <p>Frequency: </p>
+                                        <p>{record.frequency} / 12 </p>
+                                      </>
+                                    }
+                                    category={{
+                                      ...record,
+                                      spent: formatAmount(
+                                        Math.abs(record.spent)
+                                      ),
+                                      parentTitle: category.title,
+                                      record: true,
+                                    }}
+                                  />
+                                );
+                              }
+
+                              return null;
+                            });
+                          }
+
+                          if (
+                            typeFilterValue === "all" ||
+                            category.type === typeFilterValue
+                          ) {
+                            return (
                               <ListItem
                                 key={index}
-                                infoBubble={
-                                  <>
-                                    <p>Inflation: </p>
-                                    <p>{category.inflation}%</p>
-                                    <p>Frequency: </p>
-                                    <p>{category.frequency} / 12 </p>
-                                  </>
-                                }
                                 category={{
-                                  ...record,
-                                  spent: formatAmount(Math.abs(record.spent)),
-                                  parentTitle: category.title,
-                                  record: true,
+                                  ...category,
+                                  spent: formatAmount(Math.abs(category.spent)),
                                 }}
                               />
-                            ));
+                            );
                           }
-                          return (
-                            <ListItem
-                              key={index}
-                              category={{
-                                ...category,
-                                spent: formatAmount(Math.abs(category.spent)),
-                              }}
-                            />
-                          );
-                        })}
+
+                          return null;
+                        }
+                      )}
                   </ul>
                 </div>
 

@@ -162,7 +162,7 @@ const SalaryForm = ({
         },
       });
     }
-  }, [categories, salaries, user, years]);
+  }, [categories, salaries, user, years, balanceDispatch]);
 
   const [varianceHidden, setVarianceHidden] = useState<boolean>(false);
 
@@ -247,7 +247,7 @@ const SalaryForm = ({
       taxPercent: salary?.taxPercent || DEFAULT_TAX_PERCENT,
       variance: salary?.variance.map((period) => ({
         ...period,
-        taxPercent: salary?.taxPercent || DEFAULT_TAX_PERCENT,
+        taxPercent: period.taxPercent || DEFAULT_TAX_PERCENT,
       })),
     });
   }, [user, reset, salary]);
@@ -258,14 +258,22 @@ const SalaryForm = ({
     if (!varianceHidden && (values.variance?.length as number) > 0) {
       input = {
         ...values,
-        currency: values.currency?.value || user?.currency,
+        variance: values.variance?.map((period) => ({
+          ...period,
+          taxPercent: period.taxPercent || DEFAULT_TAX_PERCENT,
+        })),
       };
     } else {
       input = {
         ..._.omit(values, ["variance"]),
-        currency: values.currency?.value || user?.currency,
       };
     }
+    input = {
+      ...input,
+      currency: values.currency?.value || user?.currency,
+      taxType: values.taxType.value || PER_CAT_VAL,
+      taxPercent: values.taxPercent || DEFAULT_TAX_PERCENT,
+    };
     if (salary?.id) {
       input = {
         ...input,
@@ -339,11 +347,11 @@ const SalaryForm = ({
             <ControlledSelect<SalaryDataInputTypeClient>
               control={control}
               options={() => BASIC_GROUP_TYPES}
-              name="freqType"
-              label="Frequency Type"
+              name="taxType"
+              label="Tax Type"
             />
           </div>
-          {/* income taxes */}
+          {/* income tax */}
           {watchTaxType?.value === "perCat" && (
             <div>
               <NumberInput<SalaryDataInputTypeClient>
@@ -352,6 +360,17 @@ const SalaryForm = ({
                 label="Income Taxes"
                 addOnSuffix={<FiPercent />}
                 placeholder={`${DEFAULT_TAX_PERCENT}`}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const value = e.target.value;
+                  const parsedVal = parseInt(value as string, 10);
+                  return parsedVal <= 0
+                    ? 0
+                    : Number.isNaN(parsedVal)
+                    ? ""
+                    : parsedVal > 100
+                    ? 100
+                    : parseInt(value as string, 10);
+                }}
               />
             </div>
           )}
@@ -426,6 +445,17 @@ const SalaryForm = ({
                     label="Income Taxes"
                     addOnSuffix={<FiPercent />}
                     placeholder={`${DEFAULT_TAX_PERCENT}`}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const value = e.target.value;
+                      const parsedVal = parseInt(value as string, 10);
+                      return parsedVal <= 0
+                        ? 0
+                        : Number.isNaN(parsedVal)
+                        ? ""
+                        : parsedVal > 100
+                        ? 100
+                        : parseInt(value as string, 10);
+                    }}
                   />
                 </div>
               )}
@@ -498,7 +528,9 @@ const Salaries = () => {
   const {
     salariesResult: { data: salaries, isLoading, isError, isSuccess, error },
   } = useContext(BalanceContext);
-  const [newSalaries, setNewSalaries] = useState<Array<any>>([]);
+  const [newSalaries, setNewSalaries] = useState<
+    Array<Record<string, unknown>>
+  >([]);
   const [salariesAnimationParentRef] = useAutoAnimate<HTMLDivElement>();
 
   if (isLoading) return <SkeletonLoader />;
@@ -524,6 +556,7 @@ const Salaries = () => {
         <div className="mb-4 space-y-12" ref={salariesAnimationParentRef}>
           {newSalaries.map((_, i) => (
             <SalaryForm
+              key={i}
               onRemove={() =>
                 setNewSalaries([
                   ...newSalaries.slice(0, i),
@@ -532,8 +565,8 @@ const Salaries = () => {
               }
             />
           ))}
-          {salaries?.map((salary) => (
-            <SalaryForm salary={salary} />
+          {salaries?.map((salary, i) => (
+            <SalaryForm key={i} salary={salary} />
           ))}
         </div>
         {salaries?.length === 0 && newSalaries?.length === 0 && (

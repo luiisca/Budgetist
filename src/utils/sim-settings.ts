@@ -27,7 +27,7 @@ export const selectOptionsData = z.object({
   label: z.string().optional(),
 });
 
-export const getCurrency = (code: string, countryCode: string = "US") => {
+export const getCurrency = (code: string, countryCode = "US") => {
   code = code || DEFAULT_CURRENCY;
 
   const lang = clm.getCountryByAlpha2(countryCode)?.languages[0];

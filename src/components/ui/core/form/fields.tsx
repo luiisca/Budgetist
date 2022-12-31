@@ -246,12 +246,17 @@ export const NumberInput = <T extends FieldValues = FieldValues>(
           placeholder={arg.placeholder}
           loader={arg.loader}
           onChange={(e) => {
-            field.onChange(
-              (arg?.onChange && arg?.onChange(e)) ||
-                transIntoInt(e.target.value)
-            );
+            if (arg?.onChange) {
+              field.onChange(arg.onChange(e));
+            } else {
+              field.onChange(transIntoInt(e.target.value));
+            }
           }}
-          value={transIntoInt(field.value)}
+          value={
+            arg?.onChange
+              ? arg.onChange({ target: { value: field.value } })
+              : transIntoInt(field.value)
+          }
         />
       )}
     />

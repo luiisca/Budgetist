@@ -1,14 +1,15 @@
-import _ from "lodash";
 import { DEFAULT_FREQUENCY, MAX_YEARS, MIN_YEARS } from "./constants";
 import { AppRouterTypes } from "./trpc";
 
 export type Salary = {
   title: string;
   amount: number;
+  taxType: string;
   taxPercent: number;
   variance: {
     from: number;
     amount: number;
+    taxPercent: number;
   }[];
 };
 
@@ -63,8 +64,9 @@ const getFrequency = (freq: number) => {
 
 const getSalaryAfterTax = (amount: number, taxPercent: number) =>
   amount * (1 - getRate(taxPercent));
-const getSalaryByYear = (year: number, salary: Salary) => {
+const getSalaryDataByYear = (year: number, salary: Salary) => {
   let yearlyAmount = salary.amount;
+  let yearlyTaxes = salary.taxPercent;
   const v = salary.variance;
 
   if (v) {
@@ -76,19 +78,30 @@ const getSalaryByYear = (year: number, salary: Salary) => {
 
       if (betweenCrrPeriod) {
         yearlyAmount = v[period].amount;
+        yearlyTaxes = v[period].taxPercent;
 
-        return yearlyAmount;
+        return {
+          amount: yearlyAmount,
+          taxPercent: yearlyTaxes,
+        };
       }
 
       if (latestPeriod) {
         yearlyAmount = lastV.amount;
+        yearlyTaxes = lastV.taxPercent;
 
-        return yearlyAmount;
+        return {
+          amount: yearlyAmount,
+          taxPercent: yearlyTaxes,
+        };
       }
     }
   }
 
-  return yearlyAmount;
+  return {
+    amount: yearlyAmount,
+    taxPercent: yearlyTaxes,
+  };
 };
 
 export const getTotalBalance = ({
@@ -137,18 +150,25 @@ export const getTotalBalance = ({
                 spent: record.amount,
               })),
       })),
-      salariesBalance: salaries.map((salary) => ({
-        title: salary.title,
-        type: "salary",
-        amountBefTax: salary.variance
-          ? getSalaryByYear(i + 1, salary)
-          : salary.amount,
-        amountAftTax: getSalaryAfterTax(
-          salary.variance ? getSalaryByYear(i + 1, salary) : salary.amount,
-          salary.taxPercent
-        ),
-        taxPercent: salary.taxPercent,
-      })),
+      salariesBalance: salaries.map((salary) => {
+        const crrYearSalaryData = getSalaryDataByYear(i + 1, salary);
+
+        const amount = salary.variance
+          ? crrYearSalaryData.amount
+          : salary.amount;
+        const taxPercent =
+          salary.taxType == "perCat"
+            ? salary.taxPercent
+            : crrYearSalaryData.taxPercent;
+
+        return {
+          title: salary.title,
+          type: "salary",
+          amountBefTax: amount,
+          amountAftTax: getSalaryAfterTax(amount, taxPercent),
+          taxPercent,
+        };
+      }),
     }));
 
   for (let year = 1; year <= years; year++) {
@@ -172,10 +192,7 @@ export const getTotalBalance = ({
           //
 
           if (inflationDisabled) {
-            const crrYearCatExp =
-              crrCat.budget *
-              getFrequency(frequency) *
-              (perCatIncome ? INCOME_MOD : OUTCOME_MOD);
+            const crrYearCatExp = crrCat.budget * getFrequency(frequency);
 
             // save current year expense
             balanceHistory[year - 1].categoriesBalance[crrCatI].spent =
@@ -184,7 +201,10 @@ export const getTotalBalance = ({
             balanceHistory[year - 1][perCatIncome ? "income" : "outcome"] +=
               crrYearCatExp;
 
-            return prevCat + crrYearCatExp;
+            return (
+              prevCat +
+              crrYearCatExp * (perCatIncome ? INCOME_MOD : OUTCOME_MOD)
+            );
           }
 
           if (inflationEnabled) {
@@ -240,10 +260,7 @@ export const getTotalBalance = ({
               //
 
               if (inflationDisabled) {
-                const crrYearRecExp =
-                  crrRec.amount *
-                  getFrequency(frequency) *
-                  (perRecIncome ? INCOME_MOD : OUTCOME_MOD);
+                const crrYearRecExp = crrRec.amount * getFrequency(frequency);
 
                 // save current year record expense
                 balanceHistory[year - 1].categoriesBalance[crrCatI].records[
@@ -253,7 +270,10 @@ export const getTotalBalance = ({
                 balanceHistory[year - 1][perRecIncome ? "income" : "outcome"] +=
                   crrYearRecExp;
 
-                return prevRec + crrYearRecExp;
+                return (
+                  prevRec +
+                  crrYearRecExp * (perRecIncome ? INCOME_MOD : OUTCOME_MOD)
+                );
               }
               if (inflationEnabled) {
                 const crrAccRecExp =

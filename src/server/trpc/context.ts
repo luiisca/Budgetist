@@ -65,18 +65,20 @@ export const createContextInner = async (opts: CreateContextOptions) => {
 };
 
 /**
- * This is the actual context you'll use in your router
- * @link https://trpc.io/docs/context
- **/
+ * Outer context. Used in the routers and will e.g. bring `req` & `res` to the context as "not `undefined`".
+ *
+ * @see https://trpc.io/docs/context#inner-and-outer-context
+ */
 export const createContext = async (opts: CreateNextContextOptions) => {
   const { req, res } = opts;
 
   // Get the session from the server using the unstable_getServerSession wrapper function
   const session = await getServerAuthSession({ req, res });
+  const contextInner = await createContextInner({ session });
   const user = await getUserFromSession({ session });
 
   return {
-    session,
+    ...contextInner,
     prisma,
     user,
   };

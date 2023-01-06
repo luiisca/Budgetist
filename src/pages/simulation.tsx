@@ -37,7 +37,7 @@ import classNames from "classnames";
 const SkeletonLoader = () => {
   return (
     <SkeletonContainer>
-      <div className="mt-6 mb-8 space-y-6 divide-y">
+      <div className="mt-6 mb-8 space-y-6">
         <SkeletonText className="h-8 w-full" />
         <div className="flex space-x-3">
           <SkeletonText className="h-8 w-full flex-[1_1_80%]" />
@@ -51,7 +51,7 @@ const SkeletonLoader = () => {
   );
 };
 
-type UserResultType = UseTRPCQueryResult<
+export type UserResultType = UseTRPCQueryResult<
   AppRouterTypes["user"]["me"]["output"],
   TRPCClientErrorLike<Procedure<"query", any>>
 >;
@@ -168,71 +168,6 @@ const balanceInitState: BalanceInitStateType = {
 const [ctx, BalanceProvider] = createCtx(balanceReducer, balanceInitState);
 export const BalanceContext = ctx;
 
-const Simulation = () => {
-  const {
-    state: { totalBalanceLoading, totalBalance, balanceHistory },
-  } = useContext(BalanceContext);
-
-  return (
-    <>
-      <Head>
-        <title>Simulation | Budgetist</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-      <Shell
-        heading="Current balance"
-        subtitle="As of 12/11/2022"
-        CTA={
-          totalBalance ? (
-            <TitleWithInfo
-              Title={() => (
-                <div className="ml-2 text-3xl text-black">
-                  {formatAmount(totalBalance)}
-                </div>
-              )}
-              infoCont={
-                <div className="text-md px-3 py-2">
-                  Your total balance after{" "}
-                  {balanceHistory.length === 1 ? "one" : balanceHistory.length}
-                  {balanceHistory.length === 1 ? " year" : " years"} based{" "}
-                  <br />
-                  on salary variations, expenses, incomes, and yearly
-                  investments <br />
-                  on an index fund.
-                </div>
-              }
-              infoIconClassName="!h-4 !w-4"
-              className={classNames(
-                "fixed right-5 top-2 z-[999999] flex-row-reverse rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 ",
-                totalBalanceLoading && "animate-pulse"
-              )}
-            />
-          ) : null
-        }
-      >
-        <div className="flex flex-col space-y-8">
-          <div>
-            <h2 className="mb-4 text-lg font-medium">Run Simulation</h2>
-            <RunSimForm />
-          </div>
-          <div>
-            <BalanceHistory />
-          </div>
-          <div>
-            <h2 className="mb-4 text-lg font-medium">Salaries</h2>
-            <Salaries />
-          </div>
-
-          <div>
-            <h2 className="mb-4 text-lg font-medium">Categories</h2>
-            <Categories />
-          </div>
-        </div>
-      </Shell>
-    </>
-  );
-};
-
 const RunSimForm = () => {
   const {
     userResult: { data: user, isLoading: userLoading },
@@ -265,9 +200,9 @@ const RunSimForm = () => {
             `Please add at least ${
               noCategories && noSalaries
                 ? "some category or salary"
-                : "one " + !categories
-                ? "category"
-                : "salary"
+                : noCategories
+                ? "one category"
+                : "one salary"
             } first`,
             "error"
           );
@@ -309,6 +244,78 @@ const RunSimForm = () => {
         Run
       </Button>
     </Form>
+  );
+};
+
+const Simulation = () => {
+  const {
+    state: { totalBalanceLoading, totalBalance, balanceHistory },
+  } = useContext(BalanceContext);
+
+  return (
+    <>
+      <Head>
+        <title>Simulation | Budgetist</title>
+        <meta
+          name="description"
+          content="simulate your total balance after x years"
+        />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+      <Shell
+        heading="Current balance"
+        subtitle="As of 12/11/2022"
+        CTA={
+          totalBalance ? (
+            <TitleWithInfo
+              Title={() => (
+                <div className="ml-2 text-3xl text-black dark:text-dark-neutral ">
+                  {formatAmount(totalBalance)}
+                </div>
+              )}
+              infoCont={
+                <div className="text-md px-3 py-2">
+                  Your total balance after{" "}
+                  {balanceHistory.length === 1 ? "one" : balanceHistory.length}
+                  {balanceHistory.length === 1 ? " year" : " years"} based{" "}
+                  <br />
+                  on salary variations, expenses, incomes, and yearly
+                  investments <br />
+                  on an index fund.
+                </div>
+              }
+              infoIconClassName="!h-4 !w-4"
+              className={classNames(
+                "fixed right-5 top-2 z-[999999] flex-row-reverse rounded-lg px-3 py-2 ",
+                "bg-gray-50 ring-1 ring-gray-100",
+                "dark:bg-dark-secondary dark:shadow-darkBorder dark:ring-dark-400",
+                totalBalanceLoading && "animate-pulse"
+              )}
+              tooltipSide="bottom"
+            />
+          ) : null
+        }
+      >
+        <div className="flex flex-col space-y-8">
+          <div>
+            <h2 className="mb-4 text-lg font-medium">Run Simulation</h2>
+            <RunSimForm />
+          </div>
+          <div>
+            <BalanceHistory />
+          </div>
+          <div>
+            <h2 className="mb-4 text-lg font-medium">Salaries</h2>
+            <Salaries />
+          </div>
+
+          <div>
+            <h2 className="mb-4 text-lg font-medium">Categories</h2>
+            <Categories />
+          </div>
+        </div>
+      </Shell>
+    </>
   );
 };
 

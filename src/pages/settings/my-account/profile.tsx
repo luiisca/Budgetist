@@ -30,7 +30,7 @@ import { trpc } from "utils/trpc";
 const SkeletonLoader = () => {
   return (
     <SkeletonContainer>
-      <div className="mt-6 mb-8 space-y-6 divide-y">
+      <div className="mt-6 mb-8 space-y-6">
         <div className="flex items-center">
           <SkeletonAvatar className=" h-12 w-12 px-4" />
           <SkeletonButton className=" h-6 w-32 rounded-md p-5" />
@@ -191,7 +191,7 @@ const ProfileView = () => {
           Update
         </Button>
 
-        <hr className="my-6  border-neutral-200" />
+        <hr className="my-6  border-neutral-200 dark:border-dark-350" />
 
         <Label>Danger zone</Label>
         {/* Delete account Dialog */}

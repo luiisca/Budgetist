@@ -19,23 +19,21 @@ export default function Logout() {
         </div>
         <div className="mt-3 text-center sm:mt-5">
           <h3
-            className="text-lg font-medium leading-6 text-gray-900"
+            className="text-lg font-medium leading-6 text-gray-900 dark:text-dark-neutral"
             id="modal-title"
           >
             You&apos;ve been logged out
           </h3>
           <div className="mt-2">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-dark-600">
               We hope to see you again soon!
             </p>
           </div>
         </div>
       </div>
-      <Link href="/auth/login" passHref>
-        <Button className="flex w-full justify-center">
-          Go back to the login page
-        </Button>
-      </Link>
+      <Button className="flex w-full justify-center" href="/auth/login">
+        Go back to the login page
+      </Button>
     </AuthContainer>
   );
 }

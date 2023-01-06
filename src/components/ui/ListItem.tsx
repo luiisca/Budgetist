@@ -19,11 +19,11 @@ export function ListItem({
 }): JSX.Element {
   return (
     <li>
-      <div className="flex items-center justify-between py-5 hover:bg-neutral-50 ltr:pl-4 rtl:pr-4 sm:ltr:pl-0 sm:rtl:pr-0">
-        <div className="group flex w-full items-center justify-between hover:bg-neutral-50 sm:px-6">
+      <div className="flex items-center justify-between py-5 pl-4 hover:bg-neutral-50 dark:hover:bg-dark-tertiary sm:pl-0">
+        <div className="group flex w-full items-center justify-between sm:px-6">
           <div className="flex-grow truncate text-sm">
             <div className="space-x-2">
-              <span className="truncate font-medium text-neutral-900">
+              <span className="truncate font-medium text-neutral-900 dark:text-dark-neutral">
                 {category.title}
               </span>
               <Badge
@@ -38,7 +38,7 @@ export function ListItem({
               </Badge>
             </div>
             {category.record && (
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-neutral-500 dark:text-dark-600">
                 {category.parentTitle}
               </p>
             )}
@@ -47,7 +47,7 @@ export function ListItem({
         {infoBubble ? (
           <TitleWithInfo
             Title={() => (
-              <p className="mx-1 mr-5 text-lg font-medium text-neutral-900">
+              <p className="mx-1 mr-5 text-lg font-medium text-neutral-900 dark:text-dark-neutral">
                 {category.spent}
               </p>
             )}
@@ -59,7 +59,7 @@ export function ListItem({
             className="flex-row-reverse"
           />
         ) : (
-          <p className="mx-1 mr-5 text-lg font-medium text-neutral-900">
+          <p className="mx-1 mr-5 text-lg font-medium text-neutral-900 dark:text-dark-neutral">
             {category.spent}
           </p>
         )}

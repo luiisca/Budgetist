@@ -22,6 +22,7 @@ import {
   salaryDataServer,
   SalaryDataInputTypeClient,
 } from "prisma/*";
+import React from "react";
 import { useContext, useEffect, useState } from "react";
 import {
   Control,
@@ -49,11 +50,12 @@ import { getCurrency, getCurrencyOptions } from "utils/sim-settings";
 import { AppRouterTypes, trpc } from "utils/trpc";
 import { z } from "zod";
 import { RecordsList } from "./components";
+import { useSimData } from "./hooks";
 
 const SkeletonLoader = () => {
   return (
     <SkeletonContainer>
-      <div className="mt-6 mb-8 space-y-6 divide-y">
+      <div className="mt-6 mb-8 space-y-6">
         <SkeletonText className="h-8 w-full" />
         <div className="flex space-x-3">
           <SkeletonText className="h-8 w-full flex-[1_1_80%]" />
@@ -83,7 +85,12 @@ const PeriodInput = ({
     amount: number | string;
   }[];
 }) => {
-  const { setError, clearErrors } = useFormContext();
+  const {
+    setError,
+    clearErrors,
+    formState: { errors },
+  } = useFormContext();
+
   const onChangeHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
     const crrParsedInput = transIntoInt(e.target.value);
 
@@ -112,7 +119,7 @@ const PeriodInput = ({
           message: "Must be greater than previous period",
         });
       } else {
-        clearErrors(`variance.${index}.from`);
+        errors && clearErrors(`variance.${index}.from`);
       }
       return crr;
     }, {} as { from: number; amount: number });
@@ -138,31 +145,9 @@ const SalaryForm = ({
   salary?: AppRouterTypes["simulation"]["salaries"]["get"]["output"][0];
 }) => {
   const {
-    state: { years },
     userResult: { data: user, isLoading, isError, isSuccess, error },
-    categoriesResult: { data: categories },
-    salariesResult: { data: salaries },
-    dispatch: balanceDispatch,
-  } = useContext(BalanceContext);
-
-  useEffect(() => {
-    if (categories && salaries && user) {
-      balanceDispatch({
-        type: "TOTAL_BAL_LOADING",
-        loading: false,
-      });
-      balanceDispatch({
-        type: "SIM_RUN",
-        payload: {
-          categories,
-          salaries,
-          years: Number(years),
-          investPerc: user.investPerc,
-          indexReturn: user.indexReturn,
-        },
-      });
-    }
-  }, [categories, salaries, user, years, balanceDispatch]);
+    balanceDispatch,
+  } = useSimData();
 
   const [varianceHidden, setVarianceHidden] = useState<boolean>(false);
 
@@ -176,13 +161,13 @@ const SalaryForm = ({
   const { reset, register, control, formState, setFocus } = salaryForm;
   const { isSubmitting, isDirty } = formState;
 
-  // watch values
   const fieldArray = useFieldArray<SalaryDataInputTypeClient>({
     control,
     name: "variance",
   });
   const { fields, append, remove } = fieldArray;
 
+  // watch values
   const watchLatestFromVal = useWatch({
     control,
     name: `variance.${fields.length - 1}.from`,
@@ -304,6 +289,17 @@ const SalaryForm = ({
       await utils.simulation.salaries.invalidate();
     },
   });
+  const transInt = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const parsedVal = parseInt(value as string, 10);
+    return parsedVal <= 0
+      ? 0
+      : Number.isNaN(parsedVal)
+      ? ""
+      : parsedVal > 100
+      ? 100
+      : parseInt(value as string, 10);
+  };
 
   const isDisabled = isSubmitting || !isDirty;
 
@@ -445,23 +441,13 @@ const SalaryForm = ({
                     label="Income Taxes"
                     addOnSuffix={<FiPercent />}
                     placeholder={`${DEFAULT_TAX_PERCENT}`}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                      const value = e.target.value;
-                      const parsedVal = parseInt(value as string, 10);
-                      return parsedVal <= 0
-                        ? 0
-                        : Number.isNaN(parsedVal)
-                        ? ""
-                        : parsedVal > 100
-                        ? 100
-                        : parseInt(value as string, 10);
-                    }}
+                    onChange={transInt}
+                    value={transInt}
                   />
                 </div>
               )}
               <Button
                 color="primary"
-                disabled={isDisabled}
                 className="mt-3"
                 onClick={() => remove(index)}
               >

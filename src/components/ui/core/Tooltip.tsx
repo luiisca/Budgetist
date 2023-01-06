@@ -24,18 +24,21 @@ export function Tooltip({
       delayDuration={50}
       open={open}
       defaultOpen={defaultOpen}
-      onOpenChange={onOpenChange}>
+      onOpenChange={onOpenChange}
+    >
       <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
       <TooltipPrimitive.Content
         className={classNames(
           side === "top" && "-mt-7",
           side === "right" && "ml-2",
 
-          "relative z-40 rounded-md bg-gray-900 px-2 py-1 text-xs font-semibold text-white shadow-lg dark:bg-white dark:text-gray-600"
+          "relative z-40 rounded-md bg-gray-900 px-2 py-1 text-xs font-semibold text-white shadow-lg",
+          "dark:bg-dark-300 dark:text-dark-neutral dark:ring-dark-400"
         )}
         side={side}
         align="center"
-        {...props}>
+        {...props}
+      >
         {content}
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Root>

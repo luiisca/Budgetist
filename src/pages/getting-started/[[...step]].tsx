@@ -17,7 +17,7 @@ interface IOnboardingPageProps {
 const INITIAL_STEP = "user-settings";
 const steps = ["user-settings", "sim-presets"] as const;
 
-const stepTransform = (step: typeof steps[number]) => {
+const stepTransform = (step: (typeof steps)[number]) => {
   const stepIndex = steps.indexOf(step);
   if (stepIndex > -1) {
     return steps[stepIndex];
@@ -67,7 +67,7 @@ const OnboardingPage = (props: IOnboardingPageProps) => {
 
   return (
     <div
-      className="dark:text-brand-contrast min-h-screen text-black dark:bg-brand"
+      className="min-h-screen text-black dark:bg-dark-primary dark:text-dark-neutral"
       key={router.asPath}
     >
       {/* <Head> */}
@@ -86,7 +86,7 @@ const OnboardingPage = (props: IOnboardingPageProps) => {
 
                 {headers[currentStepIndex]?.subtitle.map((subtitle, index) => (
                   <p
-                    className="font-sans text-sm font-normal text-gray-500"
+                    className="font-sans text-sm font-normal text-gray-500 dark:text-dark-600"
                     key={index}
                   >
                     {subtitle}

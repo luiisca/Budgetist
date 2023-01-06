@@ -45,7 +45,7 @@ export const getReactSelectProps = <
     "block h-[36px] w-full min-w-0 flex-1 rounded-md",
     className
   ),
-  classNamePrefix: "cal-react-select",
+  classNamePrefix: "bud-react-select",
   components: {
     ...reactSelectComponents,
     IndicatorSeparator: () => null,
@@ -84,16 +84,13 @@ const Select = <
         {...reactSelectProps}
         {...props}
         styles={{
-          option: (defaultStyles, state) => ({
-            ...defaultStyles,
-            backgroundColor: state.isSelected
-              ? state.isFocused
-                ? "var(--brand-color)"
-                : "var(--brand-color)"
-              : state.isFocused
-              ? "var(--brand-color-dark-mode)"
-              : "var(--brand-text-color)",
+          control: () => ({
+            // ...base,
           }),
+          // option: (base) => ({
+          //   border: "1px dotted red",
+          //   background: "red",
+          // }),
         }}
       />
       {name && <Errors fieldName={name} />}

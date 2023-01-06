@@ -12,6 +12,7 @@ import { Toaster } from "react-hot-toast";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { MetaProvider } from "components/ui/core/Meta";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
+import { ThemeProvider } from "next-themes";
 
 type AppProps = Omit<NextAppProps, "Component"> & {
   Component: NextAppProps["Component"] & {
@@ -33,9 +34,11 @@ const MyApp: AppType<{ session: Session | null }> = (props: AppProps) => {
       <MetaProvider>
         <SessionProvider session={session || undefined}>
           <Toaster position="bottom-right" />
-          {getLayout &&
-            getLayout(<Component {...pageProps} err={err} />, router)}
-          <ReactQueryDevtools initialIsOpen={false} />
+          <ThemeProvider attribute="class">
+            {getLayout &&
+              getLayout(<Component {...pageProps} err={err} />, router)}
+          </ThemeProvider>
+          {/* <ReactQueryDevtools initialIsOpen={false} /> */}
         </SessionProvider>
       </MetaProvider>
     </TooltipProvider>

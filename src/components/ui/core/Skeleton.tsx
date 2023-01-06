@@ -15,7 +15,10 @@ interface SkeletonContainer {
 const SkeletonAvatar: React.FC<SkeletonBaseProps> = ({ className }) => {
   return (
     <div
-      className={classNames(`mt-1 mr-2 rounded-full bg-gray-200`, className)}
+      className={classNames(
+        `mt-1 mr-2 rounded-full bg-gray-200 dark:bg-dark-200`,
+        className
+      )}
     />
   );
 };
@@ -50,7 +53,7 @@ const Skeleton = <T extends keyof JSX.IntrinsicElements | React.FC>({
       className={classNames(
         loading
           ? classNames(
-              "font-size-0 dark:white-300 animate-pulse rounded-md bg-gray-300 text-transparent",
+              "font-size-0 animate-pulse rounded-md bg-gray-300 text-transparent dark:bg-dark-200",
               loadingClassName
             )
           : "",
@@ -70,9 +73,10 @@ const SkeletonText: React.FC<SkeletonBaseProps & { invisible?: boolean }> = ({
   return (
     <span
       className={classNames(
-        `font-size-0 dark:white-300 inline-block animate-pulse rounded-md bg-gray-300 empty:before:inline-block empty:before:content-['']`,
-        className,
-        invisible ? "invisible" : ""
+        `font-size-0 inline-block animate-pulse rounded-md bg-gray-300 empty:before:inline-block empty:before:content-['']`,
+        invisible ? "invisible" : "",
+        "dark:bg-dark-150",
+        className
       )}
     />
   );
@@ -81,7 +85,12 @@ const SkeletonText: React.FC<SkeletonBaseProps & { invisible?: boolean }> = ({
 const SkeletonButton: React.FC<SkeletonBaseProps> = ({ className }) => {
   return (
     <SkeletonContainer>
-      <div className={classNames(`rounded-md bg-gray-200`, className)} />
+      <div
+        className={classNames(
+          `rounded-md bg-gray-200 dark:bg-dark-150`,
+          className
+        )}
+      />
     </SkeletonContainer>
   );
 };

@@ -20,17 +20,22 @@ export const TitleWithInfo = ({
   infoCont,
   className,
   infoIconClassName,
+  tooltipSide,
 }: {
   Title: React.ElementType;
   infoCont: ReactNode;
   className?: string;
   infoIconClassName?: string;
+  tooltipSide?: "top" | "right" | "bottom" | "left";
 }) => {
   return (
-    <div className={classNames("flex items-center space-x-1", className)}>
+    <div className={classNames("flex items-center space-x-1 ", className)}>
       <Title className="mb-0" />
-      <Tooltip content={<p className="text-center">{infoCont}</p>}>
-        <div className="-ml-1 self-center rounded p-2 hover:bg-gray-200">
+      <Tooltip
+        content={<p className="text-center">{infoCont}</p>}
+        side={tooltipSide}
+      >
+        <div className="-ml-1 self-center rounded-md p-2 hover:bg-gray-200 dark:hover:bg-dark-400 dark:hover:ring-1 dark:hover:ring-dark-500">
           <BsInfoCircle className={classNames("h-3 w-3", infoIconClassName)} />
         </div>
       </Tooltip>
@@ -80,7 +85,7 @@ export const RecordsList = <T extends FieldValues>({
           infoCont={infoCont}
         />
         <Tooltip content={`${hidden ? "Enable" : "Disable"} ${name}`}>
-          <div className="self-center rounded-md p-2 hover:bg-gray-200">
+          <div className="self-center rounded-md p-2 hover:bg-gray-200 dark:bg-transparent">
             <Switch
               name="Hidden"
               checked={!hidden}

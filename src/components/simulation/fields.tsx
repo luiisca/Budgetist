@@ -1,6 +1,7 @@
 import classNames from "classnames";
 import { Label, NumberInput } from "components/ui";
 import Select from "components/ui/core/form/select";
+import { OptionComponent } from "components/ui/core/form/select/components";
 import countryToCurrency from "country-to-currency";
 import { useCallback, useMemo } from "react";
 import {
@@ -30,7 +31,7 @@ export const LoadingIcon = () => (
   <div className="absolute right-[2px] top-0 flex flex-row">
     <span className="mx-2 py-2">
       <svg
-        className="mt-[2px] h-4 w-4 animate-spin text-black"
+        className="mt-[2px] h-4 w-4 animate-spin text-black dark:text-dark-accent-100"
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"
@@ -54,17 +55,10 @@ export const LoadingIcon = () => (
 );
 
 // country select
-export const OptionComponent = (
+export const Option = (
   props: OptionProps<SelectOption, false, GroupBase<SelectOption>>
 ) => (
-  <reactSelectComponents.Option
-    {...props}
-    className={classNames(
-      "!flex !cursor-pointer !items-center !py-3 dark:bg-darkgray-100",
-      props.isFocused && "!bg-gray-100 dark:!bg-darkgray-200",
-      props.isSelected && "!bg-neutral-900 dark:!bg-darkgray-300"
-    )}
-  >
+  <OptionComponent {...props}>
     <span className="mr-3">
       {props.data.value !== "default" ? (
         <img
@@ -79,7 +73,7 @@ export const OptionComponent = (
     </span>
     <span className="flex-1">{props.label}</span>{" "}
     {props.isSelected && <FiCheck className="h-4 w-4" />}
-  </reactSelectComponents.Option>
+  </OptionComponent>
 );
 
 export const ValueComponent = (
@@ -199,10 +193,10 @@ export const CountryInflInput = <T extends FieldValues>({
           <div className="absolute right-[2px] top-0 flex flex-row">
             <span className={classNames("mx-2 py-2")}>
               {isLoadingInfl === false && isValidInfl && (
-                <FiCheck className="mt-[2px] w-6" />
+                <FiCheck className="mt-[2px] w-6 dark:text-dark-accent-100" />
               )}
               {isLoadingInfl === false && isValidInfl === false && (
-                <FiX className="mt-[2px] w-6" />
+                <FiX className="mt-[2px] w-6 dark:text-dark-accent-100" />
               )}
             </span>
           </div>

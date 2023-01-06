@@ -4,6 +4,7 @@ import React from "react";
 import { LOGO } from "utils/constants";
 
 import Loader from "components/Loader";
+import Image from "next/image";
 
 interface Props {
   footerText?: React.ReactNode | string;
@@ -14,13 +15,14 @@ interface Props {
 
 export default function AuthContainer(props: React.PropsWithChildren<Props>) {
   return (
-    <div className="flex min-h-screen flex-col justify-center bg-[#f3f4f6] py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col justify-center bg-[#f3f4f6] from-dark-350 to-dark-100 py-12 dark:bg-gradient-to-b sm:px-6 lg:px-8">
       {props.showLogo && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          className="mx-auto mb-auto w-[200px]"
+        <Image
           src={LOGO}
           alt="Budgetist Logo"
+          height={78}
+          width={256}
+          className="mx-auto mb-auto h-auto w-[15%] min-w-56 dark:invert"
         />
       )}
       <div
@@ -30,7 +32,7 @@ export default function AuthContainer(props: React.PropsWithChildren<Props>) {
         )}
       >
         {props.heading && (
-          <h2 className="text-center font-cal text-3xl text-neutral-900">
+          <h2 className="text-center font-cal text-3xl text-neutral-900 dark:text-dark-neutral">
             {props.heading}
           </h2>
         )}
@@ -40,8 +42,8 @@ export default function AuthContainer(props: React.PropsWithChildren<Props>) {
           <Loader />
         </div>
       )}
-      <div className="mt-8 mb-auto sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="border-1 mx-2 rounded-md border-gray-200 bg-white px-4 py-10 sm:px-10">
+      <div className="mt-8 mb-auto dark:mt-0 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="mx-2 rounded-md border border-gray-200 bg-white px-4 py-10 dark:border-0 dark:bg-transparent sm:px-10">
           {props.children}
         </div>
         <div className="mt-8 text-center text-sm text-neutral-600">

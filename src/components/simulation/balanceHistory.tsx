@@ -9,7 +9,7 @@ import Dropdown, {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "components/ui/Dropdown";
-import { useContext, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import { BalanceContext } from "pages/simulation";
 import { useForm } from "react-hook-form";
 import { TitleWithInfo } from "./components";
@@ -27,8 +27,13 @@ export default function BalanceHistory() {
   const [hidden, setHidden] = useState(false);
   const [year, setYear] = useState(1);
   const [typeFilterValue, setTypeFilterValue] = useState(typeOptions[0]);
+  const [itemSelectedId, setItemSelectedId] = useState(
+    typeOptions.findIndex((item) => item === typeFilterValue)
+  );
+
   const [animationParentRef] = useAutoAnimate<HTMLDivElement>();
   const [ulAnimationParentRef] = useAutoAnimate<HTMLUListElement>();
+  const dropdownMenuRef = useRef<null | HTMLDivElement>(null);
 
   const { control } = useForm();
 
@@ -47,7 +52,7 @@ export default function BalanceHistory() {
             }
           />
           <Tooltip content={`${hidden ? "Enable" : "Disable"} balance`}>
-            <div className="self-center rounded-md p-2 hover:bg-gray-200">
+            <div className="self-center rounded-md p-2 hover:bg-gray-200 dark:hover:bg-transparent">
               <Switch
                 name="Hidden"
                 checked={!hidden}
@@ -85,19 +90,27 @@ export default function BalanceHistory() {
                         {capitalize(typeFilterValue)}
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent>
+                    <DropdownMenuContent ref={dropdownMenuRef}>
                       {typeOptions.map((type, index) => {
                         const capType = type;
 
                         return (
-                          <DropdownMenuItem key={index}>
+                          <DropdownMenuItem
+                            key={index}
+                            onClick={() => {
+                              setTypeFilterValue(capType);
+                              setItemSelectedId(index);
+                            }}
+                          >
                             <Button
-                              onClick={() => {
-                                setTypeFilterValue(capType);
-                              }}
                               type="button"
                               color="minimal"
-                              className="w-full font-normal"
+                              className={classNames(
+                                "w-full font-normal",
+                                itemSelectedId === index
+                                  ? "!bg-neutral-900 !text-white hover:!bg-neutral-900 dark:!bg-dark-accent-100 dark:!text-dark-neutral dark:hover:!bg-dark-accent-100"
+                                  : "dark:hover:!bg-dark-400"
+                              )}
                             >
                               {capitalize(capType)}
                             </Button>
@@ -130,12 +143,13 @@ export default function BalanceHistory() {
                 </div>
                 <div
                   className={classNames(
-                    "mb-16 overflow-hidden rounded-md border border-transparent bg-white",
-                    balanceHistory[year - 1] && "!border-gray-200"
+                    "mb-16 overflow-hidden rounded-md border border-transparent bg-white dark:bg-dark-250",
+                    balanceHistory[year - 1] &&
+                      "!border-gray-200 dark:!border-dark-300"
                   )}
                 >
                   <ul
-                    className="divide-y divide-neutral-200"
+                    className="divide-y divide-neutral-200 dark:divide-dark-300"
                     data-testid="schedules"
                     ref={ulAnimationParentRef}
                   >

@@ -26,9 +26,11 @@ const Switch = (
     >
       <PrimitiveSwitch.Root
         className={classNames(
-          props.checked ? "bg-gray-900" : "bg-gray-200",
+          props.checked
+            ? "bg-gray-900 dark:bg-dark-accent-200"
+            : "bg-gray-200 dark:bg-dark-400",
           primitiveProps.disabled ? "cursor-not-allowed" : "hover:bg-gray-300",
-          "h-5 w-[34px] rounded-full shadow-none focus:ring-brand-800",
+          "h-5 w-[34px] rounded-full shadow-none",
           props.className
         )}
         {...primitiveProps}
@@ -39,7 +41,7 @@ const Switch = (
             "block h-[14px] w-[14px] rounded-full bg-white",
             "translate-x-[4px] transition will-change-transform",
             "[&[data-state='checked']]:translate-x-[17px]",
-            props.checked && "shadow-inner",
+            props.checked ? "shadow-inner" : "dark:bg-dark-100",
             props.thumbProps?.className
           )}
         />

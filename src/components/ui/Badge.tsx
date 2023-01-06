@@ -7,10 +7,10 @@ export const badgeClassNameByVariant = {
   warning: "bg-orange-100 text-orange-800",
   orange: "bg-orange-100 text-orange-800",
   success: "bg-green-100 text-green-800",
-  green: "bg-green-100 text-green-800",
+  green: "bg-green-100 text-green-800 dark:text-white dark:bg-green-700",
   gray: "bg-gray-100 text-gray-800 dark:bg-transparent dark:text-darkgray-800",
   blue: "bg-blue-100 text-blue-800",
-  red: "bg-red-100 text-red-800",
+  red: "bg-red-100 text-red-800 dark:text-white dark:bg-red-700",
   error: "bg-red-100 text-red-800",
 };
 

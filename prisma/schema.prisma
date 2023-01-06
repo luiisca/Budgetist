@@ -1,15 +1,15 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+generator client {
+  provider = "prisma-client-js"
 }
 
-generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["interactiveTransactions"]
+datasource db {
+  provider = "mysql"
+  url = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SWADOW_URL")
+  relationMode = "prisma"
 }
 
 generator zod {
@@ -54,7 +54,7 @@ model User {
   name               String?
   email              String           @unique
   emailVerified      DateTime?
-  avatar             String?
+  avatar             String? @db.Text
   identityProvider   IdentityProvider @default(GOOGLE)
   identityProviderId String?
   completedOnboarding Boolean @default(false)
@@ -116,7 +116,7 @@ model Period {
   from   Int
   amount Int
 
-  salary   Salary @relation(fields: [salaryId], references: [id])
+  salary   Salary @relation(fields: [salaryId], references: [id], onDelete: Cascade)
   taxPercent Int @default(30)
   salaryId Int
 }

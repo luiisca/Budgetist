@@ -59,11 +59,12 @@ import Switch from "components/ui/core/Switch";
 import { Dialog, DialogContent, DialogTrigger } from "components/ui/Dialog";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { BalanceContext } from "pages/simulation";
+import { useSimData } from "./hooks";
 
 const SkeletonLoader = () => {
   return (
     <SkeletonContainer>
-      <div className="mt-6 mb-8 space-y-6 divide-y">
+      <div className="mt-6 mb-8 space-y-6">
         <SkeletonText className="h-8 w-full" />
         <div className="flex space-x-3">
           <SkeletonText className="h-8 w-full flex-[1_1_80%]" />
@@ -238,31 +239,9 @@ const CategoryForm = ({
   category?: AppRouterTypes["simulation"]["categories"]["get"]["output"][0];
 }) => {
   const {
-    state: { years },
     userResult: { data: user, isLoading, isError, isSuccess, error },
-    categoriesResult: { data: categories },
-    salariesResult: { data: salaries },
-    dispatch: balanceDispatch,
-  } = useContext(BalanceContext);
-
-  useEffect(() => {
-    if (categories && salaries && user) {
-      balanceDispatch({
-        type: "TOTAL_BAL_LOADING",
-        loading: false,
-      });
-      balanceDispatch({
-        type: "SIM_RUN",
-        payload: {
-          categories,
-          salaries,
-          years: Number(years),
-          investPerc: user.investPerc,
-          indexReturn: user.indexReturn,
-        },
-      });
-    }
-  }, [categories, salaries, user, years, balanceDispatch]);
+    balanceDispatch,
+  } = useSimData();
 
   const [recordsDisabled, setRecordsDisabled] = useState<boolean>(false);
   const [deleteCategoryOpen, setDeleteCategoryOpen] = useState(false);

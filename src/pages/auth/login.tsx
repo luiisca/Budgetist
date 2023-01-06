@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { FaGoogle, FaGithub } from "react-icons/fa";
 
 import { Alert } from "components/ui/Alert";
-import { Button, Label } from "components/ui";
+import { Button, EmailField, Label } from "components/ui";
 
 import { ErrorCode } from "utils/auth";
 
@@ -59,7 +59,7 @@ export default function Login() {
 
   return (
     <>
-      <AuthContainer showLogo heading="Sign in to your account">
+      <AuthContainer showLogo heading="Log in to Budgetist">
         <>
           {oAuthError && (
             <Alert className="mt-4" severity="error" title={errorMessage} />
@@ -86,7 +86,7 @@ export default function Login() {
               color="secondary"
               StartIcon={FaGithub}
               className="flex w-full justify-center"
-              data-testid="facebook"
+              data-testid="github"
               onClick={async (e) => {
                 e.preventDefault();
                 await signIn("github");
@@ -101,10 +101,12 @@ export default function Login() {
             className="absolute inset-0 flex items-center"
             aria-hidden="true"
           >
-            <div className="w-full border-t border-gray-300" />
+            <div className="w-full border-t border-gray-300 dark:border-dark-350" />
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-white px-2 text-sm text-gray-500">or</span>
+            <span className="bg-white px-2 text-sm text-gray-500 dark:bg-transparent dark:text-transparent">
+              or
+            </span>
           </div>
         </div>
         <form
@@ -126,13 +128,11 @@ export default function Login() {
           data-testid="login-form"
         >
           <Label htmlFor="email">Magic Link</Label>
-          <input
-            id="email"
+          <EmailField
             {...form.register("email")}
             defaultValue={router.query.email || ""}
             placeholder="hello@email.com"
             required
-            className="mb-2 block h-9 w-full rounded-md border border-gray-300 py-2 px-3 text-sm placeholder:text-gray-400 focus:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-800 focus:ring-offset-1 hover:border-gray-400"
           />
           <div className="flex space-y-2">
             <Button

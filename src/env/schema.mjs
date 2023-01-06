@@ -17,6 +17,7 @@ export const serverSchema = z.object({
     process.env.VERCEL ? z.string() : z.string().url()
   ),
   NINJA_API_KEY: z.string(),
+  SEND_FEEDBACK_EMAIL: z.string().email(),
 });
 
 /**

@@ -183,7 +183,7 @@ export default function ImageUploader({
         <div className="mb-4 sm:flex sm:items-start">
           <div className="mt-3 text-center sm:mt-0 sm:text-left">
             <h3
-              className="font-cal text-lg leading-6 text-gray-900"
+              className="font-cal text-lg leading-6 text-gray-900 dark:text-dark-neutral"
               id="modal-title"
             >
               Upload {target}
@@ -193,9 +193,9 @@ export default function ImageUploader({
         <div className="mb-4">
           <div className="cropper mt-6 flex flex-col items-center justify-center p-8">
             {!result && (
-              <div className="flex h-20 max-h-20 w-20 items-center justify-start rounded-full bg-gray-50">
+              <div className="flex h-20 max-h-20 w-20 items-center justify-start rounded-full bg-gray-50 dark:bg-dark-350">
                 {!imageSrc && (
-                  <p className="w-full text-center text-sm text-white sm:text-xs">
+                  <p className="w-full text-center text-sm text-brand-500 dark:text-dark-neutral sm:text-xs">
                     No {target}
                   </p>
                 )}
@@ -215,7 +215,7 @@ export default function ImageUploader({
                 onCropComplete={setCroppedAreaPixels}
               />
             )}
-            <label className="mt-8 rounded-sm border border-gray-300 bg-white px-3 py-1 text-xs font-medium leading-4 text-gray-700 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:ring-offset-1 dark:border-gray-800 dark:bg-transparent dark:text-white dark:hover:bg-gray-900">
+            <label className="mt-8 rounded-sm border border-gray-200 bg-white px-3 py-1 text-xs font-medium leading-4 text-brand-900 focus-visible:border-gray-400 focus-visible:outline-none hover:bg-gray-100 hover:text-gray-900 dark:border-dark-400 dark:bg-dark-300 dark:text-dark-800 dark:shadow-darkTransparent dark:focus-visible:border-dark-400 dark:focus-visible:shadow-darkAccent dark:hover:border-dark-500 dark:hover:bg-dark-tertiary">
               <input
                 onInput={onInputFile}
                 type="file"

@@ -5,7 +5,7 @@ import { ComponentProps, forwardRef } from "react";
 export const Dropdown = DropdownMenuPrimitive.Root;
 
 type DropdownMenuTriggerProps = ComponentProps<
-  typeof DropdownMenuPrimitive["Trigger"]
+  (typeof DropdownMenuPrimitive)["Trigger"]
 >;
 export const DropdownMenuTrigger = forwardRef<
   HTMLButtonElement,
@@ -16,7 +16,7 @@ export const DropdownMenuTrigger = forwardRef<
     className={
       props.asChild
         ? className // are these applied to its child? since trigger component dissapears or merges with its child
-        : `inline-flex items-center rounded-sm bg-transparent px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-1 group-hover:text-black ${className}`
+        : `inline-flex items-center rounded-sm bg-transparent px-3 py-2 text-sm font-medium text-gray-700 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-1 group-hover:text-black hover:bg-gray-50 ${className}`
     }
     ref={forwardedRef}
   />
@@ -28,7 +28,7 @@ export const DropdownMenuTriggerItem = DropdownMenuPrimitive.Trigger;
 export const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
 
 type DropdownMenuContentProps = ComponentProps<
-  typeof DropdownMenuPrimitive["Content"]
+  (typeof DropdownMenuPrimitive)["Content"]
 >;
 export const DropdownMenuContent = forwardRef<
   HTMLDivElement,
@@ -37,7 +37,10 @@ export const DropdownMenuContent = forwardRef<
   <DropdownMenuPrimitive.Content
     {...props}
     className={classNames(
-      `slideInTop w-50 relative z-10 mt-1 -ml-0 origin-top-right rounded-sm bg-white text-sm shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none`,
+      "slideInTop w-50 relative z-10 mt-1 -ml-0 origin-top-right rounded-lg py-1 text-sm shadow-lg",
+      "bg-white ring-1 ring-black ring-opacity-5 focus-visible:ring-1 focus-visible:ring-opacity-5 focus-visible:ring-offset-0",
+      "backdrop-blur-sm ",
+      "dark:bg-[#1d1e2b7f] dark:shadow-100 dark:ring-dark-400",
       props.className
     )}
     ref={forwardedRef}
@@ -47,21 +50,39 @@ export const DropdownMenuContent = forwardRef<
 ));
 DropdownMenuContent.displayName = "DropdownMenuContent";
 
-type DropdownMenuItemProps = ComponentProps<
-  typeof DropdownMenuPrimitive["CheckboxItem"]
+export type DropdownMenuItemProps = ComponentProps<
+  (typeof DropdownMenuPrimitive)["CheckboxItem"]
 >;
 export const DropdownMenuItem = forwardRef<
   HTMLDivElement,
   DropdownMenuItemProps
 >(({ className = "", ...props }, forwardedRef) => (
   <DropdownMenuPrimitive.Item
-    className={`text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 ${className}`}
+    className={classNames(
+      "mx-1 rounded-md text-sm text-gray-700",
+      "focus:borde-0 outline-none focus:bg-gray-100 focus:text-gray-900 focus:ring-transparent focus:ring-offset-transparent",
+      "dark:text-dark-800 dark:focus:bg-dark-400 ",
+      className
+    )}
     {...props}
     ref={forwardedRef}
   />
 ));
 DropdownMenuItem.displayName = "DropdownMenuItem";
 
-export const DropdownMenuSeparator = DropdownMenuPrimitive.Separator;
+type DropdownMenuSeparatorProps = ComponentProps<
+  (typeof DropdownMenuPrimitive)["Separator"]
+>;
+export const DropdownMenuSeparator = forwardRef<
+  HTMLDivElement,
+  DropdownMenuSeparatorProps
+>(({ className = "", ...props }, forwardedRef) => (
+  <DropdownMenuPrimitive.Separator
+    className={classNames("my-1 h-px bg-gray-200 dark:bg-dark-400", className)}
+    {...props}
+    ref={forwardedRef}
+  />
+));
+DropdownMenuSeparator.displayName = "DropdownMenuSeparator";
 
 export default Dropdown;

@@ -1,187 +1,51 @@
-const MIN_YEARS = 1;
-const MAX_YEARS = 200;
-const INDEX_ANNUAL_RETURN = 7;
+import { DEFAULT_FREQUENCY, MAX_YEARS, MIN_YEARS } from "./constants";
+import { AppRouterTypes } from "./trpc";
 
-type User = {
-  country: string | "other";
-  inflation: number;
-  currency: string;
-  investPerc: number;
-  indexReturn: number;
-};
-
-type Salary = {
-  title: string;
-  currency: string;
-  amount: number;
-  variance:
-    | Array<{
-        from: number;
-        amount: number;
-      }>
-    | false;
-};
-
-type Record = {
+export type Salary = {
   title: string;
   amount: number;
-  type: "income" | "outcome";
-
-  frequency: number;
-  inflation: number;
-  currency: string;
+  taxType: string;
+  taxPercent: number;
+  variance: {
+    from: number;
+    amount: number;
+    taxPercent: number;
+  }[];
 };
 
-type Category = {
-  title: string;
-  budget: number;
-  currency: string | "perRec";
-  type: "income" | "outcome" | "perRec";
-  inflType: false | "perCat" | "perRec";
-  country: string;
-  inflVal: number;
-  color: string;
+export type CategoriesType =
+  AppRouterTypes["simulation"]["categories"]["get"]["output"];
+export type CatBalanceType = {
   icon: string;
-
-  records: Array<Record> | null;
+  title: string;
+  type: string;
+  inflation: number;
   frequency: number;
+  spent: number;
+  records:
+    | Array<{
+        title: string | null;
+        spent: number;
+        type: string;
+        inflation: number;
+        frequency: number;
+      }>
+    | [];
+};
+type SalBalanceType = {
+  title: string;
+  type: "salary";
+  amountBefTax: number;
+  amountAftTax: number;
+  taxPercent: number;
 };
 
-const user: User = {
-  country: "usa",
-  inflation: 8,
-  currency: "USD",
-  investPerc: 75,
-  indexReturn: INDEX_ANNUAL_RETURN,
+export type YearBalanceType = {
+  income: number;
+  outcome: number;
+  categoriesBalance: CatBalanceType[];
+  salariesBalance: SalBalanceType[];
 };
-
-const salary: Salary = {
-  title: "Salary",
-  currency: user.currency,
-  amount: 2000,
-  variance: [
-    {
-      from: 1,
-      amount: 2000,
-    },
-    {
-      from: 3,
-      amount: 4000,
-    },
-    {
-      from: 6,
-      amount: 10000,
-    },
-  ],
-};
-
-export const categories: Array<Category> = [
-  {
-    title: "Teaching",
-    budget: 400,
-    currency: user.currency,
-    type: "income",
-    inflType: false,
-    country: user.country,
-    inflVal: user.inflation,
-    color: "green",
-    icon: "pen",
-    records: [
-      {
-        title: "spanish",
-        type: "income",
-        amount: 300,
-        frequency: 1,
-        inflation: 0,
-        currency: user.currency,
-      },
-      {
-        title: "english",
-        type: "income",
-        amount: 300,
-        frequency: 2,
-        inflation: 0,
-        currency: user.currency,
-      },
-      {
-        title: "math",
-        type: "income",
-        amount: 30,
-        frequency: 1,
-        inflation: 0,
-        currency: user.currency,
-      },
-      {
-        title: "coding",
-        type: "income",
-        amount: 100,
-        frequency: 2,
-        inflation: 0,
-        currency: user.currency,
-      },
-    ],
-    frequency: 12,
-  },
-  {
-    title: "Housing",
-    budget: 1400,
-    currency: user.currency,
-    type: "perRec",
-    inflType: "perCat",
-    country: user.country,
-    inflVal: 5,
-    color: "pink",
-    icon: "house",
-    records: [
-      {
-        title: "window",
-        type: "outcome",
-        amount: 300,
-        frequency: 4,
-        inflation: 4,
-        currency: user.currency,
-      },
-      {
-        title: "door",
-        type: "outcome",
-        amount: 30,
-        frequency: 1,
-        inflation: user.inflation,
-        currency: "PEN",
-      },
-      {
-        title: "mouse",
-        type: "outcome",
-        amount: 100,
-        frequency: 1,
-        inflation: 4,
-        currency: user.currency,
-      },
-      {
-        title: "rental",
-        type: "income",
-        amount: 200,
-        frequency: 6,
-        inflation: 8,
-        currency: user.currency,
-      },
-    ],
-    frequency: 12,
-  },
-  {
-    title: "Health",
-    budget: 400,
-    currency: user.currency,
-    type: "outcome",
-    inflType: "perCat",
-    country: "pe",
-    inflVal: 4,
-    color: "red",
-    icon: "medkit",
-    records: null,
-    frequency: 8,
-  },
-];
 
 const convertToUSD = (currency: string, amount: number) => {
   if (currency !== "USD") {
@@ -193,165 +57,280 @@ const convertToUSD = (currency: string, amount: number) => {
 };
 
 const getRate = (x: number) => x / 100;
-const getFrequency = (freq: number) => (freq < 1 ? 1 : freq > 12 ? 12 : freq);
+const getFrequency = (freq: number) => {
+  if (!freq) return DEFAULT_FREQUENCY;
+  return freq < 1 ? 1 : freq > DEFAULT_FREQUENCY ? DEFAULT_FREQUENCY : freq;
+};
 
-const getSalaryByYear = (year: number) => {
-  let salaryByYear = salary.amount;
+const getSalaryAfterTax = (amount: number, taxPercent: number) =>
+  amount * (1 - getRate(taxPercent));
+const getSalaryDataByYear = (year: number, salary: Salary) => {
+  let yearlyAmount = salary.amount;
+  let yearlyTaxes = salary.taxPercent;
   const v = salary.variance;
 
   if (v) {
     for (let period = 0; period < v.length; period++) {
-      if (year >= v[period].from && year < v[period + 1].from) {
-        // console.log("THIS YEAR", year, v[period]);
-        salaryByYear = v[period].amount;
+      const betweenCrrPeriod =
+        year >= v[period].from && year < v[period + 1].from;
+      const lastV = v[v.length - 1];
+      const latestPeriod = year >= lastV.from;
 
-        return salaryByYear;
+      if (betweenCrrPeriod) {
+        yearlyAmount = v[period].amount;
+        yearlyTaxes = v[period].taxPercent;
+
+        return {
+          amount: yearlyAmount,
+          taxPercent: yearlyTaxes,
+        };
       }
 
-      const lastV = v[v.length - 1];
-      if (year >= lastV.from) {
-        salaryByYear = lastV.amount;
+      if (latestPeriod) {
+        yearlyAmount = lastV.amount;
+        yearlyTaxes = lastV.taxPercent;
 
-        return salaryByYear;
+        return {
+          amount: yearlyAmount,
+          taxPercent: yearlyTaxes,
+        };
       }
     }
   }
 
-  return salaryByYear;
+  return {
+    amount: yearlyAmount,
+    taxPercent: yearlyTaxes,
+  };
 };
 
-export const getTotalBalance = (years: number) => {
-  years = years <= 0 ? MIN_YEARS : years > MAX_YEARS ? MAX_YEARS : years;
+export const getTotalBalance = ({
+  categories,
+  salaries,
+  years,
+  investPerc,
+  indexReturn,
+}: {
+  categories: CategoriesType;
+  salaries: Salary[];
+  years: number;
+  investPerc: number;
+  indexReturn: number;
+}): {
+  total: number;
+  balanceHistory: YearBalanceType[];
+} => {
+  years =
+    years && years <= 0 ? MIN_YEARS : years > MAX_YEARS ? MAX_YEARS : years;
 
   let total = 0;
   let yearExpenses = 0;
-  // console.log("INSIDE GET_TOTAL_BALANCE");
 
-  // fill accArr
-  const accExpensArr: Array<{
-    spent: number;
-    records: Array<{ spent: number }> | [];
-  }> = categories.map((cat: Category) => ({
-    spent: cat.budget,
-    records:
-      cat.records === null
-        ? []
-        : cat.records.map((record: Record) => ({ spent: record.amount })),
-  }));
+  const balanceHistory: YearBalanceType[] = new Array(years)
+    .fill(null)
+    .map((_, i) => ({
+      income: 0,
+      outcome: 0,
+      categoriesBalance: categories.map((cat) => ({
+        icon: cat.icon,
+        title: cat.title,
+        type: cat.type,
+        inflation: cat.inflType === "income" ? 0 : cat.inflVal,
+        frequency: cat.frequency,
+        spent: cat.budget,
+        records:
+          cat.records === null
+            ? []
+            : cat.records.map((record) => ({
+                title: record.title,
+                type: record.type,
+                inflation: record.type === "income" ? 0 : record.inflation,
+                frequency:
+                  cat.freqType === "perCat" ? cat.frequency : record.frequency,
+                spent: record.amount,
+              })),
+      })),
+      salariesBalance: salaries.map((salary) => {
+        const crrYearSalaryData = getSalaryDataByYear(i + 1, salary);
+
+        const amount = salary.variance
+          ? crrYearSalaryData.amount
+          : salary.amount;
+        const taxPercent =
+          salary.taxType == "perCat"
+            ? salary.taxPercent
+            : crrYearSalaryData.taxPercent;
+
+        return {
+          title: salary.title,
+          type: "salary",
+          amountBefTax: amount,
+          amountAftTax: getSalaryAfterTax(amount, taxPercent),
+          taxPercent,
+        };
+      }),
+    }));
 
   for (let year = 1; year <= years; year++) {
-    // 1. const allCatExpenses = iterate over Categories
-    // Calculate total expenses of all categories over 1 year and store those values in accArr for next years calculations
-    console.log(`YEAR ${year}`);
     yearExpenses = categories.reduce(
-      (prev: number, crr: Category, i: number) => {
-        if (crr.records === null) {
-          // console.log(`NO RECORDS ${crr.title}`);
+      (prevCat: number, crrCat, crrCatI: number) => {
+        const INCOME_MOD = -1;
+        const OUTCOME_MOD = 1;
 
-          crr.budget = convertToUSD(crr.currency, crr.budget);
+        if (!crrCat.records || crrCat.records?.length === 0) {
+          // helpers
+          const perCatIncome = crrCat.type === "income";
+          const perCatOutcome = crrCat.type === "outcome";
 
-          if (!crr.inflType || crr.type === "income") {
-            const crrYearSpent =
-              crr.budget *
-              getFrequency(crr.frequency) *
-              (crr.type === "income" ? -1 : 1);
-            // console.log(`Current year spent for ${crr.title}: ${crrYearSpent}`);
+          const inflationDisabled =
+            perCatIncome || (perCatOutcome && crrCat.inflType === "");
+          const inflationEnabled = perCatOutcome && crrCat.inflType !== "";
 
-            return prev + crrYearSpent;
+          crrCat.budget = convertToUSD(crrCat.currency, crrCat.budget);
+          const frequency =
+            crrCat.freqType === "perCat" ? crrCat.frequency : DEFAULT_FREQUENCY;
+          //
+
+          if (inflationDisabled) {
+            const crrYearCatExp = crrCat.budget * getFrequency(frequency);
+
+            // save current year expense
+            balanceHistory[year - 1].categoriesBalance[crrCatI].spent =
+              crrYearCatExp;
+            // accumulate current year expense
+            balanceHistory[year - 1][perCatIncome ? "income" : "outcome"] +=
+              crrYearCatExp;
+
+            return (
+              prevCat +
+              crrYearCatExp * (perCatIncome ? INCOME_MOD : OUTCOME_MOD)
+            );
           }
-          if (crr.type === "outcome") {
-            const crrYearSpent =
-              accExpensArr[i].spent *
-              (year === 1 ? getFrequency(crr.frequency) : 1) *
-              (1 + getRate(crr.inflVal));
-            // console.log("PREVIOUS SPENT", accExpensArr[i].spent);
-            // console.log(
-            //   "FRECUENCY",
-            //   year === 1 ? getFrequency(crr.frequency) : 1
-            // );
-            accExpensArr[i].spent = crrYearSpent;
-            // console.log(`Current year spent for ${crr.title}: ${crrYearSpent}`);
 
-            return prev + crrYearSpent;
+          if (inflationEnabled) {
+            const crrCatAccExp =
+              balanceHistory[year === 1 ? 0 : year - 2].categoriesBalance[
+                crrCatI
+              ].spent;
+            // after the first iteration we've got how much they make on a year so no need to multiply by freq again
+            const freqMod = year === 1 ? getFrequency(frequency) : 1;
+            const P = crrCatAccExp * freqMod;
+            const i = getRate(crrCat.inflVal);
+
+            const crrYearCatExp = P * (1 + i);
+
+            // save current year expense
+            balanceHistory[year - 1].categoriesBalance[crrCatI].spent =
+              crrYearCatExp;
+            // accumulate current year expense
+            balanceHistory[year - 1][perCatIncome ? "income" : "outcome"] +=
+              crrYearCatExp;
+
+            return prevCat + crrYearCatExp;
           }
         } else {
-          // console.log(`RECORDS ${crr.title}`);
-          const yearCatExpenses = crr.records.reduce(
-            (prevRec: number, crrRec: Record, crrRecI: number) => {
-              // we wanna make sure all records are coverted to USD
-              crrRec.amount = convertToUSD(crrRec.currency, crrRec.amount);
-              if (
-                !crr.inflType ||
-                (crr.type === "perRec" && crrRec.type === "income")
-              ) {
-                const typeMod =
-                  crr.type === "income" || crr.type === "perRec" ? -1 : 1;
-                const crrYearSpent =
-                  crrRec.amount * getFrequency(crrRec.frequency) * typeMod;
-                // console.log(
-                //   `Current year spent for ${crrRec.title}: ${crrYearSpent}`
-                // );
+          const crrYearCatExp = crrCat.records.reduce(
+            (prevRec: number, crrRec, crrRecI: number) => {
+              crrRec.amount = convertToUSD(
+                crrCat.currency === "perRec"
+                  ? crrRec.currency
+                  : crrCat.currency,
+                crrRec.amount
+              );
 
-                return prevRec + crrYearSpent;
-              }
-              if (crrRec.type === "outcome") {
-                const crrYearSpent =
-                  accExpensArr[i].records[crrRecI].spent *
-                  (year === 1 ? getFrequency(crrRec.frequency) : 1) *
-                  (1 +
-                    (crr.inflType === "perRec"
-                      ? getRate(crrRec.inflation)
-                      : getRate(crr.inflVal)));
-                // console.log(
-                //   `Current year spent for ${crrRec.title}: ${crrYearSpent}`
-                // );
-                // console.log(
-                //   "PREVIOUS SPENT",
-                //   accExpensArr[i].records[crrRecI].spent
-                // );
-                // console.log(
-                //   "FREQUENCY",
-                //   year === 1 ? getFrequency(crrRec.frequency) : 1
-                // );
-                // console.log(
-                //   "RATE",
-                //   1 + crr.inflType === "perRec"
-                //     ? getRate(crrRec.inflation)
-                //     : getRate(crr.inflVal)
-                // );
-                accExpensArr[i].records[crrRecI].spent = crrYearSpent;
+              // helpers
+              const perCatIncome = crrCat.type === "income";
+              const perCatOutcome = crrCat.type === "outcome";
+              const perRecIncome = crrRec.type === "income";
+              const perRecOutcome = crrRec.type === "outcome";
 
-                return prevRec + crrYearSpent;
+              const inflationDisabled =
+                crrCat.inflType === "" || perRecIncome || !crrRec.inflType;
+              const inflationEnabled =
+                (perCatIncome && perRecOutcome) ||
+                (perCatOutcome && crrCat.inflType === "perCat") ||
+                (perCatOutcome &&
+                  crrCat.inflType === "perRec" &&
+                  perRecOutcome);
+
+              const frequency =
+                crrCat.freqType === "perRec"
+                  ? crrRec.frequency
+                  : crrCat.frequency;
+              //
+
+              if (inflationDisabled) {
+                const crrYearRecExp = crrRec.amount * getFrequency(frequency);
+
+                // save current year record expense
+                balanceHistory[year - 1].categoriesBalance[crrCatI].records[
+                  crrRecI
+                ].spent = crrYearRecExp;
+                // accumulate current year record expense
+                balanceHistory[year - 1][perRecIncome ? "income" : "outcome"] +=
+                  crrYearRecExp;
+
+                return (
+                  prevRec +
+                  crrYearRecExp * (perRecIncome ? INCOME_MOD : OUTCOME_MOD)
+                );
               }
+              if (inflationEnabled) {
+                const crrAccRecExp =
+                  balanceHistory[year === 1 ? 0 : year - 2].categoriesBalance[
+                    crrCatI
+                  ].records[crrRecI].spent;
+                // after first year we've got how much they make on a year so no need to multiply by freq again
+                const freqMod = year === 1 ? getFrequency(frequency) : 1;
+                const P = crrAccRecExp * freqMod;
+                const i =
+                  crrCat.inflType === "perRec"
+                    ? getRate(crrRec.inflation)
+                    : getRate(crrCat.inflVal);
+
+                const crrYearRecExp = P * (1 + i);
+
+                // save current year record expense
+                balanceHistory[year - 1].categoriesBalance[crrCatI].records[
+                  crrRecI
+                ].spent = crrYearRecExp;
+                // accumulate current year record expense
+                balanceHistory[year - 1][perRecIncome ? "income" : "outcome"] +=
+                  crrYearRecExp;
+
+                return prevRec + crrYearRecExp;
+              }
+
               return prevRec + 0;
             },
             0
           );
 
-          // console.log(`${crr.title} expenses: `, yearCatExpenses);
-
-          return prev + yearCatExpenses;
+          return prevCat + crrYearCatExp;
         }
-        return prev + 0;
+
+        return prevCat;
       },
       0
     );
-    console.log(`Expenses for year ${year}`, yearExpenses);
 
-    const yearSalary =
-      (salary.variance ? getSalaryByYear(year) : salary.amount) * 12;
-    console.log(`SALARY AT YEAR ${year}: ${yearSalary}`);
+    const yearSalary = balanceHistory[year - 1].salariesBalance.reduce(
+      (prevSal: number, crrSal) => prevSal + crrSal.amountAftTax,
+      0
+    );
+    balanceHistory[year - 1].income += yearSalary;
 
     const yearBalance = yearSalary - yearExpenses;
-    console.log(`YEAR BALANCE AT YEAR ${year}: ${yearBalance}`);
 
-    const moneyReadyToInvest = yearBalance * getRate(user.investPerc);
-    console.log("MONEY READY TO INVEST: ", moneyReadyToInvest);
+    const moneyReadyToInvest = yearBalance * getRate(investPerc);
 
-    console.log("PREVIOUS TOTAL", total);
-    total = (total + moneyReadyToInvest) * (1 + getRate(user.indexReturn));
-    console.log("NEW TOTAL", total);
+    const P = total + moneyReadyToInvest;
+    const i = getRate(indexReturn);
+    total = P * (1 + i);
   }
 
-  return total;
+  return {
+    total,
+    balanceHistory,
+  };
 };

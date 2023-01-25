@@ -72,14 +72,14 @@ export default function Verify() {
   useSendFirstVerificationLogin();
 
   return (
-    <div className="bg-black bg-opacity-90 text-white backdrop-blur-md backdrop-grayscale backdrop-filter">
+    <div className="bg-black bg-opacity-90 text-white backdrop-blur-md backdrop-grayscale backdrop-filter dark:bg-dark-primary dark:text-dark-neutral">
       <Head>
         <title>Verify your email | Budgetist</title>
       </Head>
       <div className="flex min-h-screen flex-col items-center justify-center px-6">
-        <div className="m-10 flex max-w-2xl flex-col items-start border border-white p-12 text-left">
-          <div className="rounded-full border border-white p-3">
-            <EnvelopeOpenIcon className="h-12 w-12 flex-shrink-0 p-0.5 font-extralight text-white" />
+        <div className="m-10 flex max-w-2xl flex-col items-start border border-white p-12 text-left dark:rounded-md dark:border-dark-350 dark:bg-dark-150">
+          <div className="rounded-full border border-white p-3 dark:border-dark-neutral">
+            <EnvelopeOpenIcon className="h-12 w-12 flex-shrink-0 p-0.5 font-extralight text-white dark:text-dark-neutral" />
           </div>
           <h3 className="my-6 font-cal text-3xl font-normal">
             Check your inbox
@@ -88,7 +88,7 @@ export default function Verify() {
             We have sent an email to <b>{email}</b> with a link to activate your
             account.
           </p>
-          <p className="mt-6 text-gray-400">
+          <p className="mt-6 text-gray-400 dark:text-dark-600">
             Don&apos;t see an email? Click the button below to send another
             email.
           </p>
@@ -96,6 +96,7 @@ export default function Verify() {
           <div className="mt-6 flex space-x-5 text-center">
             <Button
               color="secondary"
+              className="focus-visible:border-black"
               disabled={secondsLeft > 0}
               onClick={async (e) => {
                 e.preventDefault();
@@ -119,7 +120,11 @@ export default function Verify() {
                 ? `Resend in ${secondsLeft} seconds`
                 : "Send another email"}
             </Button>
-            <Button color="primary" href={`${WEBAPP_URL}/auth/login`}>
+            <Button
+              color="primary"
+              href={`${WEBAPP_URL}/auth/login`}
+              className="focus-visible:ring-brand-50 focus-visible:ring-offset-[#272727]"
+            >
               Login using another method
             </Button>
           </div>

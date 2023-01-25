@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Fields } from "components/getting-started/steps-views/components";
+import { SimSettingsFields } from "components/getting-started/steps-views/components";
 import {
   Button,
   Form,
@@ -14,6 +14,7 @@ import { profileData } from "prisma/*";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
+  DEFAULT_CURRENCY,
   DEFAULT_INDEX_RETURN,
   DEFAULT_INFLATION,
   DEFAULT_INVEST_PERC,
@@ -29,7 +30,7 @@ import { trpc } from "utils/trpc";
 const SkeletonLoader = () => {
   return (
     <SkeletonContainer>
-      <div className="mt-6 mb-8 space-y-6 divide-y">
+      <div className="mt-6 mb-8 space-y-6">
         <SkeletonText className="h-8 w-full" />
         <SkeletonText className="h-8 w-full" />
         <SkeletonText className="h-8 w-full" />
@@ -84,7 +85,7 @@ const ProfileView = () => {
             label: getCountryLabel(user.country),
           },
           inflation: user.inflation,
-          currency: getCurrency(user.currency),
+          currency: getCurrency(user.currency, user.country),
           investPerc: user.investPerc,
           indexReturn: user.indexReturn,
         },
@@ -108,8 +109,8 @@ const ProfileView = () => {
             investPerc: Number(values.investPerc) || DEFAULT_INVEST_PERC,
             inflation: Number(values.inflation) || DEFAULT_INFLATION,
             indexReturn: Number(values.indexReturn) || DEFAULT_INDEX_RETURN,
-            country: values.country?.value,
-            currency: values.currency?.value,
+            country: values.country?.value || user.country,
+            currency: values.currency?.value || DEFAULT_CURRENCY,
           });
         }}
         className="space-y-6"
@@ -119,7 +120,7 @@ const ProfileView = () => {
           description="Manage configs for your Budgetist simulation"
         />
 
-        <Fields form={formMethods} user={user} />
+        <SimSettingsFields form={formMethods} />
 
         <Button
           disabled={isDisabled}

@@ -13,6 +13,7 @@ export default function showToast(
           <div
             className={classNames(
               "data-testid-toast-success mb-2 flex h-9 items-center space-x-2 rounded-md bg-brand-500 p-3 text-sm font-semibold text-white shadow-md",
+              "dark:bg-dark-accent-100 dark:text-dark-neutral",
               t.visible && "animate-fade-in-up"
             )}
           >
@@ -29,6 +30,7 @@ export default function showToast(
           <div
             className={classNames(
               "mb-2 flex h-9 animate-fade-in-up items-center space-x-2 rounded-md bg-red-100 p-3 text-sm font-semibold text-red-900 shadow-md",
+              "dark:bg-dark-destructive-100 dark:text-white",
               t.visible && "animate-fade-in-up"
             )}
           >
@@ -45,6 +47,7 @@ export default function showToast(
           <div
             className={classNames(
               "mb-2 flex h-9 animate-fade-in-up items-center space-x-2 rounded-md bg-brand-500 p-3 text-sm font-semibold text-white shadow-md",
+              "dark:bg-dark-accent-100 dark:text-dark-neutral",
               t.visible && "animate-fade-in-up"
             )}
           >

@@ -7,6 +7,8 @@ export const _SalaryModel = z.object({
   title: z.string(),
   currency: z.string(),
   amount: z.number().int(),
+  taxType: z.string(),
+  taxPercent: z.number().int(),
   userId: z.number().int(),
 })
 

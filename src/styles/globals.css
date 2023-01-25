@@ -10,97 +10,9 @@ body  {
 :root {
   --brand-color: #292929;
   --brand-text-color: #ffffff;
-  --brand-color-dark-mode: #fafafa;
-  --brand-text-color-dark-mode: #292929;
+  --brand-color-dark-mode: #191a23;
+  --brand-text-color-dark-mode: #eeeffc;
 }
-
-/*
-  Desktop App specific CSS
-    https://docs.todesktop.com/
-*/
-
-/* disable user selection on buttons, links and images on desktop app */
-html.todesktop button,
-html.todesktop a,
-html.todesktop img,
-html.todesktop header {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-  cursor: default !important;
-}
-
-html.todesktop,
-html.todesktop div {
-  cursor: default !important;
-}
-
-/* make header draggable on desktop app */
-html.todesktop header {
-  -webkit-app-region: drag;
-}
-html.todesktop header button {
-  -webkit-app-region: no-drag;
-}
-
-html.todesktop .logo {
-  display: none;
-}
-
-.desktop-only {
-  display: none;
-}
-
-html.todesktop .desktop-only {
-  display: block;
-}
-
-html.todesktop .desktop-hidden {
-  display: none;
-}
-
-html.todesktop header {
-  margin-top: -14px;
-}
-
-html.todesktop header nav {
-  margin-top: 8px;
-}
-
-html.todesktop aside {
-  margin: 0px -6px;
-}
-
-/* TODO: add "native" MacOS colors
-   requires darkmode for MacOS first
-
-html.todesktop .desktop-transparent{
-  background: transparent !important;
-  border: none !important;
-}
-
-html.todesktop aside a {
-  height: 28px;
-  padding: 0px 8px;
-  font-size: 12px;
-  color: #383438 !important
-}
-
-html.todesktop nav a:hover{
-  background-color: inherit !important
-}
-
-html.todesktop nav a[aria-current="page"]{
-  background: rgba(0, 0, 0, 0.1) !important;
-}
-
-html.todesktop nav a svg{
-  color: #0272F7 !important
-}
-*/
 
 /*
   Adds Utility to hide scrollbar to tailwind
@@ -121,6 +33,9 @@ html.todesktop nav a svg{
   }
 }
 
+:focus-visible {
+  @apply outline-none ring-2 ring-neutral-800 ring-offset-2 transition-shadow dark:ring-dark-accent-200 dark:ring-offset-dark-primary;
+}
 /*
  * Override the default tailwindcss-forms styling (default is: 'colors.blue.600')
  * @see: https://github.com/tailwindlabs/tailwindcss-forms/issues/14#issuecomment-1005376006
@@ -145,9 +60,31 @@ select:focus {
   --tw-ring-color: var(--brand-color);
   border-color: var(--brand-color);
 }
+@media (prefers-color-scheme: "dark") {
+  [type="text"]:focus,
+  [type="email"]:focus,
+  [type="url"]:focus,
+  [type="password"]:focus,
+  [type="number"]:focus,
+  [type="date"]:focus,
+  [type="datetime-local"]:focus,
+  [type="month"]:focus,
+  [type="search"]:focus,
+  [type="tel"]:focus,
+  [type="checkbox"]:focus,
+  [type="radio"]:focus,
+  [type="time"]:focus,
+  [type="week"]:focus,
+  [multiple]:focus,
+  textarea:focus,
+  select:focus {
+    --tw-ring-color: var(--brand-color-dark-mode);
+    border-color: var(--brand-color-dark-mode);
+  }
+}
 
 button[role="switch"][data-state="checked"] {
-  @apply bg-gray-900;
+  @apply bg-gray-900 dark:bg-dark-accent-200;
 }
 /* TODO: avoid global specific css */
 /* button[role="switch"][data-state="checked"] span {
@@ -175,23 +112,24 @@ button[role="switch"][data-state="checked"] {
   }
 
   .slider > .slider-track {
-    @apply relative h-1 flex-grow rounded-md bg-neutral-400;
+    @apply relative h-1 flex-grow rounded-md bg-neutral-400 dark:bg-dark-800;
   }
 
   .slider .slider-range {
-    @apply absolute h-full rounded-full bg-neutral-700;
+    @apply absolute h-full rounded-full bg-neutral-700 dark:bg-dark-accent-200;
   }
 
   .slider .slider-thumb {
-    @apply block h-3 w-3 cursor-pointer rounded-full bg-neutral-700 transition-all;
+    @apply block h-3 w-3 cursor-pointer rounded-full bg-neutral-700 transition-all dark:bg-dark-accent-100;
   }
 
   .slider .slider-thumb:hover {
-    @apply bg-neutral-600;
+    @apply bg-neutral-600 dark:bg-dark-accent-300;
   }
 
   .slider .slider-thumb:focus {
     box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.2);
+    @apply transition-none transition-shadow;
   }
 }
 
@@ -251,7 +189,7 @@ button[role="switch"][data-state="checked"] {
 
 .react-multi-email [data-tag] {
   box-shadow: none !important;
-  @apply my-1 inline-flex items-center rounded-md border border-transparent bg-neutral-200 px-2 py-1 text-sm font-medium text-gray-900 hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 ltr:mr-2 rtl:ml-2 dark:bg-brand dark:text-white;
+  @apply my-1 inline-flex items-center rounded-md border border-transparent bg-neutral-200 px-2 py-1 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 hover:bg-neutral-100 ltr:mr-2 rtl:ml-2 dark:bg-brand dark:text-white;
 }
 
 .react-multi-email > span[data-placeholder] {
@@ -279,7 +217,7 @@ button[role="switch"][data-state="checked"] {
 }
 
 .react-multi-email [data-tag] {
-  @apply my-1 inline-flex items-center rounded-md border border-transparent bg-neutral-200 px-2 py-1 text-sm font-medium text-gray-900 hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 ltr:mr-2 rtl:ml-2 dark:bg-neutral-900 dark:text-white dark:hover:bg-neutral-700;
+  @apply my-1 inline-flex items-center rounded-md border border-transparent bg-neutral-200 px-2 py-1 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 hover:bg-neutral-100 ltr:mr-2 rtl:ml-2 dark:bg-neutral-900 dark:text-white dark:hover:bg-neutral-700;
 }
 
 .react-multi-email [data-tag] [data-tag-item] {
@@ -423,6 +361,11 @@ hr {
   border: none !important;
 }
 
+.react-date-picker__inputGroup__input {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 /* animations */
 .slideInBottom {
   animation-duration: 0.3s;
@@ -490,4 +433,12 @@ hr {
   .h-screen {
     height: -webkit-fill-available;
   }
+}
+
+::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+.bud-react-select__input-container {
+  @apply dark:text-dark-neutral;
 }

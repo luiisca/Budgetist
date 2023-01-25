@@ -16,7 +16,6 @@ import classNames from "classnames";
 import { getErrorFromUnknown } from "utils/errors";
 import showToast from "components/ui/core/notifications";
 import { FiInfo } from "react-icons/fi";
-import { ProfileDataInputType } from "prisma/*";
 
 type InputProps = JSX.IntrinsicElements["input"];
 
@@ -29,7 +28,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       {...props}
       ref={ref}
       className={classNames(
-        "mb-2 block h-9 w-full rounded-md border border-gray-300 py-2 px-3 text-sm placeholder:text-gray-400 focus:border-neutral-300 focus:outline-none focus:ring-2 focus:ring-neutral-800 focus:ring-offset-1 hover:border-gray-400",
+        "mb-2 block h-9 w-full rounded-md border border-gray-300 py-2 px-3 text-sm transition-all placeholder:text-gray-400 [&:not(:focus)]:hover:border-gray-400",
+        "focus:border-gray-400 focus:outline-none focus:ring-2 focus:ring-neutral-800 focus:ring-offset-2",
+        "dark:border-dark-400 dark:bg-dark-100 dark:text-dark-neutral dark:placeholder:text-dark-600 [&:not(:focus)]:dark:hover:border-dark-500",
+        "dark:focus:border-dark-accent-200 dark:focus:ring-0 dark:focus:ring-transparent dark:focus:ring-offset-0",
         props.className
       )}
     />
@@ -42,6 +44,7 @@ export function Label(props: JSX.IntrinsicElements["label"]) {
       {...props}
       className={classNames(
         "mb-2 block text-sm font-medium leading-none text-gray-700",
+        "dark:text-dark-800",
         props.className
       )}
     >
@@ -50,7 +53,7 @@ export function Label(props: JSX.IntrinsicElements["label"]) {
   );
 }
 
-function Errors<T extends FieldValues = FieldValues>(props: {
+export function Errors<T extends FieldValues = FieldValues>(props: {
   fieldName: string;
 }) {
   const methods = useFormContext() as ReturnType<typeof useFormContext> | null;
@@ -96,7 +99,7 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
     const id = useId();
     const name = props.name || "";
     const {
-      label = name,
+      label,
       labelProps,
       labelClassName,
       placeholder = "",
@@ -114,7 +117,7 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
 
     return (
       <div className={classNames(containerClassName)}>
-        {!!name && (
+        {!!label && (
           <Label
             htmlFor={id}
             {...labelProps}
@@ -130,16 +133,21 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
         {addOnLeading || addOnSuffix ? (
           <div
             className={classNames(
-              " mb-1 flex items-center rounded-md focus-within:outline-none focus-within:ring-2 focus-within:ring-neutral-800 focus-within:ring-offset-1",
+              "mb-1 flex items-center rounded-md ",
+              "border border-gray-300 hover:border-gray-400",
+              "focus-within:ring-2 focus-within:ring-neutral-800 focus-within:ring-offset-2",
+              "focus-within:border-gray-400 focus-within:outline-none ",
+              "dark:border-dark-400 dark:focus-within:border-dark-accent-200 dark:focus-within:ring-0 dark:focus-within:ring-offset-0 dark:hover:border-dark-accent-200 [&:not(:focus-within)]:dark:hover:border-dark-500",
               addOnSuffix && "group flex-row-reverse"
             )}
           >
             <div
               className={classNames(
-                "h-9 border border-gray-300",
+                "h-9 px-3",
                 addOnFilled && "bg-gray-100",
-                addOnLeading && "rounded-l-md border-r-0 px-3",
-                addOnSuffix && "rounded-r-md border-l-0 px-3"
+                addOnLeading && "rounded-l-md",
+                addOnSuffix && "rounded-r-md",
+                "dark:bg-dark-tertiary"
               )}
             >
               <div
@@ -159,9 +167,11 @@ const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
                 placeholder={placeholder}
                 className={classNames(
                   className,
-                  addOnLeading && "rounded-l-none",
-                  addOnSuffix && "rounded-r-none",
-                  "!my-0 !ring-0"
+                  addOnLeading &&
+                    "rounded-l-none border-l !border-l-gray-300 dark:!border-l-dark-400",
+                  addOnSuffix &&
+                    "rounded-r-none border-r !border-r-gray-300 dark:!border-r-dark-400",
+                  "!my-0 border-0 !ring-0 focus:ring-offset-0"
                 )}
                 {...passThrough}
                 ref={ref}
@@ -217,14 +227,14 @@ export const EmailField = forwardRef<HTMLInputElement, InputFieldProps>(
 
 export const transIntoInt = (value: string) => {
   const parsedVal = parseInt(value as string, 10);
-  return parsedVal === 0
+  return parsedVal <= 0
     ? 1
     : Number.isNaN(parsedVal)
     ? ""
     : parseInt(value as string, 10);
 };
 
-export const NumberInput = <T extends FieldValues = ProfileDataInputType>(
+export const NumberInput = <T extends FieldValues = FieldValues>(
   arg: Omit<ControllerProps<T>, "render"> & {
     label?: string;
     placeholder?: string;
@@ -232,6 +242,7 @@ export const NumberInput = <T extends FieldValues = ProfileDataInputType>(
     className?: string;
     loader?: ReactNode;
     onChange?: (...event: any[]) => number | string;
+    value?: (...event: any[]) => number | string;
   }
 ) => {
   return (
@@ -247,12 +258,13 @@ export const NumberInput = <T extends FieldValues = ProfileDataInputType>(
           placeholder={arg.placeholder}
           loader={arg.loader}
           onChange={(e) => {
-            field.onChange(
-              (arg?.onChange && arg?.onChange(e)) ||
-                transIntoInt(e.target.value)
-            );
+            if (arg?.onChange) {
+              field.onChange(arg.onChange(e));
+            } else {
+              field.onChange(transIntoInt(e.target.value));
+            }
           }}
-          value={transIntoInt(field.value)}
+          value={arg.value ? arg.value() : transIntoInt(field.value)}
         />
       )}
     />

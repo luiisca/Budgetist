@@ -35,32 +35,36 @@ export type ButtonBaseProps = {
 export type ButtonProps = ButtonBaseProps &
   (
     | (Omit<JSX.IntrinsicElements["a"], "href" | "onClick" | "ref"> & LinkProps)
-    | (Omit<JSX.IntrinsicElements["button"], "onClick" | "ref"> & { href?: never })
+    | (Omit<JSX.IntrinsicElements["button"], "onClick" | "ref"> & {
+        href?: never;
+      })
   );
 
 const variantClassName = {
   primary:
-    "border border-transparent text-white bg-brand-500 hover:bg-brand-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500",
-  secondary: "border border-gray-200 text-brand-900 bg-white hover:bg-gray-100",
+    "border border-transparent text-white bg-brand-500 hover:bg-brand-400 dark:focus-visible:ring-offset-dark-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-offset-2 focus-visible:ring-brand-500 dark:bg-dark-accent-100 dark:hover:bg-dark-accent-300 dark:focus-visible:ring-dark-accent-200 dark:shadow-darkTransparent",
+  secondary:
+    "border border-gray-200 text-brand-900 bg-white hover:bg-gray-100 focus-visible:outline-none focus-visible:border-gray-400 dark:bg-dark-300 dark:focus-visible:border-dark-400 dark:text-dark-800 dark:hover:bg-dark-tertiary dark:border-dark-400 dark:hover:border-dark-500 dark:shadow-darkTransparent dark:focus-visible:shadow-darkAccent",
   minimal:
-    "text-gray-700 bg-transparent hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:bg-gray-100 focus:ring-brand-900 dark:text-darkgray-900 hover:dark:text-gray-50",
+    "text-gray-700 bg-transparent hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:bg-gray-100 dark:text-dark-800 dark:hover:text-dark-neutral dark:hover:bg-[#686b8640] dark:focus-visible:bg-[#686b8640] dark:focus-visible:text-dark-neutral",
   minimalSecondary:
-    "text-gray-700 bg-transparent hover:bg-gray-100 dark:hover:bg-darkgray-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:bg-gray-100 focus:ring-brand-900 dark:text-darkgray-900 hover:dark:text-gray-50 border border-transparent hover:border-gray-300 dark:hover:border-darkgray-300",
+    "text-gray-700 bg-transparent hover:bg-gray-100 dark:hover:bg-darkgray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:bg-gray-100 focus-visible:ring-brand-900 dark:text-darkgray-900 hover:dark:text-gray-50 border border-transparent hover:border-gray-300 dark:hover:border-darkgray-300",
   destructive:
-    "text-gray-900 focus:text-red-700 bg-transparent hover:bg-red-100 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:bg-red-100 focus:ring-red-700",
+    "text-gray-900 focus-visible:text-red-700 bg-transparent hover:bg-red-100 hover:text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:bg-red-100 focus-visible:ring-red-700 dark:focus-visible:shadow-darkDestructive dark:bg-dark-destructive-100 dark:border-dark-destructive-100 dark:hover:bg-dark-destructive-200 dark:focus-visible:ring-0 dark:focus-visible:ring-offset-transparent dark:focus-visible:border dark:text-white",
 };
 const variantDisabledClassName = {
-  primary: "border border-transparent bg-brand-500 bg-opacity-20 text-white",
+  primary:
+    "border border-transparent bg-brand-500 bg-opacity-20 text-white dark:bg-dark-accent-400",
   secondary: "border border-gray-200 text-brand-900 bg-white opacity-30",
   minimal: "text-gray-400 bg-transparent",
   minimalSecondary: "text-gray-400 bg-transparent",
   destructive: "text-red-700 bg-transparent opacity-30",
 };
 
-export const Button = forwardRef<HTMLAnchorElement | HTMLButtonElement, ButtonProps>(function Button(
-  props: ButtonProps,
-  forwardedRef
-) {
+export const Button = forwardRef<
+  HTMLAnchorElement | HTMLButtonElement,
+  ButtonProps
+>(function Button(props: ButtonProps, forwardedRef) {
   const {
     loading = false,
     color = "primary",
@@ -69,7 +73,6 @@ export const Button = forwardRef<HTMLAnchorElement | HTMLButtonElement, ButtonPr
     StartIcon,
     EndIcon,
     shallow,
-    combined = false,
     // attributes propagated from `HTMLAnchorProps` or `HTMLButtonProps`
     ...passThroughProps
   } = props;
@@ -92,7 +95,7 @@ export const Button = forwardRef<HTMLAnchorElement | HTMLButtonElement, ButtonPr
         size === "base" && "h-9 px-4 py-2.5  ",
         size === "lg" && "h-[36px] px-4 py-2.5 ",
         size === "icon" && "flex justify-center min-h-[36px] min-w-[36px] ",
-        combined ? "" : "rounded-md",
+        "rounded-md",
         // different styles depending on color
         // set not-allowed cursor if disabled
         disabled ? variantDisabledClassName[color] : variantClassName[color],
@@ -109,7 +112,10 @@ export const Button = forwardRef<HTMLAnchorElement | HTMLButtonElement, ButtonPr
     <>
       {StartIcon && (
         <StartIcon
-          className={classNames("inline-flex", size === "icon" ? "h-4 w-4 " : "mr-2 h-4 w-4 stroke-[1.5px]")}
+          className={classNames(
+            "inline-flex",
+            size === "icon" ? "h-4 w-4 " : "mr-2 h-4 w-4 stroke-[1.5px]"
+          )}
         />
       )}
       {props.children}
@@ -122,8 +128,16 @@ export const Button = forwardRef<HTMLAnchorElement | HTMLButtonElement, ButtonPr
             )}
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
-            viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
             <path
               className="opacity-75"
               fill="currentColor"
@@ -132,12 +146,19 @@ export const Button = forwardRef<HTMLAnchorElement | HTMLButtonElement, ButtonPr
           </svg>
         </div>
       )}
-      {EndIcon && <EndIcon className="-mr-1 inline h-5 w-5 ltr:ml-2 rtl:mr-2" />}
+      {EndIcon && (
+        <EndIcon className="-mr-1 inline h-5 w-5 ltr:ml-2 rtl:mr-2" />
+      )}
     </>
   );
 
   return props.href ? (
-    <Link passHref href={props.href} shallow={shallow && shallow}>
+    <Link
+      passHref
+      href={props.href}
+      shallow={shallow && shallow}
+      legacyBehavior
+    >
       {element}
     </Link>
   ) : (
@@ -145,7 +166,13 @@ export const Button = forwardRef<HTMLAnchorElement | HTMLButtonElement, ButtonPr
   );
 });
 
-const Wrapper = ({ children, tooltip }: { tooltip?: string; children: React.ReactNode }) => {
+const Wrapper = ({
+  children,
+  tooltip,
+}: {
+  tooltip?: string;
+  children: React.ReactNode;
+}) => {
   if (!tooltip) {
     return <>{children}</>;
   }

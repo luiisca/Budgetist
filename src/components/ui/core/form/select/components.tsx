@@ -25,7 +25,7 @@ export const InputComponent = <
     <reactSelectComponents.Input
       // disables our default form focus hightlight on the react-select input element
       inputClassName={classNames(
-        "focus:ring-0 focus:ring-offset-0 dark:!text-darkgray-900 !text-black",
+        "focus:ring-0 focus:ring-offset-0 text-black",
         inputClassName
       )}
       {...props}
@@ -46,9 +46,10 @@ export const OptionComponent = <
       {...props}
       className={classNames(
         className,
-        "!flex !cursor-pointer justify-between !py-3 dark:bg-darkgray-100",
-        props.isFocused && "!bg-gray-100 dark:!bg-darkgray-200",
-        props.isSelected && "!bg-neutral-900 dark:!bg-darkgray-300"
+        "!flex !cursor-pointer justify-between !py-3",
+        !props.isSelected && "dark:hover:!bg-dark-tertiary",
+        props.isFocused && "!bg-gray-100 dark:!bg-transparent",
+        props.isSelected && "!bg-neutral-900 dark:!bg-dark-accent-100"
       )}
     >
       <span>{props.label}</span>{" "}
@@ -69,7 +70,11 @@ export const ControlComponent = <
     {...props}
     className={classNames(
       className,
-      "!rounded-md border-gray-300 bg-white text-sm leading-4 placeholder:text-sm placeholder:font-normal focus-within:border-0 focus-within:ring-2 focus-within:ring-neutral-800 hover:border-neutral-400 dark:border-darkgray-300 dark:bg-darkgray-100 dark:focus-within:ring-white"
+      "flex justify-between",
+      "rounded-md border border-gray-300 bg-white text-sm leading-4 transition-all placeholder:text-sm placeholder:font-normal hover:border-gray-400 [&_svg]:transition-colors",
+      "dark:border-transparent dark:bg-dark-300 dark:shadow-100 dark:hover:shadow-200 [&_svg]:dark:hover:text-dark-neutral",
+      props.isFocused &&
+        "border-gray-400 ring-2 ring-gray-600 ring-offset-2 dark:border-dark-accent-200 dark:shadow-darkAccent dark:ring-1 dark:ring-offset-0 [&_svg]:dark:text-dark-800"
     )}
   />
 );
@@ -136,7 +141,8 @@ export const MenuComponent = <
   <reactSelectComponents.Menu
     {...props}
     className={classNames(
-      "border-1 !rounded-md border-gray-900 bg-white text-sm leading-4 dark:border-darkgray-300 dark:bg-darkgray-100 dark:text-white",
+      "!rounded-md bg-white text-sm leading-4 ",
+      "dark:border-dark-400 dark:bg-dark-300 dark:shadow-darkTransparent",
       className
     )}
   />
@@ -153,7 +159,8 @@ export const MenuListComponent = <
   <reactSelectComponents.MenuList
     {...props}
     className={classNames(
-      "scrollbar-track-w-[80px] rounded-md scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 scrollbar-thumb-rounded-md dark:scrollbar-thumb-darkgray-300",
+      "scrollbar-track-w-[80px] rounded-md scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 scrollbar-thumb-rounded-md ",
+      "dark:scrollbar-thumb-dark-accent-100 dark:hover:scrollbar-thumb-dark-accent-300",
       className
     )}
   />

@@ -3,15 +3,12 @@ const plugin = require("tailwindcss/plugin");
 /** @type {import('tailwindcss').Config} */
 
 module.exports = {
+  darkMode: "class",
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx}",
     "./src/components/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    fontFamily: {
-      cal: ['"Cal Sans"', "sans-serif"],
-      sans: ['"Inter var"', "sans-serif"],
-    },
     extend: {
       colors: {
         /* your primary brand color */
@@ -149,6 +146,33 @@ module.exports = {
           800: "#e8e8e8",
           900: "#f3f4f6",
         },
+        dark: {
+          primary: "#191a23",
+          secondary: "#272832",
+          tertiary: "#2c2d42",
+          neutral: "#eeeffc",
+          destructive: {
+            100: "#eb5757",
+            200: "#fa6563",
+          },
+          accent: {
+            100: "#575bc7", // button
+            200: "#6c79ff", // button focus
+            300: "#666be2", // button hover
+            400: "#4e52b3",
+          },
+          100: "#151621",
+          150: "#21232e",
+          200: "#1f2130",
+          250: "#1d1e2b", // dropdown back
+          300: "#292a35",
+          350: "#2c2d3c", // borders
+          400: "#313248", // border
+          500: "#3c3d53", // borderHover
+          600: "#858699", // subtle text
+          700: "#4c4f6b",
+          800: "#d2d3e0", // dropdown color
+        },
       },
       keyframes: {
         "fade-in-up": {
@@ -166,7 +190,14 @@ module.exports = {
         "fade-in-up": "fade-in-up 0.35s cubic-bezier(.21,1.02,.73,1)",
       },
       boxShadow: {
+        100: "rgb(57 58 75) 0px 0px 0px 1px", // dropdown control
+        200: "#444556 0px 0px 0px 1px", // dropdown control hover
         dropdown: "0px 2px 6px -1px rgba(0, 0, 0, 0.08)",
+        darkAccent: "#6c79ff 0px 0px 0px 1px", //button focus
+        darkTransparent: "#00000026 0px 1px 2px",
+        darkBorder: "#313248 0px 0px 0px 1px", // border
+        darkOverlay: "#00000080 0px 16px 70px",
+        darkDestructive: "#eb5757 0px 0px 12px -1px",
       },
       fontFamily: {
         cal: ['"Cal Sans"', "sans-serif"],

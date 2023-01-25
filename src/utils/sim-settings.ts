@@ -2,6 +2,7 @@ import clm from "country-locale-map";
 import {
   DEFAULT_COUNTRY,
   DEFAULT_CURRENCY,
+  genOption,
   MAYOR_CURRENCY_CODES,
 } from "utils/constants";
 import * as countryFlags from "country-flag-icons/react/3x2";
@@ -26,10 +27,11 @@ export const selectOptionsData = z.object({
   label: z.string().optional(),
 });
 
-export const getCurrency = (code: string) => {
+export const getCurrency = (code: string, countryCode = "US") => {
   code = code || DEFAULT_CURRENCY;
 
-  const label = new Intl.NumberFormat("en", {
+  const lang = clm.getCountryByAlpha2(countryCode)?.languages[0];
+  const label = new Intl.NumberFormat(lang, {
     style: "currency",
     currency: code,
     maximumSignificantDigits: 1,
@@ -41,6 +43,17 @@ export const getCurrency = (code: string) => {
     value: code,
     label,
   };
+};
+export const formatAmount = (value: number) => {
+  let formatted = new Intl.NumberFormat("en", {
+    style: "currency",
+    currency: "USD",
+  }).format(value);
+  if (formatted.slice(-2) === "00") {
+    formatted = formatted.slice(0, -3);
+  }
+
+  return formatted as unknown as number;
 };
 
 const listAllCountries = () => {
@@ -56,13 +69,13 @@ export const getCountryLabel = (countryCode: string) => {
     ? countryCode
     : DEFAULT_COUNTRY;
 
-  const locale = clm.getCountryByAlpha2(countryCode)?.languages[0];
+  const lang = clm.getCountryByAlpha2(countryCode)?.languages[0];
   return countryCode !== "default"
-    ? new Intl.DisplayNames(locale, { type: "region" }).of(countryCode) || ""
+    ? new Intl.DisplayNames(lang, { type: "region" }).of(countryCode) || ""
     : "Other";
 };
 
-export const getCurrencyOptions = () => {
+export const getCurrencyOptions = (type: "perRec" | "perCat" = "perCat") => {
   const getUniqCurrencies = (currencies: string[]) => {
     const seen: Record<string, boolean> = {};
     return currencies.filter(function (currency) {
@@ -70,9 +83,16 @@ export const getCurrencyOptions = () => {
     });
   };
 
-  return getUniqCurrencies([...MAYOR_CURRENCY_CODES, ...cc.codes()]).map(
-    (code) => getCurrency(code)
-  );
+  const currencies = getUniqCurrencies([
+    ...MAYOR_CURRENCY_CODES,
+    ...cc.codes(),
+  ]).map((code) => getCurrency(code));
+
+  if (type === "perRec") {
+    return [genOption("perRec"), ...currencies];
+  } else {
+    return currencies;
+  }
 };
 
 export const getCountryOptions = () => {

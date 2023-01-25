@@ -1,15 +1,15 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+generator client {
+  provider = "prisma-client-js"
 }
 
-generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["interactiveTransactions"]
+datasource db {
+  provider = "mysql"
+  url = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SWADOW_URL")
+  relationMode = "prisma"
 }
 
 generator zod {
@@ -54,7 +54,7 @@ model User {
   name               String?
   email              String           @unique
   emailVerified      DateTime?
-  avatar             String?
+  avatar             String? @db.Text
   identityProvider   IdentityProvider @default(GOOGLE)
   identityProviderId String?
   completedOnboarding Boolean @default(false)
@@ -68,7 +68,8 @@ model User {
   investPerc  Int    @default(80)
   indexReturn Int    @default(7)
 
-  salary Salary?
+  salary Salary[]
+  categories Category[]
 }
 
 model Feedback {
@@ -102,10 +103,12 @@ model Salary {
   title    String @default("Salary")
   currency    String @default("USD")
   amount   Int
+  taxType String @default("perCat")
+  taxPercent Int @default(30)
   variance Period[]
 
   user   User @relation(fields: [userId], references: [id])
-  userId Int  @unique
+  userId Int
 }
 
 model Period {
@@ -113,7 +116,8 @@ model Period {
   from   Int
   amount Int
 
-  salary   Salary @relation(fields: [salaryId], references: [id])
+  salary   Salary @relation(fields: [salaryId], references: [id], onDelete: Cascade)
+  taxPercent Int @default(30)
   salaryId Int
 }
 
@@ -121,24 +125,28 @@ model Category {
   id         Int    @id @default(autoincrement())
   title      String
   budget     Int
-  currency   String
-  type       String
-  inflType   String
+  currency   String @default("USD")
+  type       String @default("outcome")
+  inflType   String @default("perCat")
   country    String
   inflVal    Int
-  color      String
   icon       String
-  frequencey Int
+  freqType String @default("perCat")
+  frequency Int @default(12)
 
+  user User @relation(fields: [userId], references: [id])
+  userId Int
   records Record[]
 }
 
 model Record {
   id         Int    @id @default(autoincrement())
-  title      String
+  title      String?
   amount     Int
   type       String
-  frequencey Int
+  frequency Int
+  inflType  Boolean @default(true)
+  country String
   inflation  Int
   currency   String
 

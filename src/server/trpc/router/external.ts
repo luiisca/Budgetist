@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
+import cc from "currency-codes";
+import { first } from "lodash";
+import { NOT_AVAILABLE_EXCHANGE_RATES_CURRENCY_CODES } from "utils/constants";
 
 export const externalRouter = router({
   inflation: protectedProcedure
@@ -27,4 +30,71 @@ export const externalRouter = router({
       }
       return value;
     }),
+  // input should be an object that can only be currency values used in the app
+  seedExchangeRates: protectedProcedure.mutation(async ({ ctx }) => {
+    const { prisma } = ctx;
+    const now = Date.now();
+    const firstRate = await prisma.exchangeRate.findFirst({
+      where: {
+        id: 1,
+      },
+      select: {
+        nextUpdateUnix: true,
+      },
+    });
+    const nextUpdateTimeSeconds = firstRate
+      ? firstRate.nextUpdateUnix * 1000
+      : null;
+    if (!firstRate || (nextUpdateTimeSeconds && nextUpdateTimeSeconds <= now)) {
+      const seedCurrencyExchangeData = async (code: string, times = 0) => {
+        let result;
+
+        if (times < 3) {
+          try {
+            result = await fetch(`https://open.er-api.com/v6/latest/${code}`);
+            const jsonData = (await result.json()) as unknown as Record<
+              string,
+              string
+            > & {
+              result: string;
+              time_next_update_unix: string;
+              base_code: string;
+              rates: Record<string, string>;
+            };
+
+            if (jsonData.result === "error") {
+              seedCurrencyExchangeData(code, times + 1);
+            } else {
+              await prisma.exchangeRate.create({
+                data: {
+                  nextUpdateUnix: +jsonData.time_next_update_unix,
+                  currency: jsonData.base_code,
+                  rates: JSON.stringify(jsonData.rates),
+                },
+              });
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        } else {
+          console.error("Couldn't fetch data for this currency", code);
+        }
+
+        return null;
+      };
+      cc.codes()
+        .filter(
+          (code) => !NOT_AVAILABLE_EXCHANGE_RATES_CURRENCY_CODES.includes(code)
+        )
+        .map((code) => seedCurrencyExchangeData(code));
+    } else {
+      const latest = await fetch(`https://open.er-api.com/v6/latest`);
+      latest.json().then((result) => {
+        console.warn(
+          "Exchange rates already updated, next update: ",
+          result.time_next_update_utc
+        );
+      });
+    }
+  }),
 });

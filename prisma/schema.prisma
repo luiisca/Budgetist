@@ -87,7 +87,7 @@ model VerificationToken {
   token      String   @unique
   expires    DateTime
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  updatedAt  DateTime @updatedAt @default(now())
 
   @@unique([identifier, token])
 }
@@ -152,4 +152,11 @@ model Record {
 
   category   Category @relation(fields: [categoryId], references: [id])
   categoryId Int
+}
+
+model ExchangeRate {
+  id Int @id @default(autoincrement())
+  nextUpdateUnix Int
+  currency String
+  rates String @db.Text
 }

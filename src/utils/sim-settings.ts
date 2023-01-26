@@ -4,6 +4,7 @@ import {
   DEFAULT_CURRENCY,
   genOption,
   MAYOR_CURRENCY_CODES,
+  NOT_AVAILABLE_EXCHANGE_RATES_CURRENCY_CODES,
 } from "utils/constants";
 import * as countryFlags from "country-flag-icons/react/3x2";
 import cc from "currency-codes";
@@ -83,10 +84,11 @@ export const getCurrencyOptions = (type: "perRec" | "perCat" = "perCat") => {
     });
   };
 
-  const currencies = getUniqCurrencies([
-    ...MAYOR_CURRENCY_CODES,
-    ...cc.codes(),
-  ]).map((code) => getCurrency(code));
+  const currencies = getUniqCurrencies([...MAYOR_CURRENCY_CODES, ...cc.codes()])
+    .filter(
+      (code) => !NOT_AVAILABLE_EXCHANGE_RATES_CURRENCY_CODES.includes(code)
+    )
+    .map((code) => getCurrency(code));
 
   if (type === "perRec") {
     return [genOption("perRec"), ...currencies];

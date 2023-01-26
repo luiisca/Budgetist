@@ -13,7 +13,7 @@ import { AppRouterTypes, trpc } from "utils/trpc";
 import _ from "lodash";
 import Salaries from "components/simulation/salaries";
 import Categories from "components/simulation/categories";
-import { PropsWithChildren, useContext, useReducer } from "react";
+import { PropsWithChildren, useContext, useEffect, useReducer } from "react";
 import {
   CategoriesType,
   getTotalBalance,
@@ -251,6 +251,12 @@ const Simulation = () => {
   const {
     state: { totalBalanceLoading, totalBalance, balanceHistory },
   } = useContext(BalanceContext);
+  const seedExchangeRatesMutation =
+    trpc.external.seedExchangeRates.useMutation();
+
+  useEffect(() => {
+    seedExchangeRatesMutation.mutate();
+  }, []);
 
   return (
     <>

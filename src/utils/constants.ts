@@ -1,3 +1,5 @@
+import cc from "currency-codes";
+
 export const WEBAPP_URL = process.env.NEXT_PUBLIC_VERCEL_URL;
 export const LOGO = "/logo.png";
 export const LOGO_ICON = "/icon.png";
@@ -50,6 +52,20 @@ export const NOT_AVAILABLE_EXCHANGE_RATES_CURRENCY_CODES = [
   "COU",
   "BOV",
 ];
+
+const getUniqArrVals = (array: string[]) => {
+  const seen: Record<string, boolean> = {};
+  return array.filter(function (value) {
+    return seen.hasOwnProperty(value) ? false : (seen[value] = true);
+  });
+};
+
+export const CURRENCY_CODES = getUniqArrVals([
+  ...MAYOR_CURRENCY_CODES,
+  ...cc.codes(),
+]).filter(
+  (code) => !NOT_AVAILABLE_EXCHANGE_RATES_CURRENCY_CODES.includes(code)
+);
 
 export const DEFAULT_CURRENCY = "USD";
 export const DEFAULT_COUNTRY = "US";

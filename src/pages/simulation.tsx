@@ -13,7 +13,13 @@ import { AppRouterTypes, trpc } from "utils/trpc";
 import _ from "lodash";
 import Salaries from "components/simulation/salaries";
 import Categories from "components/simulation/categories";
-import { PropsWithChildren, useContext, useEffect, useReducer } from "react";
+import {
+  PropsWithChildren,
+  useContext,
+  useEffect,
+  useReducer,
+  useRef,
+} from "react";
 import {
   CategoriesType,
   getTotalBalance,
@@ -107,16 +113,18 @@ type BalanceInitStateType = {
   balanceHistory: YearBalanceType[] | [];
 };
 
+export type SimRunPayloadType = {
+  categories: CategoriesType;
+  salaries: Salary[];
+  years: number;
+  investPerc: number;
+  indexReturn: number;
+  exchangeRates: Record<string, number>;
+};
 type ActionType =
   | {
       type: "SIM_RUN";
-      payload: {
-        categories: CategoriesType;
-        salaries: Salary[];
-        years: number;
-        investPerc: number;
-        indexReturn: number;
-      };
+      payload: SimRunPayloadType;
     }
   | {
       type: "YEARS_UPDATED";
@@ -176,6 +184,13 @@ const RunSimForm = () => {
     dispatch: balanceDispatch,
   } = useContext(BalanceContext);
 
+  const ratesResult = trpc.simulation.getExchangeRates.useQuery(
+    user?.currency as string,
+    {
+      enabled: !!user?.currency,
+    }
+  );
+
   const runSimForm = useForm<RunSimulationDataType>({
     resolver: zodResolver(runSimulationData),
     defaultValues: {
@@ -209,20 +224,36 @@ const RunSimForm = () => {
 
           return;
         }
-        balanceDispatch({
-          type: "YEARS_UPDATED",
-          years: Number(values.years),
-        });
-        balanceDispatch({
-          type: "SIM_RUN",
-          payload: {
-            categories,
-            salaries,
-            years: Number(values.years),
-            investPerc: user.investPerc,
-            indexReturn: user.indexReturn,
-          },
-        });
+        if (ratesResult) {
+          if (ratesResult.isError) {
+            showToast(ratesResult.error.message, "error");
+            return;
+          }
+          console.log("ratesRESUlt", ratesResult.data);
+          if (ratesResult.data) {
+            console.log(
+              "EXCHANGE RATE DATA FOR",
+              user.currency,
+              ": ",
+              ratesResult.data
+            );
+            balanceDispatch({
+              type: "YEARS_UPDATED",
+              years: Number(values.years),
+            });
+            balanceDispatch({
+              type: "SIM_RUN",
+              payload: {
+                categories,
+                salaries,
+                years: Number(values.years),
+                investPerc: user.investPerc,
+                indexReturn: user.indexReturn,
+                exchangeRates: JSON.parse(ratesResult.data.rates),
+              },
+            });
+          }
+        }
       }}
       className="my-6 flex justify-start"
     >
@@ -240,7 +271,11 @@ const RunSimForm = () => {
           return parsedYears;
         }}
       />
-      <Button type="submit" className="self-end rounded-l-none py-2 px-4">
+      <Button
+        type="submit"
+        className="self-end rounded-l-none py-2 px-4"
+        loading={ratesResult.isLoading}
+      >
         Run
       </Button>
     </Form>
@@ -251,11 +286,13 @@ const Simulation = () => {
   const {
     state: { totalBalanceLoading, totalBalance, balanceHistory },
   } = useContext(BalanceContext);
+  const mutateReqSent = useRef(false);
   const seedExchangeRatesMutation =
     trpc.external.seedExchangeRates.useMutation();
 
   useEffect(() => {
-    seedExchangeRatesMutation.mutate();
+    !mutateReqSent.current && seedExchangeRatesMutation.mutate();
+    mutateReqSent.current = true;
   }, []);
 
   return (

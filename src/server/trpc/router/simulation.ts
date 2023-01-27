@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import _ from "lodash";
 import { categoryDataServer, salaryDataServer } from "prisma/*";
+import { CURRENCY_CODES } from "utils/constants";
 import { z } from "zod";
 import { protectedProcedure, router } from "../trpc";
 
@@ -161,4 +162,33 @@ export const simulationRouter = router({
         }
       }),
   }),
+  getExchangeRates: protectedProcedure
+    .input(z.string().max(3))
+    .query(async ({ ctx, input }) => {
+      const { prisma } = ctx;
+
+      if (CURRENCY_CODES.includes(input)) {
+        const result = await prisma.exchangeRate.findFirst({
+          where: {
+            currency: input,
+          },
+          select: {
+            rates: true,
+          },
+        });
+        if (!result) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: `No data returned for ${input}`,
+          });
+        } else {
+          return result;
+        }
+      } else {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: `No exchange rate found for ${input}`,
+        });
+      }
+    }),
 });

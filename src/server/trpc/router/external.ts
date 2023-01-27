@@ -34,6 +34,7 @@ export const externalRouter = router({
   seedExchangeRates: protectedProcedure.mutation(async ({ ctx }) => {
     const { prisma } = ctx;
     const now = Date.now();
+    await prisma.exchangeRate.deleteMany();
     const firstRate = await prisma.exchangeRate.findFirst({
       where: {
         id: 1,
@@ -45,43 +46,47 @@ export const externalRouter = router({
     const nextUpdateTimeSeconds = firstRate
       ? firstRate.nextUpdateUnix * 1000
       : null;
-    if (!firstRate || (nextUpdateTimeSeconds && nextUpdateTimeSeconds <= now)) {
-      const seedCurrencyExchangeData = async (code: string, times = 0) => {
-        let result;
 
-        if (times < 3) {
-          try {
-            result = await fetch(`https://open.er-api.com/v6/latest/${code}`);
-            const jsonData = (await result.json()) as unknown as Record<
-              string,
-              string
-            > & {
-              result: string;
-              time_next_update_unix: string;
-              base_code: string;
-              rates: Record<string, string>;
-            };
+    const seedCurrencyExchangeData = async (code: string, times = 0) => {
+      let result;
 
-            if (jsonData.result === "error") {
-              seedCurrencyExchangeData(code, times + 1);
-            } else {
-              await prisma.exchangeRate.create({
-                data: {
-                  nextUpdateUnix: +jsonData.time_next_update_unix,
-                  currency: jsonData.base_code,
-                  rates: JSON.stringify(jsonData.rates),
-                },
-              });
-            }
-          } catch (e) {
-            console.error(e);
+      if (times < 3) {
+        try {
+          result = await fetch(`https://open.er-api.com/v6/latest/${code}`);
+          const jsonData = (await result.json()) as unknown as Record<
+            string,
+            string
+          > & {
+            result: string;
+            time_next_update_unix: string;
+            base_code: string;
+            rates: Record<string, string>;
+          };
+
+          if (jsonData.result === "error") {
+            seedCurrencyExchangeData(code, times + 1);
+          } else {
+            await prisma.exchangeRate.create({
+              data: {
+                nextUpdateUnix: +jsonData.time_next_update_unix,
+                currency: jsonData.base_code,
+                rates: JSON.stringify(jsonData.rates),
+              },
+            });
           }
-        } else {
-          console.error("Couldn't fetch data for this currency", code);
+        } catch (e) {
+          console.error(e);
         }
+      } else {
+        console.error("Couldn't fetch data for this currency", code);
+      }
 
-        return null;
-      };
+      return null;
+    };
+
+    if (!firstRate || (nextUpdateTimeSeconds && nextUpdateTimeSeconds <= now)) {
+      await prisma.exchangeRate.deleteMany();
+
       cc.codes()
         .filter(
           (code) => !NOT_AVAILABLE_EXCHANGE_RATES_CURRENCY_CODES.includes(code)
@@ -89,6 +94,7 @@ export const externalRouter = router({
         .map((code) => seedCurrencyExchangeData(code));
     } else {
       const latest = await fetch(`https://open.er-api.com/v6/latest`);
+
       latest.json().then((result) => {
         console.warn(
           "Exchange rates already updated, next update: ",

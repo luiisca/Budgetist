@@ -1,5 +1,6 @@
 import clm from "country-locale-map";
 import {
+  CURRENCY_CODES,
   DEFAULT_COUNTRY,
   DEFAULT_CURRENCY,
   genOption,
@@ -77,18 +78,7 @@ export const getCountryLabel = (countryCode: string) => {
 };
 
 export const getCurrencyOptions = (type: "perRec" | "perCat" = "perCat") => {
-  const getUniqCurrencies = (currencies: string[]) => {
-    const seen: Record<string, boolean> = {};
-    return currencies.filter(function (currency) {
-      return seen.hasOwnProperty(currency) ? false : (seen[currency] = true);
-    });
-  };
-
-  const currencies = getUniqCurrencies([...MAYOR_CURRENCY_CODES, ...cc.codes()])
-    .filter(
-      (code) => !NOT_AVAILABLE_EXCHANGE_RATES_CURRENCY_CODES.includes(code)
-    )
-    .map((code) => getCurrency(code));
+  const currencies = CURRENCY_CODES.map((code) => getCurrency(code));
 
   if (type === "perRec") {
     return [genOption("perRec"), ...currencies];

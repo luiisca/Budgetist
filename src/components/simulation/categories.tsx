@@ -299,7 +299,8 @@ const CategoryForm = ({
     } as SelectOption,
     inflation: category?.inflVal || (user?.inflation as number),
     currency: getCurrency(
-      category?.currency || (user?.currency as string),
+      (category?.currency !== "perRec" && category?.currency) ||
+        (user?.currency as string),
       user?.country
     ),
   };

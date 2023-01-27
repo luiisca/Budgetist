@@ -65,11 +65,7 @@ const convertToUserCurr = ({
   exchangeRate: number;
   amount: number;
 }) => {
-  console.log("USERCURRENCY", userCurrency);
   if (currentCurrency !== userCurrency) {
-    console.log(`no ${userCurrency} currency set`);
-    console.log("converting to USD");
-
     // userCurrency = USD
     // currentCurrency = PEN
     // exchangeRate = 1 USD => 4 PEN
@@ -186,7 +182,7 @@ export const getTotalBalance = ({
                     userCurrency,
                     currentCurrency,
                     exchangeRate: exchangeRates[currentCurrency],
-                    amount: cat.budget,
+                    amount: record.amount,
                   }),
                 };
               }),
@@ -203,7 +199,6 @@ export const getTotalBalance = ({
           exchangeRate: exchangeRates[crrYearSalaryData.currency],
           amount,
         });
-        console.log("Salary amount", amount, typeof amount, convertedAmount);
         const taxPercent =
           salary.taxType == "perCat"
             ? salary.taxPercent
@@ -310,7 +305,7 @@ export const getTotalBalance = ({
                 userCurrency,
                 currentCurrency,
                 exchangeRate: exchangeRates[currentCurrency],
-                amount: crrCat.budget,
+                amount: crrRec.amount,
               });
               const frequency =
                 crrCat.freqType === "perRec"

@@ -24,7 +24,6 @@ export const useSimData = (): {
   );
 
   useEffect(() => {
-    console.log("IS THIS EVEN being CALLED", ratesResult.data);
     if (
       categories &&
       categories.length > 0 &&
@@ -33,7 +32,6 @@ export const useSimData = (): {
       user &&
       ratesResult
     ) {
-      console.log("RATES RESL", ratesResult.data);
       balanceDispatch({
         type: "TOTAL_BAL_LOADING",
         loading: false,
@@ -43,12 +41,6 @@ export const useSimData = (): {
         return;
       }
       if (ratesResult.data) {
-        console.log(
-          "EXCHANGE RATE DATA FOR",
-          user.currency,
-          ": ",
-          ratesResult.data
-        );
         balanceDispatch({
           type: "SIM_RUN",
           payload: {

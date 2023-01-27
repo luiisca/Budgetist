@@ -32,6 +32,10 @@ export const selectOptionsData = z.object({
 export const getCurrency = (code: string, countryCode = "US") => {
   code = code || DEFAULT_CURRENCY;
 
+  if (code === "perRec" || code === "perCat") {
+    return genOption(code);
+  }
+
   const lang = clm.getCountryByAlpha2(countryCode)?.languages[0];
   const label = new Intl.NumberFormat(lang, {
     style: "currency",

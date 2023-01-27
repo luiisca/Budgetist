@@ -229,14 +229,7 @@ const RunSimForm = () => {
             showToast(ratesResult.error.message, "error");
             return;
           }
-          console.log("ratesRESUlt", ratesResult.data);
           if (ratesResult.data) {
-            console.log(
-              "EXCHANGE RATE DATA FOR",
-              user.currency,
-              ": ",
-              ratesResult.data
-            );
             balanceDispatch({
               type: "YEARS_UPDATED",
               years: Number(values.years),

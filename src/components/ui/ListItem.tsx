@@ -1,5 +1,6 @@
 import { TitleWithInfo } from "components/simulation/components";
 import { Badge } from "./Badge";
+import { SkeletonText } from "./core";
 
 export function ListItem({
   category,
@@ -13,7 +14,7 @@ export function ListItem({
     type: string;
     inflation?: number;
     frequency?: number;
-    spent: number;
+    spent: number | null;
     record?: boolean;
   };
 }): JSX.Element {

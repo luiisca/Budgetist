@@ -38,7 +38,7 @@ const MyApp: AppType<{ session: Session | null }> = (props: AppProps) => {
             {getLayout &&
               getLayout(<Component {...pageProps} err={err} />, router)}
           </ThemeProvider>
-          {/* <ReactQueryDevtools initialIsOpen={false} /> */}
+          <ReactQueryDevtools initialIsOpen={false} />
         </SessionProvider>
       </MetaProvider>
     </TooltipProvider>

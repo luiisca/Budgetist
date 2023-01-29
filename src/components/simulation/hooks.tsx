@@ -1,29 +1,39 @@
 import showToast from "components/ui/core/notifications";
-import { BalanceContext, UserResultType } from "pages/simulation";
-import { useContext, useEffect, useRef, useState } from "react";
-import { trpc } from "utils/trpc";
+import {
+  BalanceContext,
+  BalanceInitStateType,
+  RatesResultType,
+  UserResultType,
+} from "pages/simulation";
+import { useContext, useEffect } from "react";
 
 export const useSimData = (): {
+  state: BalanceInitStateType;
   userResult: UserResultType;
   balanceDispatch: React.Dispatch<any>;
+  ratesResult: RatesResultType;
+  runSim: (exchangeRates: Record<string, number>) => void;
 } => {
   const {
-    state: { years },
+    state,
     userResult,
     categoriesResult: { data: categories },
     salariesResult: { data: salaries },
+    ratesResult,
     dispatch: balanceDispatch,
   } = useContext(BalanceContext);
   const { data: user } = userResult;
 
-  const ratesResult = trpc.simulation.getExchangeRates.useQuery(
-    user?.currency as string,
-    {
-      enabled: !!user?.currency,
-    }
-  );
-
   useEffect(() => {
+    if (user && user.currency) {
+      balanceDispatch({
+        type: "NEW_CURRENCY",
+        code: user.currency,
+      });
+    }
+  }, [user?.currency]);
+
+  const runSim = (exchangeRates: Record<string, number>) => {
     if (
       categories &&
       categories.length > 0 &&
@@ -40,31 +50,40 @@ export const useSimData = (): {
         showToast(ratesResult.error.message, "error");
         return;
       }
-      if (ratesResult.data) {
-        balanceDispatch({
-          type: "SIM_RUN",
-          payload: {
-            categories,
-            salaries,
-            years: Number(years),
-            investPerc: user.investPerc,
-            indexReturn: user.indexReturn,
-            exchangeRates: JSON.parse(ratesResult.data.rates),
-          },
-        });
-      }
+      console.log("updated hook about to run sim");
+      balanceDispatch({
+        type: "SIM_RUN",
+        payload: {
+          categories,
+          salaries,
+          years: Number(state.years),
+          investPerc: user.investPerc,
+          indexReturn: user.indexReturn,
+          exchangeRates,
+        },
+      });
+    }
+  };
+
+  useEffect(() => {
+    console.log("did it update??");
+    if (ratesResult.data) {
+      runSim(JSON.parse(ratesResult.data.rates));
     }
   }, [
     categories,
     salaries,
     user,
-    years,
+    state.years,
     balanceDispatch,
     ratesResult.data?.rates,
   ]);
 
   return {
+    state,
     userResult,
     balanceDispatch,
+    ratesResult,
+    runSim,
   };
 };

@@ -50,10 +50,10 @@ export const getCurrency = (code: string, countryCode = "US") => {
     label,
   };
 };
-export const formatAmount = (value: number) => {
+export const formatAmount = (value: number, currency: string) => {
   let formatted = new Intl.NumberFormat("en", {
     style: "currency",
-    currency: "USD",
+    currency,
   }).format(value);
   if (formatted.slice(-2) === "00") {
     formatted = formatted.slice(0, -3);

@@ -13,11 +13,12 @@ export const DropdownMenuTrigger = forwardRef<
 >(({ className = "", ...props }, forwardedRef) => (
   <DropdownMenuPrimitive.Trigger
     {...props}
-    className={
+    className={classNames(
+      className,
       props.asChild
         ? className // are these applied to its child? since trigger component dissapears or merges with its child
-        : `inline-flex items-center rounded-sm bg-transparent px-3 py-2 text-sm font-medium text-gray-700 focus:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-1 group-hover:text-black hover:bg-gray-50 ${className}`
-    }
+        : ``
+    )}
     ref={forwardedRef}
   />
 ));
@@ -41,6 +42,9 @@ export const DropdownMenuContent = forwardRef<
       "bg-white ring-1 ring-black ring-opacity-5 focus-visible:ring-1 focus-visible:ring-opacity-5 focus-visible:ring-offset-0",
       "backdrop-blur-sm ",
       "dark:bg-[#1d1e2b7f] dark:shadow-100 dark:ring-dark-400",
+      // custom scrollbar
+      "scrollbar-track-w-[80px] rounded-md scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 scrollbar-thumb-rounded-md ",
+      "dark:scrollbar-thumb-dark-accent-100 dark:hover:scrollbar-thumb-dark-accent-300",
       props.className
     )}
     ref={forwardedRef}

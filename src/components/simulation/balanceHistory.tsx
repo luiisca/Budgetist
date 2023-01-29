@@ -13,7 +13,13 @@ import { useContext, useRef, useState } from "react";
 import { BalanceContext } from "pages/simulation";
 import { useForm } from "react-hook-form";
 import { TitleWithInfo } from "./components";
-import { Button, NumberInput, Tooltip, transIntoInt } from "components/ui";
+import {
+  Button,
+  NumberInput,
+  SkeletonText,
+  Tooltip,
+  transIntoInt,
+} from "components/ui";
 import { capitalize } from "lodash";
 import { formatAmount } from "utils/sim-settings";
 
@@ -21,7 +27,7 @@ const typeOptions = ["all", "income", "outcome", "salary"];
 
 export default function BalanceHistory() {
   const {
-    state: { balanceHistory },
+    state: { balanceHistory, selCurrency },
   } = useContext(BalanceContext);
 
   const [hidden, setHidden] = useState(false);
@@ -162,16 +168,25 @@ export default function BalanceHistory() {
                             infoBubble={
                               <>
                                 <p>Amount: </p>
-                                <p>{formatAmount(salary.amountBefTax)}</p>
+                                <p>
+                                  {selCurrency &&
+                                    formatAmount(
+                                      salary.amountBefTax,
+                                      selCurrency
+                                    )}
+                                </p>
                                 <p>Tax Perc: </p>
                                 <p>{salary.taxPercent}%</p>
                               </>
                             }
                             category={{
                               ...salary,
-                              spent: formatAmount(
-                                Math.abs(salary.amountAftTax)
-                              ),
+                              spent: selCurrency
+                                ? formatAmount(
+                                    Math.abs(salary.amountAftTax),
+                                    selCurrency
+                                  )
+                                : null,
                             }}
                           />
                         )
@@ -203,9 +218,12 @@ export default function BalanceHistory() {
                                     }
                                     category={{
                                       ...record,
-                                      spent: formatAmount(
-                                        Math.abs(record.spent)
-                                      ),
+                                      spent: selCurrency
+                                        ? formatAmount(
+                                            Math.abs(record.spent),
+                                            selCurrency
+                                          )
+                                        : null,
                                       parentTitle: category.title,
                                       record: true,
                                     }}
@@ -226,7 +244,12 @@ export default function BalanceHistory() {
                                 key={index}
                                 category={{
                                   ...category,
-                                  spent: formatAmount(Math.abs(category.spent)),
+                                  spent: selCurrency
+                                    ? formatAmount(
+                                        Math.abs(category.spent),
+                                        selCurrency
+                                      )
+                                    : null,
                                 }}
                               />
                             );
@@ -243,17 +266,21 @@ export default function BalanceHistory() {
                     <p className="text-md text-green-400">
                       INCOME:{" "}
                       <span className="text-xl">
-                        {formatAmount(
-                          Math.abs(balanceHistory[year - 1]?.income)
-                        )}
+                        {selCurrency &&
+                          formatAmount(
+                            Math.abs(balanceHistory[year - 1]?.income),
+                            selCurrency
+                          )}
                       </span>
                     </p>
                     <p className="text-md text-red-400">
                       OUTCOME:{" "}
                       <span className="text-xl">
-                        {formatAmount(
-                          Math.abs(balanceHistory[year - 1]?.outcome)
-                        )}
+                        {selCurrency &&
+                          formatAmount(
+                            Math.abs(balanceHistory[year - 1]?.outcome),
+                            selCurrency
+                          )}
                       </span>
                     </p>
                   </div>

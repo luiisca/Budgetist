@@ -460,11 +460,9 @@ export function ShellMain(props: LayoutProps) {
             {(props.CTA || props.balance) && (
               <div
                 className={classNames(
-                  props.backPath
-                    ? "relative"
-                    : "fixed right-4 bottom-[75px] z-40",
+                  props.backPath ? "relative" : "fixed",
                   props.CTA && "cta",
-                  "mb-4 flex-shrink-0 sm:relative sm:bottom-auto sm:right-auto sm:z-0"
+                  "mb-4 flex-shrink-0 sm:relative sm:bottom-auto sm:right-auto"
                 )}
               >
                 {props.CTA || props.balance}

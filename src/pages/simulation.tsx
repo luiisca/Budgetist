@@ -28,10 +28,15 @@ import {
 } from "utils/simulation";
 import showToast from "components/ui/core/notifications";
 import { useForm } from "react-hook-form";
-import { MAX_YEARS, MIN_YEARS } from "utils/constants";
+import {
+  CURRENCY_CODES,
+  MAX_YEARS,
+  MAYOR_CURRENCY_CODES,
+  MIN_YEARS,
+} from "utils/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { runSimulationData, RunSimulationDataType } from "prisma/*";
-import { formatAmount } from "utils/sim-settings";
+import { formatAmount, getCurrency } from "utils/sim-settings";
 import { TitleWithInfo } from "components/simulation/components";
 import React from "react";
 import BalanceHistory from "components/simulation/balanceHistory";
@@ -39,6 +44,13 @@ import { UseTRPCQueryResult } from "@trpc/react/shared";
 import { TRPCClientErrorLike } from "@trpc/client";
 import { Procedure } from "@trpc/server";
 import classNames from "classnames";
+import { useSimData } from "components/simulation/hooks";
+import Dropdown, {
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "components/ui/Dropdown";
+import { FiCheck, FiEdit } from "react-icons/fi";
 
 const SkeletonLoader = () => {
   return (
@@ -69,6 +81,10 @@ type CategoriesResultType = UseTRPCQueryResult<
   AppRouterTypes["simulation"]["categories"]["get"]["output"],
   TRPCClientErrorLike<Procedure<"query", any>>
 >;
+export type RatesResultType = UseTRPCQueryResult<
+  AppRouterTypes["simulation"]["getExchangeRates"]["output"],
+  TRPCClientErrorLike<Procedure<"query", any>>
+>;
 
 const createCtx = <StateType, ActionType>(
   reducer: React.Reducer<StateType, ActionType>,
@@ -81,6 +97,7 @@ const createCtx = <StateType, ActionType>(
     userResult: {} as UserResultType,
     salariesResult: {} as SalariesResultType,
     categoriesResult: {} as CategoriesResultType,
+    ratesResult: {} as RatesResultType,
   });
 
   const Provider = (props: PropsWithChildren) => {
@@ -88,6 +105,19 @@ const createCtx = <StateType, ActionType>(
     const userResult = trpc.user.me.useQuery();
     const salariesResult = trpc.simulation.salaries.get.useQuery();
     const categoriesResult = trpc.simulation.categories.get.useQuery();
+    const ratesResult = trpc.simulation.getExchangeRates.useQuery(
+      userResult.data?.currency as string,
+      {
+        enabled: !!userResult.data?.currency,
+      }
+    );
+    const utils = trpc.useContext();
+    useEffect(() => {
+      MAYOR_CURRENCY_CODES.forEach((code) => {
+        console.log("prefetching for", code);
+        utils.simulation.getExchangeRates.prefetch(code);
+      });
+    }, []);
 
     return (
       <ctx.Provider
@@ -97,6 +127,7 @@ const createCtx = <StateType, ActionType>(
           userResult,
           salariesResult,
           categoriesResult,
+          ratesResult,
         }}
         {...props}
       />
@@ -106,11 +137,12 @@ const createCtx = <StateType, ActionType>(
   return [ctx, Provider] as const;
 };
 
-type BalanceInitStateType = {
+export type BalanceInitStateType = {
   years: number;
   totalBalanceLoading: boolean;
   totalBalance: number;
   balanceHistory: YearBalanceType[] | [];
+  selCurrency: string | null;
 };
 
 export type SimRunPayloadType = {
@@ -133,6 +165,10 @@ type ActionType =
   | {
       type: "TOTAL_BAL_LOADING";
       loading: boolean;
+    }
+  | {
+      type: "NEW_CURRENCY";
+      code: string;
     };
 
 const balanceReducer = (state: BalanceInitStateType, action: ActionType) => {
@@ -159,6 +195,12 @@ const balanceReducer = (state: BalanceInitStateType, action: ActionType) => {
         totalBalanceLoading: action.loading,
       };
     }
+    case "NEW_CURRENCY": {
+      return {
+        ...state,
+        selCurrency: action.code,
+      };
+    }
 
     default: {
       return balanceInitState;
@@ -171,6 +213,7 @@ const balanceInitState: BalanceInitStateType = {
   totalBalanceLoading: false,
   totalBalance: 0,
   balanceHistory: [],
+  selCurrency: null,
 };
 
 const [ctx, BalanceProvider] = createCtx(balanceReducer, balanceInitState);
@@ -276,9 +319,6 @@ const RunSimForm = () => {
 };
 
 const Simulation = () => {
-  const {
-    state: { totalBalanceLoading, totalBalance, balanceHistory },
-  } = useContext(BalanceContext);
   const mutateReqSent = useRef(false);
   const seedExchangeRatesMutation =
     trpc.external.seedExchangeRates.useMutation();
@@ -301,36 +341,7 @@ const Simulation = () => {
       <Shell
         heading="Current balance"
         subtitle="As of 12/11/2022"
-        CTA={
-          totalBalance ? (
-            <TitleWithInfo
-              Title={() => (
-                <div className="ml-2 text-3xl text-black dark:text-dark-neutral ">
-                  {formatAmount(totalBalance)}
-                </div>
-              )}
-              infoCont={
-                <div className="text-md px-3 py-2">
-                  Your total balance after{" "}
-                  {balanceHistory.length === 1 ? "one" : balanceHistory.length}
-                  {balanceHistory.length === 1 ? " year" : " years"} based{" "}
-                  <br />
-                  on salary variations, expenses, incomes, and yearly
-                  investments <br />
-                  on an index fund.
-                </div>
-              }
-              infoIconClassName="!h-4 !w-4"
-              className={classNames(
-                "fixed right-5 top-2 z-[999999] flex-row-reverse rounded-lg px-3 py-2 ",
-                "bg-gray-50 ring-1 ring-gray-100",
-                "dark:bg-dark-secondary dark:shadow-darkBorder dark:ring-dark-400",
-                totalBalanceLoading && "animate-pulse"
-              )}
-              tooltipSide="bottom"
-            />
-          ) : null
-        }
+        CTA={<TotalBalance />}
       >
         <div className="flex flex-col space-y-8">
           <div>
@@ -353,6 +364,100 @@ const Simulation = () => {
       </Shell>
     </>
   );
+};
+
+const TotalBalance = () => {
+  const {
+    state: { totalBalance, totalBalanceLoading, balanceHistory, selCurrency },
+    ratesResult: { data: ratesData },
+    runSim,
+    balanceDispatch,
+  } = useSimData();
+  const utils = trpc.useContext();
+
+  if (totalBalance && selCurrency) {
+    return (
+      <Dropdown>
+        <DropdownMenuTrigger
+          className={classNames(
+            "sm:left-2 sm:bottom-2",
+            "fixed z-40 !rounded-lg px-3 py-2 md:left-auto md:bottom-auto md:right-5 md:top-2 ",
+            "!bg-gray-50 ring-1 ring-gray-100",
+            "dark:!bg-dark-secondary dark:shadow-darkBorder dark:ring-dark-400 dark:ring-offset-dark-primary dark:focus-visible:ring-dark-accent-200",
+            totalBalanceLoading && "animate-pulse"
+          )}
+        >
+          <TitleWithInfo
+            Title={() => (
+              <div className="ml-2 text-3xl text-black dark:text-dark-neutral">
+                {formatAmount(totalBalance, selCurrency)}
+              </div>
+            )}
+            infoCont={
+              <div className="text-md px-3 py-2">
+                Your total balance after{" "}
+                {balanceHistory.length === 1 ? "one" : balanceHistory.length}
+                {balanceHistory.length === 1 ? " year" : " years"} based <br />
+                on salary variations, expenses, incomes, and yearly investments{" "}
+                <br />
+                on an index fund.
+              </div>
+            }
+            className="flex-row-reverse "
+            infoIconClassName="!h-4 !w-4 dark:!text-dark-neutral"
+            tooltipSide="bottom"
+          />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          className="h-[35vh] min-h-60 overflow-y-scroll sm:ml-2 sm:mb-2"
+        >
+          {ratesData ? (
+            CURRENCY_CODES.map((code) => {
+              const currency = getCurrency(code);
+
+              return (
+                <DropdownMenuItem
+                  onSelect={async () => {
+                    balanceDispatch({
+                      type: "TOTAL_BAL_LOADING",
+                      loading: true,
+                    });
+                    const { rates } =
+                      await utils.simulation.getExchangeRates.fetch(
+                        currency.value
+                      );
+                    runSim(JSON.parse(rates));
+                    balanceDispatch({
+                      type: "NEW_CURRENCY",
+                      code,
+                    });
+                    balanceDispatch({
+                      type: "TOTAL_BAL_LOADING",
+                      loading: false,
+                    });
+                  }}
+                  className={classNames(
+                    "flex cursor-pointer items-center px-4 py-2",
+                    // @TODO: refactor these as part DropdownMenuItem default styling
+                    selCurrency === code
+                      ? "!bg-neutral-900 !text-white hover:!bg-neutral-900 dark:!bg-dark-accent-100 dark:!text-dark-neutral dark:hover:!bg-dark-accent-100"
+                      : "dark:hover:!bg-dark-400"
+                  )}
+                >
+                  {currency.label}
+                </DropdownMenuItem>
+              );
+            })
+          ) : (
+            <div>No rates available yet</div>
+          )}
+        </DropdownMenuContent>
+      </Dropdown>
+    );
+  } else {
+    return null;
+  }
 };
 
 export default function App() {

@@ -18,7 +18,7 @@ export const MAYOR_CURRENCY_CODES = [
   "CNY",
   "NZD",
   "INR",
-  "BZR",
+  "BRL",
   "SEK",
   "ZAR",
   "HKD",

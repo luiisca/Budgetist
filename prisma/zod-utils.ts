@@ -145,6 +145,9 @@ export const categoryDataServer = categoryDataClient.extend({
 export const runSimulationData = z.object({
   years: nonEmptyString.or(z.number().positive()),
 });
+export const customRateData = z.object({
+  rate: z.number().positive(),
+});
 
 export type ProfileDataInputType = z.infer<typeof profileData>;
 
@@ -155,3 +158,5 @@ export type CategoryDataInputTypeClient = z.infer<typeof categoryDataClient>;
 export type CategoryDataInputTypeServer = z.infer<typeof categoryDataServer>;
 
 export type RunSimulationDataType = z.infer<typeof runSimulationData>;
+
+export type CustomRateDataType = z.infer<typeof customRateData>;

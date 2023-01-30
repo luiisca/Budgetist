@@ -32,28 +32,29 @@ export default function Login() {
       [ErrorCode.ThirdPartyIdentityProviderEnabled]:
         "Your account was created using an Identity Provider.",
       [ErrorCode.IncorrectProvider]:
-        "Account already registered with another provider (Google, Facebook or Magic Link). Please try again using the one you registered your account with. Try to reset your browser if this problem persists.",
+        "Account registered with another provider.",
     }),
     []
   );
 
   useEffect(() => {
     if (router.query?.error) {
-      if (
-        router.query?.error === "OAuthCallback" ||
-        router.query?.error === "OAuthAccountNotLinked"
-      ) {
-        // TODO: feat: add redirect page for when provider is incorrect
-        console.log("UH OH");
+      setOAuthError(true);
+      if (router.query?.error === "OAuthAccountNotLinked") {
+        // @TODO: feat: log them in through magic link (redirect to verify page)
+        setErrorMessage(
+          errorMessages[ErrorCode.IncorrectProvider] || "Something went wrong."
+        );
       } else {
-        setOAuthError(true);
         setErrorMessage(
           errorMessages[router.query?.error as string] ||
             "Something went wrong."
         );
       }
-      // Clean URL to clean error query
-      router.push(`${WEBAPP_URL}/auth/login`, undefined, { shallow: true });
+      // Clean URL to get rid of error query
+      router
+        .push(`${WEBAPP_URL}/auth/login`, undefined, { shallow: true })
+        .catch(console.error);
     }
   }, [errorMessages, router, router.query?.error]);
 
@@ -61,7 +62,7 @@ export default function Login() {
     <>
       <AuthContainer showLogo heading="Log in to Budgetist">
         <>
-          {oAuthError && (
+          {errorMessage && oAuthError && (
             <Alert className="mt-4" severity="error" title={errorMessage} />
           )}
           {errorMessage && !oAuthError && (

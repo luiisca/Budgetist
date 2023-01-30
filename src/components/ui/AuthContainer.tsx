@@ -22,7 +22,7 @@ export default function AuthContainer(props: React.PropsWithChildren<Props>) {
           alt="Budgetist Logo"
           height={78}
           width={256}
-          className="mx-auto mb-auto h-auto w-[15%] min-w-56 dark:invert"
+          className="mx-auto mb-auto h-auto w-1/12 min-w-40 dark:invert"
         />
       )}
       <div

@@ -20,9 +20,10 @@ export function Alert(props: AlertProps) {
   return (
     <div
       className={classNames(
-        "rounded-sm border border-opacity-20 p-3",
+        "rounded-md border border-opacity-20 p-3",
         props.className,
-        severity === "error" && "border-red-900 bg-red-50 text-red-800",
+        severity === "error" &&
+          `${"border-red-900 bg-red-50 text-red-800"} ${"dark:border-dark-destructive-100 dark:bg-dark-destructive-100 dark:text-white"}`,
         severity === "warning" &&
           "border-yellow-700 bg-yellow-50 text-yellow-700",
         severity === "info" && "border-sky-700 bg-sky-50 text-sky-700",
@@ -33,7 +34,7 @@ export function Alert(props: AlertProps) {
         <div className="flex-shrink-0">
           {severity === "error" && (
             <ExclamationCircleIcon
-              className={classNames("h-5 w-5 text-red-400")}
+              className={classNames("h-5 w-5 text-red-400", "dark:text-white")}
               aria-hidden="true"
             />
           )}

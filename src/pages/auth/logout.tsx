@@ -12,7 +12,7 @@ export default function Logout() {
   if (status === "authenticated") signOut({ redirect: false });
 
   return (
-    <AuthContainer>
+    <AuthContainer showLogo>
       <div className="mb-4">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
           <FiCheck className="h-6 w-6 text-green-600" />

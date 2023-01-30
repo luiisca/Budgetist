@@ -47,9 +47,12 @@ export const OptionComponent = <
       className={classNames(
         className,
         "!flex !cursor-pointer justify-between !py-3",
-        !props.isSelected && "dark:hover:!bg-dark-tertiary",
-        props.isFocused && "!bg-gray-100 dark:!bg-transparent",
-        props.isSelected && "!bg-neutral-900 dark:!bg-dark-accent-100"
+        props.isFocused &&
+          !props.isSelected &&
+          "!bg-gray-100 dark:!bg-transparent",
+        props.isSelected
+          ? "!bg-neutral-900 dark:!bg-dark-accent-100"
+          : "dark:hover:!bg-dark-tertiary"
       )}
     >
       <span>{props.label}</span>{" "}

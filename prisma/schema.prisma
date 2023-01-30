@@ -54,7 +54,7 @@ model User {
   name               String?
   email              String           @unique
   emailVerified      DateTime?
-  avatar             String? @db.Text
+  avatar             String? @db.LongText
   identityProvider   IdentityProvider @default(GOOGLE)
   identityProviderId String?
   completedOnboarding Boolean @default(false)

@@ -340,6 +340,7 @@ const CategoryForm = ({
     },
     onSuccess: async () => {
       showToast("Category deleted", "success");
+      setDeleteCategoryOpen(false);
       await utils.simulation.categories.invalidate();
     },
     onError: async () => {
@@ -611,7 +612,7 @@ const CategoryForm = ({
           <Button
             type="submit"
             color="primary"
-            disabled={categoryMutation.isLoading}
+            loading={categoryMutation.isLoading}
           >
             {category ? "Update" : "Create"}
           </Button>
@@ -641,6 +642,7 @@ const CategoryForm = ({
                     deleteCategoryMutation.mutate({ id: category.id });
                   })(e)
                 }
+                actionProps={{ loading: deleteCategoryMutation.isLoading }}
               />
             </Dialog>
           ) : (

@@ -279,6 +279,7 @@ const SalaryForm = ({
     },
     onSuccess: async () => {
       showToast("Salary deleted", "success");
+      setDeleteSalaryOpen(false);
       await utils.simulation.salaries.invalidate();
     },
     onError: async () => {
@@ -489,6 +490,7 @@ const SalaryForm = ({
                     deleteSalaryMutation.mutate({ id: salary.id });
                   })(e)
                 }
+                actionProps={{ loading: deleteSalaryMutation.isLoading }}
               />
             </Dialog>
           ) : (

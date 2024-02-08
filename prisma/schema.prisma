@@ -2,154 +2,142 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
-  url = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SWADOW_URL")
-  relationMode = "prisma"
+    provider = "cockroachdb"
+    url      = env("DATABASE_URL")
 }
 
 generator zod {
-  provider      = "zod-prisma"
-  output        = "./zod"
-  imports       = "./zod-utils"
-  relationModel = "default"
+    provider = "zod-prisma"
+    output   = "./zod"
+    imports  = "./zod-utils"
 }
 
 // Necessary for Next auth
 model Account {
-  id                String  @id @default(cuid())
-  userId            Int
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
+    id                       String  @id @default(cuid())
+    type                     String
+    provider                 String
+    providerAccountId        String
+    refresh_token            String?
+    access_token             String?
+    expires_at               Int?
+    token_type               String?
+    scope                    String?
+    id_token                 String?
+    session_state            String?
+    refresh_token_expires_in Int
 
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId String
 
-  @@unique([provider, providerAccountId])
+    @@unique([provider, providerAccountId])
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       Int
-  expires      DateTime
-  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    id           String   @id @default(cuid())
+    sessionToken String   @unique
+    expires      DateTime
+    user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId       String
 }
 
 model User {
-  id                 Int              @id @default(autoincrement())
-  /// @zod.custom(imports.username)
-  username           String?
-  name               String?
-  email              String           @unique
-  emailVerified      DateTime?
-  avatar             String? @db.Text
-  identityProvider   IdentityProvider @default(GOOGLE)
-  identityProviderId String?
-  completedOnboarding Boolean @default(false)
-  accounts           Account[]
-  sessions           Session[]
-  Feedback Feedback[]
+    id                  String     @id @default(cuid())
+    /// @zod.custom(imports.username)
+    username            String?
+    name                String?
+    email               String?    @unique
+    emailVerified       DateTime?
+    avatar              String?
+    completedOnboarding Boolean    @default(false)
+    accounts            Account[]
+    sessions            Session[]
+    Feedback            Feedback[]
 
-  country     String @default("US")
-  inflation   Int    @default(8)
-  currency    String @default("USD")
-  investPerc  Int    @default(80)
-  indexReturn Int    @default(7)
+    country     String @default("US")
+    inflation   Int    @default(8)
+    currency    String @default("USD")
+    investPerc  Int    @default(80)
+    indexReturn Int    @default(7)
 
-  salary Salary[]
-  categories Category[]
+    salary     Salary[]
+    categories Category[]
 }
 
 model Feedback {
-  id      Int      @id @default(autoincrement())
-  date    DateTime @default(now())
-  userId  Int
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  rating  String
-  comment String?
+    id      BigInt   @id @default(autoincrement())
+    date    DateTime @default(now())
+    rating  String
+    comment String?
+
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId String
 }
 
 model VerificationToken {
-  id         Int      @id @default(autoincrement())
-  identifier String
-  token      String   @unique
-  expires    DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+    identifier String
+    token      String   @unique
+    expires    DateTime
 
-  @@unique([identifier, token])
-}
-
-enum IdentityProvider {
-  MAGIC
-  GOOGLE
-  GITHUB
+    @@unique([identifier, token])
 }
 
 model Salary {
-  id       Int      @id @default(autoincrement())
-  title    String @default("Salary")
-  currency    String @default("USD")
-  amount   Int
-  taxType String @default("perCat")
-  taxPercent Int @default(30)
-  variance Period[]
+    id         BigInt   @id @default(autoincrement())
+    title      String   @default("Salary")
+    currency   String   @default("USD")
+    amount     Int
+    taxType    String   @default("perCat")
+    taxPercent Int      @default(30)
+    variance   Period[]
 
-  user   User @relation(fields: [userId], references: [id])
-  userId Int
+    user   User   @relation(fields: [userId], references: [id])
+    userId String
 }
 
 model Period {
-  id     Int @id @default(autoincrement())
-  from   Int
-  amount Int
+    id     BigInt @id @default(autoincrement())
+    from   Int
+    amount Int
 
-  salary   Salary @relation(fields: [salaryId], references: [id], onDelete: Cascade)
-  taxPercent Int @default(30)
-  salaryId Int
+    salary     Salary @relation(fields: [salaryId], references: [id], onDelete: Cascade)
+    salaryId   BigInt
+    taxPercent Int    @default(30)
 }
 
 model Category {
-  id         Int    @id @default(autoincrement())
-  title      String
-  budget     Int
-  currency   String @default("USD")
-  type       String @default("outcome")
-  inflType   String @default("perCat")
-  country    String
-  inflVal    Int
-  icon       String
-  freqType String @default("perCat")
-  frequency Int @default(12)
+    id        BigInt @id @default(autoincrement())
+    title     String
+    budget    Int
+    currency  String @default("USD")
+    type      String @default("outcome")
+    inflType  String @default("perCat")
+    country   String
+    inflVal   Int
+    icon      String
+    freqType  String @default("perCat")
+    frequency Int    @default(12)
 
-  user User @relation(fields: [userId], references: [id])
-  userId Int
-  records Record[]
+    user    User     @relation(fields: [userId], references: [id])
+    userId  String
+    records Record[]
 }
 
 model Record {
-  id         Int    @id @default(autoincrement())
-  title      String?
-  amount     Int
-  type       String
-  frequency Int
-  inflType  Boolean @default(true)
-  country String
-  inflation  Int
-  currency   String
+    id        BigInt  @id @default(autoincrement())
+    title     String?
+    amount    Int
+    type      String
+    frequency Int
+    inflType  Boolean @default(true)
+    country   String
+    inflation Int
+    currency  String
 
-  category   Category @relation(fields: [categoryId], references: [id])
-  categoryId Int
+    category   Category @relation(fields: [categoryId], references: [id])
+    categoryId BigInt
 }

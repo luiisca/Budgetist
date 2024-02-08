@@ -1,17 +1,14 @@
 import * as z from "zod"
 import * as imports from "../zod-utils"
-import { IdentityProvider } from "@prisma/client"
-import { CompleteAccount, AccountModel, CompleteSession, SessionModel, CompleteFeedback, FeedbackModel, CompleteSalary, SalaryModel, CompleteCategory, CategoryModel } from "./index"
+import { CompleteAccount, RelatedAccountModel, CompleteSession, RelatedSessionModel, CompleteFeedback, RelatedFeedbackModel, CompleteSalary, RelatedSalaryModel, CompleteCategory, RelatedCategoryModel } from "./index"
 
-export const _UserModel = z.object({
-  id: z.number().int(),
+export const UserModel = z.object({
+  id: z.string(),
   username: imports.username.nullish(),
   name: z.string().nullish(),
-  email: z.string(),
+  email: z.string().nullish(),
   emailVerified: z.date().nullish(),
   avatar: z.string().nullish(),
-  identityProvider: z.nativeEnum(IdentityProvider),
-  identityProviderId: z.string().nullish(),
   completedOnboarding: z.boolean(),
   country: z.string(),
   inflation: z.number().int(),
@@ -20,7 +17,7 @@ export const _UserModel = z.object({
   indexReturn: z.number().int(),
 })
 
-export interface CompleteUser extends z.infer<typeof _UserModel> {
+export interface CompleteUser extends z.infer<typeof UserModel> {
   accounts: CompleteAccount[]
   sessions: CompleteSession[]
   Feedback: CompleteFeedback[]
@@ -29,14 +26,14 @@ export interface CompleteUser extends z.infer<typeof _UserModel> {
 }
 
 /**
- * UserModel contains all relations on your model in addition to the scalars
+ * RelatedUserModel contains all relations on your model in addition to the scalars
  *
  * NOTE: Lazy required in case of potential circular dependencies within schema
  */
-export const UserModel: z.ZodSchema<CompleteUser> = z.lazy(() => _UserModel.extend({
-  accounts: AccountModel.array(),
-  sessions: SessionModel.array(),
-  Feedback: FeedbackModel.array(),
-  salary: SalaryModel.array(),
-  categories: CategoryModel.array(),
+export const RelatedUserModel: z.ZodSchema<CompleteUser> = z.lazy(() => UserModel.extend({
+  accounts: RelatedAccountModel.array(),
+  sessions: RelatedSessionModel.array(),
+  Feedback: RelatedFeedbackModel.array(),
+  salary: RelatedSalaryModel.array(),
+  categories: RelatedCategoryModel.array(),
 }))

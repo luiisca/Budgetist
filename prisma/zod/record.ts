@@ -1,9 +1,9 @@
 import * as z from "zod"
 import * as imports from "../zod-utils"
-import { CompleteCategory, CategoryModel } from "./index"
+import { CompleteCategory, RelatedCategoryModel } from "./index"
 
-export const _RecordModel = z.object({
-  id: z.number().int(),
+export const RecordModel = z.object({
+  id: z.bigint(),
   title: z.string().nullish(),
   amount: z.number().int(),
   type: z.string(),
@@ -12,18 +12,18 @@ export const _RecordModel = z.object({
   country: z.string(),
   inflation: z.number().int(),
   currency: z.string(),
-  categoryId: z.number().int(),
+  categoryId: z.bigint(),
 })
 
-export interface CompleteRecord extends z.infer<typeof _RecordModel> {
+export interface CompleteRecord extends z.infer<typeof RecordModel> {
   category: CompleteCategory
 }
 
 /**
- * RecordModel contains all relations on your model in addition to the scalars
+ * RelatedRecordModel contains all relations on your model in addition to the scalars
  *
  * NOTE: Lazy required in case of potential circular dependencies within schema
  */
-export const RecordModel: z.ZodSchema<CompleteRecord> = z.lazy(() => _RecordModel.extend({
-  category: CategoryModel,
+export const RelatedRecordModel: z.ZodSchema<CompleteRecord> = z.lazy(() => RecordModel.extend({
+  category: RelatedCategoryModel,
 }))

@@ -140,7 +140,7 @@ export const Button = forwardRef<
                 <StartIcon
                     className={cn(
                         "inline-flex",
-                        size === "icon" ? "h-4 w-4 " : "mr-2 h-4 w-4 stroke-[1.5px]"
+                        size === "icon" ? "h-4 w-4 " : "mr-2 h-4 w-4"
                     )}
                 />
             )}
@@ -149,7 +149,7 @@ export const Button = forwardRef<
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transform">
                     <svg
                         className={cn(
-                            "mx-4 h-5 w-5 animate-spin",
+                            "mx-4 h-4 w-4 animate-spin",
                             color === "primary" ? "text-white" : "text-black dark:text-white"
                         )}
                         xmlns="http://www.w3.org/2000/svg"
@@ -165,9 +165,9 @@ export const Button = forwardRef<
                             strokeWidth="4"
                         />
                         <path
-                            className="opacity-90"
+                            className="opacity-75"
                             fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                         />
                     </svg>
                 </div>

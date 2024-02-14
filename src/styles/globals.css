@@ -2,16 +2,83 @@
 @tailwind components;
 @tailwind utilities;
 
-body  {
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-}
-
+/* https://github.com/calcom/cal.com/blob/c0c40185fc93ef394e6f2e2016b8a9a1b00f1f8e/apps/web/styles/globals.css#L4 */
 :root {
   --brand-color: #292929;
   --brand-text-color: #ffffff;
   --brand-color-dark-mode: #191a23;
   --brand-text-color-dark-mode: #eeeffc;
+}
+
+@layer base {
+  * {
+    /* @apply border-default  */
+  }
+}
+
+::-moz-selection {
+  color: var(--cal-brand-text);
+  background: var(--cal-brand);
+}
+
+::selection {
+  color: var(--cal-brand-text);
+  background: var(--cal-brand);
+}
+
+body  {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+  Desktop App specific CSS
+    https://docs.todesktop.com/
+*/
+
+/* disable user selection on buttons, links and images on desktop app */
+html.todesktop button,
+html.todesktop a,
+html.todesktop img,
+html.todesktop header {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  cursor: default !important;
+}
+
+html.todesktop,
+html.todesktop div {
+  cursor: default !important;
+}
+
+/* make header draggable on desktop app */
+html.todesktop header {
+  -webkit-app-region: drag;
+}
+
+html.todesktop header button,
+html.todesktop header a {
+  -webkit-app-region: no-drag;
+}
+
+html.todesktop-platform-darwin.dark main.bg-default {
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+html.todesktop-platform-darwin.light main.bg-default {
+  background: rgba(255, 255, 255, 0.8) !important;
+}
+
+html.todesktop.light {
+  --cal-bg-emphasis: hsla(0, 0%, 11%, 0.1);
+}
+
+html.todesktop.dark {
+  --cal-bg-emphasis: hsla(220, 2%, 26%, 0.3);
 }
 
 /*
@@ -20,22 +87,17 @@ body  {
     https://github.com/tailwindlabs/tailwindcss/pull/5732
 */
 @layer utilities {
-  @variants responsive {
-    /* Chrome, Safari and Opera */
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
+  /* Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 
-    .no-scrollbar {
-      -ms-overflow-style: none; /* IE and Edge */
-      scrollbar-width: none; /* Firefox */
-    }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
 }
 
-:focus-visible {
-  @apply outline-none ring-2 ring-neutral-800 ring-offset-2 transition-shadow dark:ring-dark-accent-200 dark:ring-offset-dark-primary;
-}
 /*
  * Override the default tailwindcss-forms styling (default is: 'colors.blue.600')
  * @see: https://github.com/tailwindlabs/tailwindcss-forms/issues/14#issuecomment-1005376006
@@ -60,50 +122,17 @@ select:focus {
   --tw-ring-color: var(--brand-color);
   border-color: var(--brand-color);
 }
-@media (prefers-color-scheme: "dark") {
-  [type="text"]:focus,
-  [type="email"]:focus,
-  [type="url"]:focus,
-  [type="password"]:focus,
-  [type="number"]:focus,
-  [type="date"]:focus,
-  [type="datetime-local"]:focus,
-  [type="month"]:focus,
-  [type="search"]:focus,
-  [type="tel"]:focus,
-  [type="checkbox"]:focus,
-  [type="radio"]:focus,
-  [type="time"]:focus,
-  [type="week"]:focus,
-  [multiple]:focus,
-  textarea:focus,
-  select:focus {
-    --tw-ring-color: var(--brand-color-dark-mode);
-    border-color: var(--brand-color-dark-mode);
+
+@layer components {
+  .scroll-bar {
+    @apply scrollbar-thin scrollbar-thumb-rounded-md dark:scrollbar-thumb-darkgray-300 scrollbar-thumb-gray-300 scrollbar-track-transparent;
   }
 }
 
-button[role="switch"][data-state="checked"] {
-  @apply bg-gray-900 dark:bg-dark-accent-200;
-}
 /* TODO: avoid global specific css */
 /* button[role="switch"][data-state="checked"] span {
   transform: translateX(16px);
 } */
-
-/* DateRangePicker */
-/*
-  TODO:: Remove on V2 launch
- */
-.react-daterange-picker > .react-daterange-picker__wrapper {
-  /* border consistent with other inputs */
-  @apply rounded-sm border-gray-300 px-2 py-1.5 text-sm lg:py-1;
-}
-
-.react-daterange-picker > .react-daterange-picker__wrapper input {
-  /* Makes sure the on-focus behaviour is like Cal.com's */
-  @apply my-0.5 h-auto rounded-sm py-0.5;
-}
 
 @layer components {
   /* slider */
@@ -112,46 +141,23 @@ button[role="switch"][data-state="checked"] {
   }
 
   .slider > .slider-track {
-    @apply relative h-1 flex-grow rounded-md bg-neutral-400 dark:bg-dark-800;
+    @apply relative h-1 flex-grow rounded-md bg-gray-400;
   }
 
   .slider .slider-range {
-    @apply absolute h-full rounded-full bg-neutral-700 dark:bg-dark-accent-200;
+    @apply absolute h-full rounded-full bg-gray-700;
   }
 
   .slider .slider-thumb {
-    @apply block h-3 w-3 cursor-pointer rounded-full bg-neutral-700 transition-all dark:bg-dark-accent-100;
+    @apply block h-3 w-3 cursor-pointer rounded-full bg-gray-700 transition-all;
   }
 
   .slider .slider-thumb:hover {
-    @apply bg-neutral-600 dark:bg-dark-accent-300;
+    @apply bg-gray-600;
   }
 
   .slider .slider-thumb:focus {
     box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.2);
-    @apply transition-none transition-shadow;
-  }
-}
-
-/* !important to style multi-email input */
-::-moz-selection {
-  color: white;
-  background: black;
-}
-
-::selection {
-  color: white;
-  background: black;
-}
-
-/* add padding bottom to bottom nav on standalone mode */
-@media all and (display-mode: standalone) {
-  .bottom-nav {
-    padding-bottom: 24px;
-  }
-
-  .cta {
-    bottom: 100px;
   }
 }
 
@@ -176,59 +182,7 @@ button[role="switch"][data-state="checked"] {
   }
 }
 
-/* add padding bottom to bottom nav on standalone mode */
-@media all and (display-mode: standalone) {
-  .bottom-nav {
-    padding-bottom: 24px;
-  }
-}
-
-.react-multi-email > [type="text"] {
-  @apply block w-full rounded-md border-gray-300 text-sm focus:border-brand focus:ring-black disabled:bg-gray-200 disabled:hover:cursor-not-allowed dark:border-darkgray-300 dark:bg-transparent dark:text-darkgray-900 dark:text-white dark:selection:bg-green-500 dark:placeholder:text-darkgray-600 disabled:dark:text-gray-500;
-}
-
-.react-multi-email [data-tag] {
-  box-shadow: none !important;
-  @apply my-1 inline-flex items-center rounded-md border border-transparent bg-neutral-200 px-2 py-1 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 hover:bg-neutral-100 ltr:mr-2 rtl:ml-2 dark:bg-brand dark:text-white;
-}
-
-.react-multi-email > span[data-placeholder] {
-  display: none;
-  position: absolute;
-  left: 0.8rem;
-  top: 0.75rem;
-  line-height: 1.25rem;
-  font-size: 0.875rem;
-}
-
-.react-multi-email.empty > span[data-placeholder] {
-  display: inline;
-  color: #646b7a;
-}
-
-.react-multi-email.focused > span[data-placeholder] {
-  display: none;
-}
-
-.react-multi-email > input {
-  width: 100% !important;
-  display: inline-block !important;
-  @apply mt-1;
-}
-
-.react-multi-email [data-tag] {
-  @apply my-1 inline-flex items-center rounded-md border border-transparent bg-neutral-200 px-2 py-1 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:ring-offset-2 hover:bg-neutral-100 ltr:mr-2 rtl:ml-2 dark:bg-neutral-900 dark:text-white dark:hover:bg-neutral-700;
-}
-
-.react-multi-email [data-tag] [data-tag-item] {
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.react-multi-email [data-tag] [data-tag-handle] {
-  margin-left: 0.833em;
-  cursor: pointer;
-}
+/* TODO: implement styling for react-multi-email */
 
 /* !important to override react-dates */
 .DateRangePickerInput__withBorder {
@@ -321,27 +275,7 @@ button[role="switch"][data-state="checked"] {
   }
 }
 
-nav#nav--settings > a {
-  @apply flex items-center border-l-4 border-transparent px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-50 hover:text-gray-900;
-}
-
-nav#nav--settings > a svg {
-  @apply mr-3 -ml-1 h-6 w-6 flex-shrink-0 text-gray-400 group-hover:text-gray-500;
-}
-
-nav#nav--settings > a.active {
-  @apply border-neutral-500 bg-neutral-50 text-neutral-700 hover:bg-neutral-50 hover:text-neutral-700;
-}
-
-nav#nav--settings > a.active svg {
-  @apply text-neutral-500;
-}
-
-hr {
-  @apply border-gray-200;
-}
-
-.text-white-important {
+.text-inverted-important {
   color: white !important;
 }
 
@@ -439,6 +373,21 @@ hr {
   -webkit-appearance: none;
 }
 
-.bud-react-select__input-container {
-  @apply dark:text-dark-neutral;
+/* .react-tel-input .country-list .country:hover, */
+/* .react-tel-input .country-list .country.highlight { */
+/*   @apply !bg-emphasis; */
+/* } */
+/**/
+/* .react-tel-input .flag-dropdown .selected-flag, */
+/* .react-tel-input .flag-dropdown.open .selected-flag { */
+/*   @apply !bg-default; */
+/* } */
+/**/
+/* .react-tel-input .flag-dropdown { */
+/*   @apply !border-r-default left-0.5 !border-y-0 !border-l-0; */
+/* } */
+
+:focus-visible {
+  @apply outline-none ring-2 ring-neutral-800 ring-offset-2 transition-shadow dark:ring-dark-accent-200 dark:ring-offset-dark-primary;
 }
+

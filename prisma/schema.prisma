@@ -10,11 +10,11 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-generator zod {
-    provider = "zod-prisma"
-    output   = "./zod"
-    imports  = "./zod-utils"
-}
+// generator zod {
+//     provider = "zod-prisma"
+//     output   = "./zod"
+//     imports  = "./zod-utils"
+// }
 
 // Necessary for Next auth
 model Account {
@@ -52,7 +52,7 @@ model User {
     name                String?
     email               String?    @unique
     emailVerified       DateTime?
-    avatar              String?
+    image               String?
     completedOnboarding Boolean    @default(false)
     accounts            Account[]
     sessions            Session[]

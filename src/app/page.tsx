@@ -1,11 +1,9 @@
-import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import Button from "~/components/ui/core/button";
-
-import { getServerAuthSession } from "~/server/auth";
+import { auth } from "./(auth)/auth";
 
 export default async function Home() {
-    const session = await getServerAuthSession();
+    const session = await auth();
 
     return (
         <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">
@@ -43,7 +41,7 @@ export default async function Home() {
                             {session && <span>Logged in as {session.user?.name}</span>}
                         </p>
                         {session?.user && <Button asChild><Link href='/simulation'>Go to App</Link></Button>}
-                        {!session?.user && <Button asChild><Link href='/auth/login'>Login</Link></Button>}
+                        {!session?.user && <Button asChild><Link href='/login'>Login</Link></Button>}
                     </div>
                 </div>
             </div>

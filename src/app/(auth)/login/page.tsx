@@ -1,51 +1,36 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getCsrfToken } from "next-auth/react";
+import { AuthError } from "next-auth";
 import { Github } from "lucide-react";
 
 import { env } from "~/env";
-import { getServerAuthSession } from "~/server/auth";
-
 import Button from "~/components/ui/core/button";
 import { Input, Label } from "~/components/ui";
-import SubmitBttn from "../_components/submit-bttn"
 import AuthContainer from "~/components/ui/AuthContainer";
 import { Alert } from "~/components/ui/alert";
+import { signIn } from "../auth";
+import SubmitBttn from "../_components/submit-button";
 
 export default async function Login({
     searchParams,
 }: {
     searchParams: Record<string, string | string[] | undefined> & { error: string }
 }) {
-    const session = await getServerAuthSession();
-    if (session?.user) {
-        return redirect('/simulation')
-    }
-
-    const csrfToken = await getCsrfToken({
-        req: {
-            headers: {
-                cookie: cookies().toString()
-            }
-        }
-    })
-
     return (
         <AuthContainer showLogo heading="Log in to Budgetist" >
             <div className="space-y-5">
                 {searchParams.error && (
                     <Alert severity="error" title={searchParams.error} />
                 )}
-                <form
-                    method="POST"
-                    action={`${env.NEXTAUTH_URL}/api/auth/signin/github?callbackUrl=${env.NEXTAUTH_URL}/simulation`}
-                    className="flex flex-col group gap-2">
 
-                    <input
-                        hidden
-                        value={csrfToken}
-                        name="csrfToken"
-                        readOnly />
+                <form
+                    action={async () => {
+                        "use server"
+
+                        await signIn('github', {
+                            redirectTo: '/simulation',
+                        })
+                    }}
+                    className="flex flex-col group gap-2">
 
                     <Button
                         color="secondary"
@@ -70,9 +55,14 @@ export default async function Login({
                 </div>
             </div>
             <form
-                method="POST"
-                action={`${env.NEXTAUTH_URL}/api/auth/signin/email?callbackUrl=${env.NEXTAUTH_URL}/simulation`}
-                id='auth-form'
+                action={async (formData: FormData) => {
+                    'use server'
+
+                    await signIn('nodemailer', {
+                        redirectTo: '/simulation',
+                        email: formData.get('email') as string,
+                    })
+                }}
             >
 
                 <Label htmlFor="email" className="pl-1">Magic Link</Label>
@@ -88,12 +78,6 @@ export default async function Login({
                         className="dark:focus:invalid:border-dark-destructive-100 focus:invalid:ring-dark-destructive-100"
                     />
                 </div>
-
-                <input
-                    hidden
-                    value={csrfToken}
-                    name="csrfToken"
-                    readOnly />
 
                 <SubmitBttn className="flex w-full justify-center">Send email</SubmitBttn>
             </form>

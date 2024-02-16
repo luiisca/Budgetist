@@ -1,38 +1,19 @@
-import { cookies } from "next/headers";
-import { getCsrfToken } from "next-auth/react";
-
-import { env } from "~/env";
-import { redirect } from "next/navigation";
-import { getServerAuthSession } from "~/server/auth";
+import { signOut } from "../(auth)/auth";
 
 export default async function Simulation() {
-    const session = await getServerAuthSession();
-    if (!session?.user) {
-        return redirect('/auth/login')
-    }
-
-    const csrfToken = await getCsrfToken({
-        req: {
-            headers: {
-                cookie: cookies().toString()
-            }
-        }
-    })
-
     return (
         <div>
             <h1>Simulation</h1>
 
             <form
-                method="POST"
-                action={`${env.NEXTAUTH_URL}/api/auth/signout?callbackUrl=${env.NEXTAUTH_URL}/auth/logout`}
-                className="flex flex-col group gap-2">
+                action={async () => {
+                    'use server'
 
-                <input
-                    hidden
-                    value={csrfToken}
-                    name="csrfToken"
-                    readOnly />
+                    await signOut({
+                        redirectTo: '/logout'
+                    })
+                }}
+                className="flex flex-col group gap-2">
 
                 <button
                     className="outline-none 

@@ -36,13 +36,13 @@ model Account {
     @@unique([provider, providerAccountId])
 }
 
-model Session {
-    id           String   @id @default(cuid())
-    sessionToken String   @unique
-    expires      DateTime
-    user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-    userId       String
-}
+// model Session {
+//     id           String   @id @default(cuid())
+//     sessionToken String   @unique
+//     expires      DateTime
+//     user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+//     userId       String
+// }
 
 model User {
     id                  String     @id @default(cuid())
@@ -54,7 +54,7 @@ model User {
     image               String?
     completedOnboarding Boolean    @default(false)
     accounts            Account[]
-    sessions            Session[]
+    // sessions            Session[]
     Feedback            Feedback[]
 
     country     String @default("US")

@@ -7,19 +7,21 @@ import Button from "~/components/ui/core/button";
 import { Input, Label } from "~/components/ui";
 import AuthContainer from "~/components/ui/AuthContainer";
 import { Alert } from "~/components/ui/alert";
-import { signIn } from "../auth";
+import { auth, signIn } from "../auth";
 import SubmitBttn from "../_components/submit-button";
+import { checkRateLimitAndReturnError } from "../_lib/check-rate-limit-and-return-error";
+import WaitCounter from "../_components/wait-counter";
 
 export default async function Login({
     searchParams,
 }: {
-    searchParams: Record<string, string | string[] | undefined> & { error: string }
+    searchParams: Record<string, string | string[] | undefined> & { error?: string; wait?: string }
 }) {
     return (
         <AuthContainer showLogo heading="Log in to Budgetist" >
             <div className="space-y-5">
                 {searchParams.error && (
-                    <Alert severity="error" title={searchParams.error} />
+                    <Alert severity="error" title={searchParams.wait ? <WaitCounter seconds={searchParams.wait} redirectUrl="/login" /> : searchParams.error} />
                 )}
 
                 <form
@@ -58,10 +60,27 @@ export default async function Login({
                 action={async (formData: FormData) => {
                     'use server'
 
-                    await signIn('nodemailer', {
-                        redirectTo: '/simulation',
-                        email: formData.get('email') as string,
+                    const email = formData.get('email') as string
+
+                    const error = await checkRateLimitAndReturnError({
+                        identifier: email
                     })
+                    if (error) {
+                        const { message, wait } = JSON.parse(error.message)
+                        redirect(`?error=${message}&wait=${wait}`)
+                    }
+
+                    const redirectUrl = await signIn('nodemailer', {
+                        redirectTo: '/simulation',
+                        redirect: false,
+                        email,
+                    })
+
+                    if (redirectUrl) {
+                        redirect(`/auth-verify?email=${email}`)
+                    } else {
+                        redirect(`?error='Oh oh, something went wrong. Please try again`)
+                    }
                 }}
             >
 

@@ -2,11 +2,24 @@ import { MailOpen } from "lucide-react";
 
 import { cn } from "~/utils/cn";
 
-import { Button } from "~/components/ui";
+import { redirect } from "next/navigation";
 
-export default async function Verify() {
+import { Alert } from "~/components/ui/alert";
+import { auth, signIn } from "../auth";
+import SubmitBttn from "../_components/submit-button";
+import { checkRateLimitAndReturnError } from "../_lib/check-rate-limit-and-return-error";
+import WaitCounter from "../_components/wait-counter";
+
+export default async function Verify({
+    searchParams,
+}: {
+    searchParams: Record<string, string | string[] | undefined> & { error?: string; wait?: string, email: string }
+}) {
     return (
         <div className="h-[100vh] w-full">
+            {searchParams.error && (
+                <Alert severity="error" title={searchParams.wait ? <WaitCounter seconds={searchParams.wait} redirectUrl={`/auth-verify?email=${searchParams.email}`} /> : searchParams.error} />
+            )}
             <div className="flex h-full w-full flex-col items-center justify-center">
                 <div className="max-w-3xl">
                     <div
@@ -28,17 +41,35 @@ export default async function Verify() {
                             <div className="text-default mb-8 mt-3 text-center text-sm font-normal leading-6">
                                 description
                             </div>
-                            <Button
-                                color="minimal"
-                                className="underline"
-                            // loading={mutation.isPending}
-                            // onClick={() => {
-                            //     showToast("Send email", "success");
-                            //     mutation.mutate();
-                            // }}>
+                            <form
+                                action={async () => {
+                                    'use server'
+
+                                    const email = searchParams.email
+
+                                    const error = await checkRateLimitAndReturnError({
+                                        identifier: email
+                                    })
+                                    if (error) {
+                                        const { message, wait } = JSON.parse(error.message)
+                                        redirect(`?error=${message}&wait=${wait}&email=${email}`)
+                                    }
+
+                                    await signIn('nodemailer', {
+                                        redirectTo: '/simulation',
+                                        redirect: false,
+                                        email,
+                                    })
+                                }}
                             >
-                                Resend Email
-                            </Button>
+                                <SubmitBttn
+                                    error={!!searchParams.error}
+                                    color="minimal"
+                                    className="underline"
+                                >
+                                    Resend Email
+                                </SubmitBttn>
+                            </form>
                         </div>
                     </div>
                 </div>

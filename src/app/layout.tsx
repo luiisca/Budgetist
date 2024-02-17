@@ -32,7 +32,7 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en" suppressHydrationWarning>
-            <body className={cn('font-sans', inter.variable, cal.variable)}>
+            <body className={cn('font-sans', inter.variable, cal.variable, "bg-gray-100 dark:bg-dark-primary")}>
                 {/* <TRPCReactProvider>{children}</TRPCReactProvider> */}
                 <ThemeProvider
                     attribute="class"

@@ -8,6 +8,12 @@
   --brand-text-color: #ffffff;
   --brand-color-dark-mode: #191a23;
   --brand-text-color-dark-mode: #eeeffc;
+
+  /* bg-gray-200 */
+    --bg-emphasis: #e5e7eb; 
+}
+.dark {
+    --bg-emphasis: #404040;
 }
 
 @layer base {

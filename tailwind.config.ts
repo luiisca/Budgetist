@@ -6,11 +6,10 @@ export default {
     theme: {
         extend: {
             colors: {
-                /* your primary brand color */
                 black: "#111111",
+                emphasis: "var(--bg-emphasis)",
+                default: "#384252",
                 brand: {
-                    // Figure out a way to automate this for self hosted users
-                    // Goto https://javisperez.github.io/tailwindcolorshades to generate your brand color
                     50: "#d1d5db",
                     100: "#9ca3af",
                     200: "#6b7280",

@@ -20,21 +20,21 @@ export const authConfig = {
                 return authUrls.some(url => nextUrl.pathname.startsWith(url));
             }
 
-            // users can always visit landing page
-            if (nextUrl.pathname === '/') {
-                return true
-            }
-
-            if (isAuthUrl()) {
-                // users can only visit auth pages if they're not logged in
-                if (isLoggedIn) {
-                    return Response.redirect(new URL('/simulation', nextUrl))
-                }
-
-                return true
-            } else if (!isLoggedIn) {
-                return false; // Redirect unauthenticated users to login page
-            }
+            // // users can always visit landing page
+            // if (nextUrl.pathname === '/') {
+            //     return true
+            // }
+            //
+            // if (isAuthUrl()) {
+            //     // users can only visit auth pages if they're not logged in
+            //     if (isLoggedIn) {
+            //         return Response.redirect(new URL('/simulation', nextUrl))
+            //     }
+            //
+            //     return true
+            // } else if (!isLoggedIn) {
+            //     return false; // Redirect unauthenticated users to login page
+            // }
 
             return true
         },

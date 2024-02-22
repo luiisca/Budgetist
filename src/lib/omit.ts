@@ -1,7 +1,7 @@
-export default function omit<T extends object, K extends (keyof T | (keyof T)[])[]>(obj: T, ...keys: K): {
-    [K2 in Exclude<keyof T, FlatArray<K, 2>>]: T[K2]
+export default function omit<T extends object, K extends keyof T>(obj: T, ...keys: (K | (K | K[])[])[]): {
+    [K2 in Exclude<keyof T, K>]: T[K2]
 } {
-    const keysToRemove = keys.flat() as (keyof T)[];
+    const keysToRemove = keys.flat(2) as (keyof T)[];
 
     let ret = {} as {
         [K in keyof typeof obj]: (typeof obj)[K]

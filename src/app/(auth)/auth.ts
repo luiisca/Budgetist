@@ -1,5 +1,5 @@
 import { createElement } from 'react';
-import NextAuth from 'next-auth';
+import NextAuth, { Session } from 'next-auth';
 import Nodemailer, { NodemailerConfig } from 'next-auth/providers/nodemailer';
 import Github from 'next-auth/providers/github'
 import { createTransport } from 'nodemailer';
@@ -14,7 +14,18 @@ import slugify from '~/lib/slugify';
 import { randomString } from '~/lib/random';
 import omit from '~/lib/omit';
 import pick from '~/lib/pick';
-import { AccountModel } from '../../../prisma/zod/account'
+import { User } from '@prisma/client';
+import { JWT } from "next-auth/jwt";
+import { UserModel, AccountModel } from '../../../prisma/zod';
+
+declare module 'next-auth' {
+    interface Session {
+        user: Partial<User>
+    }
+}
+declare module 'next-auth/jwt' {
+    interface JWT extends Partial<User> { }
+}
 
 const usernameSlug = (username: string) => `${slugify(username)}-${randomString(6).toLowerCase()}`;
 
@@ -210,6 +221,68 @@ export const {
 
             return true
         },
+        async jwt(params) {
+            const { token, user: providerUser, account: providerAccount } = params
+
+            const dbUserWithEmail = await db.user.findUnique({
+                where: {
+                    email: token.email!
+                }
+            })
+
+            if (providerAccount?.provider === 'nodemailer' || !providerUser) {
+                if (!dbUserWithEmail) {
+                    return token
+                }
+
+                return {
+                    ...dbUserWithEmail
+                } as JWT
+            }
+            if (providerAccount?.type === 'oauth') {
+                const dbUserWithAccount = await db.user.findFirst({
+                    where: {
+                        accounts: {
+                            some: {
+                                provider: providerAccount?.provider,
+                                providerAccountId: providerAccount?.providerAccountId
+                            }
+                        }
+                    }
+                })
+
+                if (!dbUserWithAccount) {
+                    if (dbUserWithEmail) {
+                        return {
+                            ...dbUserWithEmail
+                        } as JWT
+                    }
+
+                    return token
+                }
+
+                return {
+                    ...dbUserWithAccount
+                } as JWT
+            }
+
+            return token
+        },
+        async session(params) {
+            const { token, session } = params
+
+            const keysToPick = Object.keys(UserModel.shape) as Array<keyof typeof UserModel.shape>
+            const userPropsFromToken = pick(token, keysToPick)
+
+            const appSession: Session = {
+                ...session,
+                user: {
+                    ...userPropsFromToken
+                }
+            }
+
+            return appSession
+        }
     },
     adapter: PrismaAdapter(db),
     session: {

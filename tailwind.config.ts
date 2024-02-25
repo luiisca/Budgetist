@@ -10,17 +10,9 @@ export default {
                 emphasis: "var(--bg-emphasis)",
                 default: "#384252",
                 brand: {
-                    50: "#d1d5db",
-                    100: "#9ca3af",
-                    200: "#6b7280",
-                    300: "#4b5563",
                     400: "#374151",
-                    500: "#111827", // Brand color
-                    600: "#0f1623",
-                    700: "#0d121d",
-                    800: "#0a0e17",
                     900: "#080c13",
-                    DEFAULT: "var(--brand-color)",
+                    DEFAULT: "hsl(var(--brand-color))",
                 },
                 gray: {
                     50: "#F9FAFB",
@@ -140,7 +132,6 @@ export default {
                         200: "#fa6563",
                     },
                     accent: {
-                        100: "#575bc7", // button
                         200: "#6c79ff", // button focus
                         300: "#666be2", // button hover
                         400: "#4e52b3",

@@ -7,8 +7,13 @@ export default {
         extend: {
             colors: {
                 black: "#111111",
-                emphasis: "var(--bg-emphasis)",
-                default: "#384252",
+                muted: "hsl(var(--muted))",
+                subtle: "hsl(var(--subtle))",
+                emphasis: "hsl(var(--emphasis))",
+                foreground: {
+                    emphasis: "hsl(var(--text-emphasis))",
+                    DEFAULT: "hsl(var(--text))"
+                },
                 brand: {
                     400: "#374151",
                     900: "#080c13",

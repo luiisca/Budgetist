@@ -9,12 +9,26 @@
   --brand-color-dark-mode: #191a23;
   --brand-text-color-dark-mode: #eeeffc;
 
+  /* bg-gray-50 */
+  --muted: 210, 20%, 98.04%;
+  /* bg-gray-100 */
+  --subtle: 220, 14.29%, 95.88%;
   /* bg-gray-200 */
-  --bg-emphasis: #e5e7eb; 
+  --emphasis: 220, 13.04%, 90.98%; 
+  /* default */
+  --text: 216.92, 18.84%, 27.06%;
+  --text-emphasis: 216.92, 28.84%, 9.06%;
 }
 .dark {
   --brand-color: 237.86, 50%, 56.08%;
-  --bg-emphasis: #404040;
+  --muted: 234, 16.67%, 13.76%;
+  /* dark-secondary */
+  --subtle: 234.55, 12.36%, 17.45%;
+  /* dark-tertiary */
+  --emphasis: 237.27, 20%, 21.57%;
+  /* darkgray-700 */
+  --text: 0, 0%, 80.92%;
+  --text-emphasis: 0, 0%, 98.92%
 }
 
 @layer base {
@@ -132,7 +146,7 @@ select:focus {
 
 @layer components {
   .scroll-bar {
-    @apply scrollbar-thin scrollbar-thumb-rounded-md dark:scrollbar-thumb-darkgray-300 scrollbar-thumb-gray-300 scrollbar-track-transparent;
+    @apply scrollbar-thumb-rounded-md scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-300 dark:scrollbar-thumb-darkgray-300;
   }
 }
 

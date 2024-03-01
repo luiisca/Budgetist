@@ -33,11 +33,9 @@ import {
     CatInputDataType,
 } from "prisma/zod-utils";
 import {
-    getCountryLabel,
-    getCurrency,
+    getCountryLocaleName,
     getCurrencyLocaleName,
     getCurrencyOptions,
-    SelectOption,
 } from "~/lib/sim-settings";
 import {
     DEFAULT_FREQUENCY,
@@ -55,6 +53,7 @@ import {
     SELECT_LABELS_MAP,
     getSelectOptionWithFallback,
     SELECT_PER_REC_VAL,
+    getSelectOption,
 } from "~/lib/constants";
 import RecordsList from "./records-list";
 import { ControlledSelect } from "~/components/ui/core/form/select/Select";
@@ -147,39 +146,44 @@ const CategoryForm = ({
     });
 
     const recordsDisabledState = useState<boolean>(false);
+    const [recordsDisabled] = recordsDisabledState;
     const [deleteCategoryOpen, setDeleteCategoryOpen] = useState(false);
     const { updateInflation, isLoadingInfl, isValidInfl } = useUpdateInflation<CatInputDataType>();
     const { data: user, isLoading, isError, isSuccess, error } = api.user.me.useQuery();
     useEffect(() => {
         const currencyValue = category?.currency || (user?.currency as string);
-        reset({
-            ...category,
+        const optionFields = {
             currency: {
                 value: currencyValue,
                 label: getCurrencyLocaleName(currencyValue, user?.country)
             },
-            inflType: getSelectOptionWithFallback(category?.inflType as OptionsType, SELECT_PER_CAT_VAL),
-            inflVal: category?.inflVal || user?.inflation,
-            type: getSelectOptionWithFallback(category?.type as OptionsType, SELECT_OUTCOME_VAL),
             country: {
                 value: category?.country || user?.country,
-                label: getCountryLabel(category?.country || (user?.country as string)),
+                label: getCountryLocaleName(category?.country || (user?.country as string)),
             },
+            inflType: getSelectOptionWithFallback(category?.inflType as OptionsType, SELECT_PER_CAT_VAL),
+            type: getSelectOptionWithFallback(category?.type as OptionsType, SELECT_OUTCOME_VAL),
             freqType: getSelectOptionWithFallback(category?.freqType as OptionsType, SELECT_PER_CAT_VAL),
+        }
+
+        reset({
+            ...category,
+            ...optionFields,
+            inflVal: category?.inflVal || user?.inflation,
             frequency: category?.frequency || DEFAULT_FREQUENCY,
             records: category?.records.map((record) => ({
                 ...record,
-                title: record.title || "",
-                type: getSelectOptionWithFallback(record.type as OptionsType, SELECT_OUTCOME_VAL),
                 country: {
-                    value: record.country || user?.country,
-                    label: getCountryLabel(record.country || (user?.country as string)),
+                    value: record.country,
+                    label: getCountryLocaleName(record.country),
                 },
+                currency: {
+                    value: record.currency,
+                    label: getCurrencyLocaleName(record.currency, user?.country)
+                },
+                type: getSelectOption(record.type as OptionsType),
+                title: record.title || "",
                 inflation: record.inflation || user?.inflation,
-                currency: getCurrency(
-                    record.currency || (user?.currency as string),
-                    user?.country
-                ),
             })),
         });
     }, [user, category, reset]);

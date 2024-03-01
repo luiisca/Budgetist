@@ -10,12 +10,12 @@ import {
     useFormContext,
     UseFormReturn,
 } from "react-hook-form";
-// import objectPath from "object-path";
+import objectPath from "object-path";
 
-import { getErrorFromUnknown } from "~/utils/errors";
-// import showToast from "~/components/ui/core/notifications";
-import { FiInfo } from "react-icons/fi";
-import { cn } from "~/utils/cn";
+import { getErrorFromUnknown } from "~/lib/errors";
+import { cn } from "~/lib/cn";
+import { toast } from "sonner";
+import { Info } from "lucide-react";
 
 type InputProps = JSX.IntrinsicElements["input"];
 
@@ -53,31 +53,29 @@ export function Label(props: JSX.IntrinsicElements["label"]) {
     );
 }
 
-// export function Errors<T extends FieldValues = FieldValues>(props: {
-//     fieldName: string;
-// }) {
-//     const methods = useFormContext() as ReturnType<typeof useFormContext> | null;
-//     /* If there's no methods it means we're using these components outside a React Hook Form context */
-//     if (!methods) return null;
-//     const { formState } = methods;
-//     const { fieldName } = props;
-//
-//     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-//     // @ts-ignore
-//     const fieldErrors: FieldErrors<T> | undefined = objectPath.get(
-//         formState.errors,
-//         fieldName
-//     );
-//
-//     if (!fieldErrors) return null;
-//
-//     return (
-//         <div className="text-gray mt-2 flex items-center text-sm text-red-700">
-//             <FiInfo className="mr-1 h-3 w-3" />
-//             <>{fieldErrors.message}</>
-//         </div>
-//     );
-// }
+export function Errors<T extends FieldValues = FieldValues>(props: {
+    fieldName: string;
+}) {
+    const methods = useFormContext() as ReturnType<typeof useFormContext> | null;
+    /* If there's no methods it means we're using these components outside a React Hook Form context */
+    if (!methods) return null;
+    const { formState } = methods;
+    const { fieldName } = props;
+
+    const fieldErrors: FieldErrors<T> | undefined = objectPath.get(
+        formState.errors,
+        fieldName
+    );
+
+    if (!fieldErrors) return null;
+
+    return (
+        <div className="text-gray mt-2 flex items-center text-sm text-red-700">
+            <Info className="mr-1 h-3 w-3" />
+            <>{fieldErrors.message}</>
+        </div>
+    );
+}
 
 type InputFieldProps = {
     label?: ReactNode;
@@ -94,7 +92,7 @@ type InputFieldProps = {
     labelClassName?: string;
 };
 
-const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
+export const InputField = forwardRef<HTMLInputElement, InputFieldProps>(
     function InputField(props, ref) {
         const id = useId();
         const name = props.name || "";
@@ -225,15 +223,6 @@ export const EmailField = forwardRef<HTMLInputElement, InputFieldProps>(
     }
 );
 
-export const transIntoInt = (value: string) => {
-    const parsedVal = parseInt(value as string, 10);
-    return parsedVal <= 0
-        ? 1
-        : Number.isNaN(parsedVal)
-            ? ""
-            : parseInt(value as string, 10);
-};
-
 export const NumberInput = <T extends FieldValues = FieldValues>(
     arg: Omit<ControllerProps<T>, "render"> & {
         label?: string;
@@ -258,13 +247,20 @@ export const NumberInput = <T extends FieldValues = FieldValues>(
                     placeholder={arg.placeholder}
                     loader={arg.loader}
                     onChange={(e) => {
+                        let parsedValue = e.target.valueAsNumber;
+                        if (Number.isNaN(parsedValue)) {
+                            return field.onChange('')
+                        }
+                        if (parsedValue <= 0) {
+                            return field.onChange(1)
+                        }
+
                         if (arg?.onChange) {
-                            field.onChange(arg.onChange(e));
+                            field.onChange(arg.onChange(parsedValue));
                         } else {
-                            field.onChange(transIntoInt(e.target.value));
+                            field.onChange(parsedValue);
                         }
                     }}
-                    value={arg.value ? arg.value() : transIntoInt(field.value)}
                 />
             )}
         />
@@ -292,14 +288,14 @@ const PlainForm = <T extends FieldValues>(
                     form
                         .handleSubmit(handleSubmit)(event)
                         .catch((err) => {
-                            showToast(`${getErrorFromUnknown(err).message}`, "error");
+                            toast.error(`${getErrorFromUnknown(err).message}`);
                         });
                 }}
                 {...passThrough}
             >
                 {
                     /* @see https://react-hook-form.com/advanced-usage/#SmartFormComponent */
-                    // to provide register prop to every valid child field (wow)
+                    // to provide register prop to every valid child field
                     React.Children.map(props.children, (child) => {
                         return typeof child !== "string" &&
                             typeof child !== "number" &&

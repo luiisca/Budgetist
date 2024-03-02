@@ -29,8 +29,8 @@ import { RouterOutputs } from "~/lib/trpc/shared";
 import { Alert } from "~/components/ui/alert";
 import EmptyScreen from "~/components/ui/empty-screen";
 import {
-    catData,
-    CatInputDataType,
+    catInputZod,
+    CatInputType,
 } from "prisma/zod-utils";
 import {
     getCountryLocaleName,
@@ -39,6 +39,8 @@ import {
 } from "~/lib/sim-settings";
 import {
     DEFAULT_FREQUENCY,
+    DEFAULT_CURRENCY,
+    DEFAULT_COUNTRY,
     CATEGORY_INFL_TYPES,
     SELECT_PER_CAT_VAL,
     SELECT_PER_CAT_LABEL,
@@ -46,7 +48,6 @@ import {
     SELECT_OUTCOME_LABEL,
     SELECT_INCOME_VAL,
     SELECT_INCOME_LABEL,
-    getLabel,
     OptionsType,
     BASIC_BAL_TYPES,
     BASIC_GROUP_TYPES,
@@ -57,7 +58,6 @@ import {
 } from "~/lib/constants";
 import RecordsList from "./records-list";
 import { ControlledSelect } from "~/components/ui/core/form/select/Select";
-import useUpdateInflation from "~/lib/hooks/useUpdateInflation";
 import Switch from "~/components/ui/core/switch";
 import { Dialog, DialogTrigger } from "~/components/ui/core/dialog";
 import { DialogContentConfirmation } from "~/components/ui/custom-dialog";
@@ -67,6 +67,8 @@ import TitleWithInfo from "../title-with-info";
 import { CountryInflInput, CountrySelect } from "../fields";
 import omit from "~/lib/omit"
 import { BalanceContext } from "../../_lib/context";
+import useUpdateInflation from "~/app/(app)/_lib/use-update-inflation";
+import getDefCatInputValues from "../../_lib/get-def-cat-input-values";
 
 const SkeletonLoader = () => {
     return (
@@ -94,9 +96,10 @@ const CategoryForm = ({
     category?: RouterOutputs["simulation"]["categories"]["get"][0];
 }) => {
     // form
-    const categoryForm = useForm<CatInputDataType>({
-        resolver: zodResolver(catData),
+    const categoryForm = useForm<CatInputType>({
+        resolver: zodResolver(catInputZod),
         reValidateMode: "onChange",
+        defaultValues: getDefCatInputValues(category),
     });
     const { reset, register, control } = categoryForm;
     const [typeWatcher, freqTypeWatcher, inflTypeWatcher] = useWatch({
@@ -148,95 +151,11 @@ const CategoryForm = ({
     const recordsDisabledState = useState<boolean>(false);
     const [recordsDisabled] = recordsDisabledState;
     const [deleteCategoryOpen, setDeleteCategoryOpen] = useState(false);
-    const { updateInflation, isLoadingInfl, isValidInfl } = useUpdateInflation<CatInputDataType>();
+    const { updateInflation, isLoadingInfl, isValidInfl } = useUpdateInflation<CatInputType>();
     const { data: user, isLoading, isError, isSuccess, error } = api.user.me.useQuery();
     useEffect(() => {
-        const currencyValue = category?.currency || (user?.currency as string);
-        const optionFields = {
-            currency: {
-                value: currencyValue,
-                label: getCurrencyLocaleName(currencyValue, user?.country)
-            },
-            country: {
-                value: category?.country || user?.country,
-                label: getCountryLocaleName(category?.country || (user?.country as string)),
-            },
-            inflType: getSelectOptionWithFallback(category?.inflType as OptionsType, SELECT_PER_CAT_VAL),
-            type: getSelectOptionWithFallback(category?.type as OptionsType, SELECT_OUTCOME_VAL),
-            freqType: getSelectOptionWithFallback(category?.freqType as OptionsType, SELECT_PER_CAT_VAL),
-        }
-
-        reset({
-            ...category,
-            ...optionFields,
-            inflVal: category?.inflVal || user?.inflation,
-            frequency: category?.frequency || DEFAULT_FREQUENCY,
-            records: category?.records.map((record) => ({
-                ...record,
-                country: {
-                    value: record.country,
-                    label: getCountryLocaleName(record.country),
-                },
-                currency: {
-                    value: record.currency,
-                    label: getCurrencyLocaleName(record.currency, user?.country)
-                },
-                type: getSelectOption(record.type as OptionsType),
-                title: record.title || "",
-                inflation: record.inflation || user?.inflation,
-            })),
-        });
+        reset(getDefCatInputValues(category, user))
     }, [user, category, reset]);
-
-    // onSubmit
-    const onCategorySubmit = (values: CatInputDataType) => {
-        const selectInputsData = {
-            currency: values.currency?.value || user?.currency,
-            type: values.type.value,
-            inflType: values.inflType?.value,
-            country: values.country?.value || user?.country,
-            inflVal: values.inflVal || user?.inflation,
-            icon: values.icon || "Icon",
-            records: values.records?.map((record) => ({
-                ...record,
-                type: record.type.value,
-                frequency: record.frequency || DEFAULT_FREQUENCY,
-                country: record.country.value || user?.country,
-                inflation: record.inflation || user?.inflation,
-                currency: record.currency.value || user?.currency,
-            })),
-            freqType: values.freqType?.value || SELECT_PER_CAT_VAL,
-            frequency: values.frequency || DEFAULT_FREQUENCY,
-        };
-        let input = {
-            ...values,
-            ...selectInputsData,
-        };
-        // when would an id be passed
-        if (category?.id) {
-            input = {
-                ...input,
-                id: category?.id,
-            };
-        }
-
-        if (recordsDisabled || (values.records?.length as number) === 0) {
-            input = {
-                ...input,
-                ...omit(values, ["records"]),
-                ...omit(selectInputsData, ["records"]),
-            };
-        }
-
-        categoryMutation.mutate(
-            // input as unknown as z.infer<typeof categoryDataServer>
-            input
-        );
-        balanceDispatch({
-            type: "TOTAL_BAL_LOADING",
-            totalBalanceLoading: true,
-        });
-    };
 
     if (isLoading || !user) return <SkeletonLoader />;
 
@@ -252,11 +171,21 @@ const CategoryForm = ({
 
     if (isSuccess) {
         return (
-            <Form<CatInputDataType>
+            <Form<CatInputType>
                 form={categoryForm}
-                handleSubmit={onCategorySubmit}
+                handleSubmit={(values) => {
+                    let parsedValues = values
+                    if (category) {
+                        parsedValues.id = category.id
+                    }
+
+                    categoryMutation.mutate(parsedValues)
+                }}
                 className="space-y-6"
             >
+                {/* id */}
+                {category && <input hidden value={category.id as unknown as number} {...register('id')} />}
+
                 {/* title */}
                 <div>
                     <TextField label="Title" placeholder="Rent" {...register("title")} />
@@ -264,7 +193,7 @@ const CategoryForm = ({
 
                 {/* type */}
                 <div>
-                    <ControlledSelect<CatInputDataType>
+                    <ControlledSelect<CatInputType>
                         control={control}
                         options={() => BASIC_BAL_TYPES}
                         name="type"
@@ -275,7 +204,7 @@ const CategoryForm = ({
                 <div className="flex space-x-3">
                     {/* budget */}
                     <div className="flex-[1_1_80%]">
-                        <NumberInput<CatInputDataType>
+                        <NumberInput<CatInputType>
                             control={control}
                             name="budget"
                             label="Monthly Budget"
@@ -285,7 +214,7 @@ const CategoryForm = ({
 
                     {/* currency Select*/}
                     <div>
-                        <ControlledSelect<CatInputDataType>
+                        <ControlledSelect<CatInputType>
                             control={control}
                             options={() => getCurrencyOptions({ type: "perRec", countryCode: user.country })}
                             name="currency"
@@ -324,7 +253,7 @@ const CategoryForm = ({
                                 <div className="flex space-x-3">
                                     {/* country Select */}
                                     <div className="flex-[1_1_80%]">
-                                        <CountrySelect<CatInputDataType>
+                                        <CountrySelect<CatInputType>
                                             form={categoryForm}
                                             name="country"
                                             control={control}
@@ -335,7 +264,7 @@ const CategoryForm = ({
 
                                     {/* country inflation */}
                                     <div>
-                                        <CountryInflInput<CatInputDataType>
+                                        <CountryInflInput<CatInputType>
                                             control={control}
                                             name="inflVal"
                                             isLoadingInfl={isLoadingInfl}
@@ -348,7 +277,7 @@ const CategoryForm = ({
                 )}
                 {/* frequency type */}
                 <div>
-                    <ControlledSelect<CatInputDataType>
+                    <ControlledSelect<CatInputType>
                         control={control}
                         options={() => BASIC_GROUP_TYPES}
                         name="freqType"
@@ -358,7 +287,7 @@ const CategoryForm = ({
                 {/* frequency */}
                 {freqTypeWatcher?.value === "perCat" && (
                     <div className="flex-[1_1_80%]">
-                        <NumberInput<CatInputDataType>
+                        <NumberInput<CatInputType>
                             control={control}
                             name="frequency"
                             label="Yearly Frequency"

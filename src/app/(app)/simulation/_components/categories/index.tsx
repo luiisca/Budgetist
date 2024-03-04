@@ -1,13 +1,9 @@
 'use client'
 
-import { useContext, useEffect, useState } from "react";
-import { z } from "zod";
+import { useContext, useEffect, useRef, useState } from "react";
 import {
     Control,
-    useFieldArray,
-    UseFieldArrayReturn,
     useForm,
-    useFormContext,
     useWatch,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,7 +19,6 @@ import {
     SkeletonContainer,
     SkeletonText,
     TextField,
-    Tooltip,
 } from "~/components/ui";
 import { RouterOutputs } from "~/lib/trpc/shared";
 import { Alert } from "~/components/ui/alert";
@@ -33,8 +28,6 @@ import {
     CatInputType,
 } from "prisma/zod-utils";
 import {
-    getCountryLocaleName,
-    getCurrencyLocaleName,
     getCurrencyOptions,
 } from "~/lib/sim-settings";
 import {
@@ -69,6 +62,8 @@ import omit from "~/lib/omit"
 import { BalanceContext } from "../../_lib/context";
 import useUpdateInflation from "~/app/(app)/_lib/use-update-inflation";
 import getDefCatInputValues from "../../_lib/get-def-cat-input-values";
+import Test from "../../test";
+import { randomString } from "~/lib/random";
 
 const SkeletonLoader = () => {
     return (
@@ -98,7 +93,7 @@ const CategoryForm = ({
     // form
     const categoryForm = useForm<CatInputType>({
         resolver: zodResolver(catInputZod),
-        reValidateMode: "onChange",
+        // reValidateMode: "onChange",
         defaultValues: getDefCatInputValues(category),
     });
     const { reset, register, control } = categoryForm;
@@ -108,8 +103,8 @@ const CategoryForm = ({
     });
 
     // mutation
-    const { dispatch: balanceDispatch } = useContext(BalanceContext)
     const utils = api.useUtils();
+    const { dispatch: balanceDispatch, state: { years } } = useContext(BalanceContext)
     const categoryMutation = api.simulation.categories.createOrUpdate.useMutation({
         onMutate: () => {
             balanceDispatch({
@@ -119,12 +114,18 @@ const CategoryForm = ({
         },
         onSuccess: async () => {
             toast.success(`Category ${category?.id ? "updated" : "created"} successfully`);
-            await utils.simulation.categories.invalidate();
-            onRemove && onRemove();
+            balanceDispatch({
+                type: "SIM_RUN",
+                years
+            })
         },
-        onError: async () => {
+        onError: async (e) => {
+            console.log('error', e)
             toast.error("Could not add category. Please try again");
-            await utils.simulation.categories.invalidate();
+            balanceDispatch({
+                type: "TOTAL_BAL_LOADING",
+                totalBalanceLoading: false,
+            });
             onRemove && onRemove();
         },
     });
@@ -137,24 +138,26 @@ const CategoryForm = ({
         },
         onSuccess: async () => {
             toast.success("Category deleted");
-            await utils.simulation.categories.invalidate();
+            balanceDispatch({
+                type: "SIM_RUN",
+                years
+            })
+            onRemove && onRemove();
         },
         onError: async () => {
             toast.error("Could not delete category. Please try again.");
-            await utils.simulation.categories.invalidate();
-        },
-        async onSettled() {
-            await utils.simulation.categories.invalidate();
+            balanceDispatch({
+                type: "TOTAL_BAL_LOADING",
+                totalBalanceLoading: false,
+            });
         },
     });
 
-    const recordsDisabledState = useState<boolean>(false);
-    const [recordsDisabled] = recordsDisabledState;
     const [deleteCategoryOpen, setDeleteCategoryOpen] = useState(false);
     const { updateInflation, isLoadingInfl, isValidInfl } = useUpdateInflation<CatInputType>();
     const { data: user, isLoading, isError, isSuccess, error } = api.user.me.useQuery();
     useEffect(() => {
-        reset(getDefCatInputValues(category, user))
+        // reset(getDefCatInputValues(category, user))
     }, [user, category, reset]);
 
     if (isLoading || !user) return <SkeletonLoader />;
@@ -173,18 +176,11 @@ const CategoryForm = ({
         return (
             <Form<CatInputType>
                 form={categoryForm}
-                handleSubmit={(values) => {
-                    let parsedValues = values
-                    if (category) {
-                        parsedValues.id = category.id
-                    }
-
-                    categoryMutation.mutate(parsedValues)
-                }}
+                handleSubmit={(values) => categoryMutation.mutate(values)}
                 className="space-y-6"
             >
                 {/* id */}
-                {category && <input hidden value={category.id as unknown as number} {...register('id')} />}
+                {category && <input {...register('id')} hidden />}
 
                 {/* title */}
                 <div>
@@ -298,14 +294,12 @@ const CategoryForm = ({
 
                 {/* expenses records */}
                 <RecordsList
-                    disabledState={recordsDisabledState}
                     isMutationLoading={categoryMutation.isLoading}
                     user={user}
                 />
 
                 <div className="flex items-center space-x-2 pt-3">
                     <Button
-                        type="submit"
                         color="primary"
                         disabled={categoryMutation.isLoading}
                     >
@@ -360,17 +354,26 @@ const CategoryForm = ({
 };
 
 const Categories = () => {
+    const categoriesRes = api.simulation.categories.get.useQuery(undefined, {
+        notifyOnChangeProps: ['error', 'isSuccess']
+    });
     const {
         data: categories,
         isLoading,
         isError,
         isSuccess,
         error,
-    } = api.simulation.categories.get.useQuery();
+    } = categoriesRes
 
-    const [newCategories, setNewCategories] = useState<
-        Array<Record<string, unknown>>
-    >([]);
+    const [newCategories, setNewCategories] = useState(categories);
+    const categoriesUpdated = useRef(false)
+    useEffect(() => {
+        if (!categoriesUpdated.current && categories) {
+            categoriesUpdated.current = true
+            setNewCategories(categories)
+        }
+    }, [categories])
+
     const [categoriesAnimationParentRef] = useAutoAnimate<HTMLDivElement>();
 
     if (isLoading) return <SkeletonLoader />;
@@ -389,34 +392,34 @@ const Categories = () => {
                 <Button
                     className="mb-4"
                     StartIcon={Plus}
-                    onClick={() => setNewCategories([...newCategories, {}])}
+                    onClick={() => setNewCategories([undefined as unknown as RouterOutputs['simulation']['categories']['get'][0], ...(newCategories || [])])}
                 >
                     New Category
                 </Button>
                 <div className="mb-4 space-y-12" ref={categoriesAnimationParentRef}>
-                    {newCategories.map((_, i) => (
-                        <CategoryForm
-                            key={i}
-                            onRemove={() =>
-                                setNewCategories([
-                                    ...newCategories.slice(0, i),
-                                    ...newCategories.slice(i + 1),
-                                ])
-                            }
-                        />
-                    ))}
-                    {categories?.map((category, i) => (
-                        <CategoryForm key={i} category={category} />
+                    {newCategories?.map((category, i) => (
+                        <div key={category?.id || randomString()}>
+                            <CategoryForm
+                                category={category}
+                                onRemove={() =>
+                                    setNewCategories([
+                                        ...newCategories.slice(0, i),
+                                        ...newCategories.slice(i + 1),
+                                    ])}
+                            />
+                        </div>
                     ))}
                 </div>
-                {categories?.length === 0 && newCategories?.length === 0 && (
-                    <EmptyScreen
-                        Icon={Plus}
-                        headline="New category"
-                        description="Budget categories helps you define all your yearly expenses to fine-tune the simulation's result"
-                    />
-                )}
-            </div>
+                {
+                    categories?.length === 0 && newCategories?.length === 0 && (
+                        <EmptyScreen
+                            Icon={Plus}
+                            headline="New category"
+                            description="Budget categories helps you define all your yearly expenses to fine-tune the simulation's result"
+                        />
+                    )
+                }
+            </div >
         );
 
     // impossible state

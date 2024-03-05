@@ -84,9 +84,11 @@ const SkeletonLoader = () => {
 
 
 const CategoryForm = ({
+    id,
     onRemove,
     category,
 }: {
+    id: bigint;
     onRemove?: () => void;
     category?: RouterOutputs["simulation"]["categories"]["get"][0];
 }) => {
@@ -96,15 +98,17 @@ const CategoryForm = ({
         // reValidateMode: "onChange",
         defaultValues: getDefCatInputValues(category),
     });
-    const { reset, register, control } = categoryForm;
+
+    const { reset, setValue, register, control } = categoryForm;
     const [typeWatcher, freqTypeWatcher, inflTypeWatcher] = useWatch({
         control,
         name: ["type", 'freqType', 'inflType'],
     });
 
     // mutation
-    const utils = api.useUtils();
     const { dispatch: balanceDispatch, state: { years } } = useContext(BalanceContext)
+    const [transactionType, setTransactionType] = useState<'update' | 'create'>(category ? 'update' : 'create')
+    const categoryId = useRef(category && category.id)
     const categoryMutation = api.simulation.categories.createOrUpdate.useMutation({
         onMutate: () => {
             balanceDispatch({
@@ -112,15 +116,19 @@ const CategoryForm = ({
                 totalBalanceLoading: true,
             });
         },
-        onSuccess: async () => {
-            toast.success(`Category ${category?.id ? "updated" : "created"} successfully`);
+        onSuccess: (id) => {
+            if (id) {
+                categoryId.current = id
+                setValue('id', id)
+            }
+            toast.success(`Category ${transactionType === 'update' ? "updated" : "created"} successfully`);
+            setTransactionType('update')
             balanceDispatch({
                 type: "SIM_RUN",
                 years
             })
         },
         onError: async (e) => {
-            console.log('error', e)
             toast.error("Could not add category. Please try again");
             balanceDispatch({
                 type: "TOTAL_BAL_LOADING",
@@ -157,6 +165,8 @@ const CategoryForm = ({
     const { updateInflation, isLoadingInfl, isValidInfl } = useUpdateInflation<CatInputType>();
     const { data: user, isLoading, isError, isSuccess, error } = api.user.me.useQuery();
     useEffect(() => {
+        console.log('✅✅ useEffect() 🔥🔥')
+        // @TODO: fix: runs every time a new category is created
         // reset(getDefCatInputValues(category, user))
     }, [user, category, reset]);
 
@@ -176,11 +186,11 @@ const CategoryForm = ({
         return (
             <Form<CatInputType>
                 form={categoryForm}
-                handleSubmit={(values) => categoryMutation.mutate(values)}
+                handleSubmit={(values) => { console.log('values', values); categoryMutation.mutate(values) }}
                 className="space-y-6"
             >
                 {/* id */}
-                {category && <input {...register('id')} hidden />}
+                <input {...register('id')} />
 
                 {/* title */}
                 <div>
@@ -303,9 +313,9 @@ const CategoryForm = ({
                         color="primary"
                         disabled={categoryMutation.isLoading}
                     >
-                        {category ? "Update" : "Create"}
+                        {transactionType === 'update' ? "Update" : "Create"}
                     </Button>
-                    {category ? (
+                    {transactionType === 'update' ? (
                         <Dialog
                             open={deleteCategoryOpen}
                             onOpenChange={setDeleteCategoryOpen}
@@ -328,7 +338,7 @@ const CategoryForm = ({
                                         e &&
                                         ((e: Event | React.MouseEvent<HTMLElement, MouseEvent>) => {
                                             e.preventDefault();
-                                            deleteCategoryMutation.mutate({ id: category.id });
+                                            categoryId.current && deleteCategoryMutation.mutate({ id: categoryId.current });
                                         })(e)
                                 }}
                             />
@@ -354,6 +364,7 @@ const CategoryForm = ({
 };
 
 const Categories = () => {
+    const utils = api.useUtils();
     const categoriesRes = api.simulation.categories.get.useQuery(undefined, {
         notifyOnChangeProps: ['error', 'isSuccess']
     });
@@ -397,18 +408,22 @@ const Categories = () => {
                     New Category
                 </Button>
                 <div className="mb-4 space-y-12" ref={categoriesAnimationParentRef}>
-                    {newCategories?.map((category, i) => (
-                        <div key={category?.id || randomString()}>
-                            <CategoryForm
-                                category={category}
-                                onRemove={() =>
-                                    setNewCategories([
-                                        ...newCategories.slice(0, i),
-                                        ...newCategories.slice(i + 1),
-                                    ])}
-                            />
-                        </div>
-                    ))}
+                    {newCategories?.map((category, i) => {
+                        const id = randomString();
+                        return (
+                            <div key={category?.id || id}>
+                                <CategoryForm
+                                    id={id}
+                                    category={category}
+                                    onRemove={() =>
+                                        setNewCategories([
+                                            ...newCategories.slice(0, i),
+                                            ...newCategories.slice(i + 1),
+                                        ])}
+                                />
+                            </div>
+                        )
+                    })}
                 </div>
                 {
                     categories?.length === 0 && newCategories?.length === 0 && (

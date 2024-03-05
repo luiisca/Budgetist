@@ -1,6 +1,6 @@
 'use client'
-
-import { useContext, useEffect, useRef, useState } from "react";
+import React, { Fragment, useContext, useEffect, useMemo, useRef, useState } from "react";
+import ReactDOM from 'react-dom';
 import {
     Control,
     useForm,
@@ -62,7 +62,6 @@ import omit from "~/lib/omit"
 import { BalanceContext } from "../../_lib/context";
 import useUpdateInflation from "~/app/(app)/_lib/use-update-inflation";
 import getDefCatInputValues from "../../_lib/get-def-cat-input-values";
-import Test from "../../test";
 import { randomString } from "~/lib/random";
 
 const SkeletonLoader = () => {
@@ -84,11 +83,9 @@ const SkeletonLoader = () => {
 
 
 const CategoryForm = ({
-    id,
     onRemove,
     category,
 }: {
-    id: bigint;
     onRemove?: () => void;
     category?: RouterOutputs["simulation"]["categories"]["get"][0];
 }) => {
@@ -128,7 +125,7 @@ const CategoryForm = ({
                 years
             })
         },
-        onError: async (e) => {
+        onError: async () => {
             toast.error("Could not add category. Please try again");
             balanceDispatch({
                 type: "TOTAL_BAL_LOADING",
@@ -164,11 +161,6 @@ const CategoryForm = ({
     const [deleteCategoryOpen, setDeleteCategoryOpen] = useState(false);
     const { updateInflation, isLoadingInfl, isValidInfl } = useUpdateInflation<CatInputType>();
     const { data: user, isLoading, isError, isSuccess, error } = api.user.me.useQuery();
-    useEffect(() => {
-        console.log('✅✅ useEffect() 🔥🔥')
-        // @TODO: fix: runs every time a new category is created
-        // reset(getDefCatInputValues(category, user))
-    }, [user, category, reset]);
 
     if (isLoading || !user) return <SkeletonLoader />;
 
@@ -186,11 +178,11 @@ const CategoryForm = ({
         return (
             <Form<CatInputType>
                 form={categoryForm}
-                handleSubmit={(values) => { console.log('values', values); categoryMutation.mutate(values) }}
+                handleSubmit={(values) => { categoryMutation.mutate(values) }}
                 className="space-y-6"
             >
                 {/* id */}
-                <input {...register('id')} />
+                <input {...register('id')} hidden />
 
                 {/* title */}
                 <div>
@@ -362,30 +354,35 @@ const CategoryForm = ({
     // impossible state
     return null;
 };
-
 const Categories = () => {
     const utils = api.useUtils();
     const categoriesRes = api.simulation.categories.get.useQuery(undefined, {
         notifyOnChangeProps: ['error', 'isSuccess']
     });
     const {
-        data: categories,
         isLoading,
         isError,
         isSuccess,
         error,
     } = categoriesRes
 
-    const [newCategories, setNewCategories] = useState(categories);
-    const categoriesUpdated = useRef(false)
-    useEffect(() => {
-        if (!categoriesUpdated.current && categories) {
-            categoriesUpdated.current = true
-            setNewCategories(categories)
-        }
-    }, [categories])
-
     const [categoriesAnimationParentRef] = useAutoAnimate<HTMLDivElement>();
+
+    const [newCats, setNewCats] = useState<(React.ReactElement | null)[]>([])
+    const [cachedCats, setCachedCats] = useState<(React.ReactElement | null)[]>([])
+    useEffect(() => {
+        const catsData = utils.simulation.categories.get.getData()
+        if (catsData) {
+            const instantiatedCats = catsData.map((catData) => (
+                <Fragment key={randomString()}>
+                    <CategoryForm category={catData} onRemove={() => {
+                        setCachedCats((old) => old.filter((el) => el?.props.children.props.category.id !== catData.id))
+                    }} />
+                </Fragment>)
+            )
+            setCachedCats(instantiatedCats)
+        }
+    }, [isSuccess])
 
     if (isLoading) return <SkeletonLoader />;
     if (isError)
@@ -397,36 +394,31 @@ const Categories = () => {
             />
         );
 
-    if (isSuccess)
+    if (isSuccess) {
         return (
             <div>
                 <Button
                     className="mb-4"
                     StartIcon={Plus}
-                    onClick={() => setNewCategories([undefined as unknown as RouterOutputs['simulation']['categories']['get'][0], ...(newCategories || [])])}
+                    onClick={() => {
+                        setNewCats((befNewCatData) => {
+                            const elKey = randomString()
+                            return [<Fragment key={elKey}><CategoryForm onRemove={() => {
+                                setNewCats((crrCats) => {
+                                    return crrCats.filter((el) => el?.key !== elKey)
+                                })
+                            }} /></Fragment>, ...befNewCatData]
+                        })
+                    }}
                 >
                     New Category
                 </Button>
-                <div className="mb-4 space-y-12" ref={categoriesAnimationParentRef}>
-                    {newCategories?.map((category, i) => {
-                        const id = randomString();
-                        return (
-                            <div key={category?.id || id}>
-                                <CategoryForm
-                                    id={id}
-                                    category={category}
-                                    onRemove={() =>
-                                        setNewCategories([
-                                            ...newCategories.slice(0, i),
-                                            ...newCategories.slice(i + 1),
-                                        ])}
-                                />
-                            </div>
-                        )
-                    })}
+                <div className="mb-4 space-y-12" ref={categoriesAnimationParentRef} id="cats-container">
+                    {newCats && newCats.map((newCat) => newCat)}
+                    {cachedCats && cachedCats.map((cat) => cat)}
                 </div>
                 {
-                    categories?.length === 0 && newCategories?.length === 0 && (
+                    cachedCats?.length === 0 && newCats?.length === 0 && (
                         <EmptyScreen
                             Icon={Plus}
                             headline="New category"
@@ -436,6 +428,7 @@ const Categories = () => {
                 }
             </div >
         );
+    }
 
     // impossible state
     return null;

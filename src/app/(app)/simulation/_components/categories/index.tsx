@@ -89,6 +89,7 @@ const CategoryForm = ({
     onRemove?: () => void;
     category?: RouterOutputs["simulation"]["categories"]["get"][0];
 }) => {
+    const utils = api.useUtils()
     // form
     const categoryForm = useForm<CatInputType>({
         resolver: zodResolver(catInputZod),
@@ -118,7 +119,7 @@ const CategoryForm = ({
                 categoryId.current = id
                 setValue('id', id)
             }
-            toast.success(`Category ${transactionType === 'update' ? "updated" : "created"} successfully`);
+            toast.success(`Category ${transactionType === 'update' ? "updated" : "created"}`);
             setTransactionType('update')
             balanceDispatch({
                 type: "SIM_RUN",
@@ -143,10 +144,14 @@ const CategoryForm = ({
         },
         onSuccess: async () => {
             toast.success("Category deleted");
-            balanceDispatch({
-                type: "SIM_RUN",
-                years
-            })
+            const catsData = utils.simulation.categories.get.getData()
+            // must be length > 1 since cached data is not yet udpated here
+            if (catsData && catsData.length > 1) {
+                balanceDispatch({
+                    type: "SIM_RUN",
+                    years
+                })
+            }
             onRemove && onRemove();
         },
         onError: async () => {

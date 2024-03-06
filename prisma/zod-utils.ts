@@ -42,8 +42,8 @@ export const optSalInputZod = z.object({
     variance: z
         .array(
             optSalVarianceInputZod.extend({
-                from: nonEmptyString.or(z.number().positive()),
-                amount: nonEmptyString.or(z.number().positive()),
+                from: numberInput,
+                amount: numberInput,
             }).required()
         )
         .optional(),
@@ -52,7 +52,7 @@ export const salInputZod = optSalInputZod.extend({
     currency: selectOptions,
     amount: numberInput,
     taxType: selectOptions,
-    taxPercent: range(0, 100),
+    taxPercent: percentage,
 });
 
 // categories

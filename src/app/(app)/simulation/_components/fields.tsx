@@ -208,6 +208,7 @@ export const CountryInflInput = <T extends FieldValues>({
                     {isLoadingInfl && <LoadingIcon />}
                 </>
             }
+            onChange={(parsedValue: number) => parsedValue > 100 ? 100 : parsedValue}
         />
     );
 };

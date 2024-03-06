@@ -12,18 +12,15 @@ export const username = z
     .min(2, { message: "Must be at least 2 characters long" })
     .optional();
 
-const percentage = z
-    .number()
-    .positive()
-    .max(100, { message: "Cannot be greater than 100%" });
+const percentage = numberInput.max(100, { message: "Invalid percentage" });
 
 export const selectOptions = z.object({
-    value: z.string().optional(),
-    label: z.string().optional(),
+    value: z.string(),
+    label: z.string(),
 });
 
 // profile
-export const profileData = z.object({
+export const profileInputZod = z.object({
     username,
     name: z.string().optional(),
     image: z.string().optional(),
@@ -36,22 +33,22 @@ export const profileData = z.object({
 });
 
 // salary
-const optSalVarianceData = z.object({
-    taxPercent: z.string().or(percentage).optional(),
+export const optSalVarianceInputZod = z.object({
+    taxPercent: percentage.optional(),
 })
-const optSalData = z.object({
+export const optSalInputZod = z.object({
     id: z.bigint().positive().optional(),
     title: z.string().optional(),
     variance: z
         .array(
-            optSalVarianceData.extend({
+            optSalVarianceInputZod.extend({
                 from: nonEmptyString.or(z.number().positive()),
                 amount: nonEmptyString.or(z.number().positive()),
             }).required()
         )
         .optional(),
 })
-export const salData = optSalData.extend({
+export const salInputZod = optSalInputZod.extend({
     currency: selectOptions,
     amount: numberInput,
     taxType: selectOptions,
@@ -59,19 +56,20 @@ export const salData = optSalData.extend({
 });
 
 // categories
-const optCatData = z.object({
-    id: z.bigint().optional(),
-    inflVal: numberInput.optional(),
+export const optCatInputZod = z.object({
+    id: z.bigint().positive().optional(),
+    inflVal: percentage.optional(),
     icon: z.string().optional(),
     frequency: yearFrequency.optional(),
 })
-const optCatRecordData = z.object({
+export const optCatRecordInputZod = z.object({
+    id: z.bigint().positive().optional(),
     title: z.string().optional(),
     frequency: yearFrequency.optional(),
-    inflation: numberInput.optional(),
+    inflation: percentage.optional(),
     currency: selectOptions.optional(),
 })
-export const catData = optCatData.extend({
+export const catInputZod = optCatInputZod.extend({
     title: nonEmptyString,
     budget: numberInput,
     currency: selectOptions,
@@ -81,23 +79,29 @@ export const catData = optCatData.extend({
 
     records: z
         .array(
-            optCatRecordData.extend({
+            optCatRecordInputZod.extend({
                 amount: numberInput,
                 inflType: z.boolean(),
                 type: selectOptions,
                 country: selectOptions,
-            }).required()
+            })
         )
         .optional(),
     freqType: selectOptions,
 });
 
 // run simulation
-export const runSimulationData = z.object({
+export const runSimInputZod = z.object({
     years: nonEmptyString.or(z.number().positive()),
 });
 
-export type ProfileDataInputType = z.infer<typeof profileData>;
-export type SalInputDataType = z.infer<typeof salData>;
-export type CatInputDataType = z.infer<typeof catData>;
-export type RunSimulationDataType = z.infer<typeof runSimulationData>;
+export type ProfileInputType = z.infer<typeof profileInputZod>;
+
+export type OptSalVarianceInputType = z.infer<typeof optSalVarianceInputZod>;
+export type OptSalInputType = z.infer<typeof optSalInputZod>;
+export type SalInputType = z.infer<typeof salInputZod>;
+
+export type OptCatRecordInputType = z.infer<typeof optCatRecordInputZod>;
+export type OptCatInputType = z.infer<typeof optCatInputZod>;
+export type CatInputType = z.infer<typeof catInputZod>;
+export type RunSimInputType = z.infer<typeof runSimInputZod>;

@@ -422,6 +422,7 @@ const Categories = () => {
                     {newCats && newCats.map((newCat) => newCat)}
                     {cachedCats && cachedCats.map((cat) => cat)}
                 </div>
+                {/* @TODO: imprve wording */}
                 {
                     cachedCats?.length === 0 && newCats?.length === 0 && (
                         <EmptyScreen

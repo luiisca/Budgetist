@@ -32,6 +32,17 @@ export const simulationRouter = createTRPCRouter({
                 },
             });
         }),
+        delete: protectedProcedure
+            .input(z.object({ id: z.bigint().positive() }))
+            .mutation(async ({ input, ctx }) => {
+                const { db } = ctx;
+
+                await db.salary.delete({
+                    where: {
+                        id: input.id,
+                    },
+                });
+            }),
         createOrUpdate: protectedProcedure
             .input(salInputZod)
             .mutation(async ({ input, ctx }) => {
@@ -91,17 +102,6 @@ export const simulationRouter = createTRPCRouter({
                         },
                     });
                 }
-            }),
-        delete: protectedProcedure
-            .input(z.object({ id: z.bigint().positive() }))
-            .mutation(async ({ input, ctx }) => {
-                const { db } = ctx;
-
-                await db.salary.delete({
-                    where: {
-                        id: input.id,
-                    },
-                });
             }),
     }),
     categories: createTRPCRouter({
@@ -243,18 +243,18 @@ export const simulationRouter = createTRPCRouter({
                     return newCategory.id
                 }
             }),
-    }),
-    records: createTRPCRouter({
-        delete: protectedProcedure
-            .input(z.object({ id: z.bigint().positive() }))
-            .mutation(async ({ input, ctx }) => {
-                const { db } = ctx;
+        records: createTRPCRouter({
+            delete: protectedProcedure
+                .input(z.object({ id: z.bigint().positive() }))
+                .mutation(async ({ input, ctx }) => {
+                    const { db } = ctx;
 
-                await db.record.delete({
-                    where: {
-                        id: input.id,
-                    },
-                });
-            })
-    })
+                    await db.record.delete({
+                        where: {
+                            id: input.id,
+                        },
+                    });
+                })
+        })
+    }),
 });

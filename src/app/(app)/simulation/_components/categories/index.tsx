@@ -85,19 +85,20 @@ const SkeletonLoader = () => {
 const CategoryForm = ({
     onRemove,
     category,
+    user
 }: {
     onRemove?: () => void;
     category?: RouterOutputs["simulation"]["categories"]["get"][0];
+    user: RouterOutputs["user"]["me"];
 }) => {
     const utils = api.useUtils()
     // form
     const categoryForm = useForm<CatInputType>({
         resolver: zodResolver(catInputZod),
-        // reValidateMode: "onChange",
-        defaultValues: getDefCatInputValues(category),
+        defaultValues: getDefCatInputValues({ category, user }),
     });
 
-    const { reset, setValue, register, control } = categoryForm;
+    const { setValue, register, control } = categoryForm;
     const [typeWatcher, freqTypeWatcher, inflTypeWatcher] = useWatch({
         control,
         name: ["type", 'freqType', 'inflType'],
@@ -165,211 +166,190 @@ const CategoryForm = ({
 
     const [deleteCategoryOpen, setDeleteCategoryOpen] = useState(false);
     const { updateInflation, isLoadingInfl, isValidInfl } = useUpdateInflation<CatInputType>();
-    const { data: user, isLoading, isError, isSuccess, error } = api.user.me.useQuery();
 
-    if (isLoading || !user) return <SkeletonLoader />;
+    return (
+        <Form<CatInputType>
+            form={categoryForm}
+            handleSubmit={(values) => { categoryMutation.mutate(values) }}
+            className="space-y-6"
+        >
+            {/* id */}
+            <input {...register('id')} hidden />
 
-    if (isError) {
-        return (
-            <Alert
-                severity="error"
-                title="Something went wrong"
-                message={error?.message}
-            />
-        );
-    }
+            {/* title */}
+            <div>
+                <TextField label="Title" placeholder="Rent" {...register("title")} />
+            </div>
 
-    if (isSuccess) {
-        return (
-            <Form<CatInputType>
-                form={categoryForm}
-                handleSubmit={(values) => { categoryMutation.mutate(values) }}
-                className="space-y-6"
-            >
-                {/* id */}
-                <input {...register('id')} hidden />
-
-                {/* title */}
-                <div>
-                    <TextField label="Title" placeholder="Rent" {...register("title")} />
-                </div>
-
-                {/* type */}
-                <div>
-                    <ControlledSelect<CatInputType>
-                        control={control}
-                        options={() => BASIC_BAL_TYPES}
-                        name="type"
-                        label="Type"
-                    />
-                </div>
-
-                <div className="flex space-x-3">
-                    {/* budget */}
-                    <div className="flex-[1_1_80%]">
-                        <NumberInput<CatInputType>
-                            control={control}
-                            name="budget"
-                            label="Monthly Budget"
-                            placeholder="Budget"
-                        />
-                    </div>
-
-                    {/* currency Select*/}
-                    <div>
-                        <ControlledSelect<CatInputType>
-                            control={control}
-                            options={() => getCurrencyOptions({ type: "perRec", countryCode: user.country })}
-                            name="currency"
-                            label="Currency"
-                        />
-                    </div>
-                </div>
-
-                {typeWatcher?.value === "outcome" && (
-                    <>
-                        <div>
-                            {/* inflation label */}
-                            <TitleWithInfo
-                                Title={() => <Label>Inflation</Label>}
-                                infoCont={
-                                    <>
-                                        Select &quot;Per record&quot; to apply individual inflation
-                                        to every expense record.
-                                        <br />
-                                        Leave it as is to apply same inflation to the whole
-                                        category.
-                                    </>
-                                }
-                            />
-
-                            {/* inflType select */}
-                            <ControlledSelect
-                                control={control as unknown as Control}
-                                name="inflType"
-                                options={() => CATEGORY_INFL_TYPES}
-                            />
-                        </div>
-
-                        {typeWatcher?.value === "outcome" &&
-                            inflTypeWatcher?.value === "perCat" && (
-                                <div className="flex space-x-3">
-                                    {/* country Select */}
-                                    <div className="flex-[1_1_80%]">
-                                        <CountrySelect<CatInputType>
-                                            form={categoryForm}
-                                            name="country"
-                                            control={control}
-                                            updateInflation={updateInflation}
-                                            inflName="inflVal"
-                                        />
-                                    </div>
-
-                                    {/* country inflation */}
-                                    <div>
-                                        <CountryInflInput<CatInputType>
-                                            control={control}
-                                            name="inflVal"
-                                            isLoadingInfl={isLoadingInfl}
-                                            isValidInfl={isValidInfl}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-                    </>
-                )}
-                {/* frequency type */}
-                <div>
-                    <ControlledSelect<CatInputType>
-                        control={control}
-                        options={() => BASIC_GROUP_TYPES}
-                        name="freqType"
-                        label="Frequency Type (opt.)"
-                    />
-                </div>
-                {/* frequency */}
-                {freqTypeWatcher?.value === "perCat" && (
-                    <div className="flex-[1_1_80%]">
-                        <NumberInput<CatInputType>
-                            control={control}
-                            name="frequency"
-                            label="Yearly Frequency"
-                            placeholder={`${DEFAULT_FREQUENCY}`}
-                        />
-                    </div>
-                )}
-
-                {/* expenses records */}
-                <RecordsList
-                    isMutationLoading={categoryMutation.isLoading}
-                    user={user}
+            {/* type */}
+            <div>
+                <ControlledSelect<CatInputType>
+                    control={control}
+                    options={() => BASIC_BAL_TYPES}
+                    name="type"
+                    label="Type"
                 />
+            </div>
 
-                <div className="flex items-center space-x-2 pt-3">
-                    <Button
-                        color="primary"
-                        disabled={categoryMutation.isLoading}
-                    >
-                        {transactionType === 'update' ? "Update" : "Create"}
-                    </Button>
-                    {transactionType === 'update' ? (
-                        <Dialog
-                            open={deleteCategoryOpen}
-                            onOpenChange={setDeleteCategoryOpen}
-                        >
-                            <DialogTrigger asChild>
-                                <Button
-                                    type="button"
-                                    color="destructive"
-                                    className="border-2 px-3 font-normal"
-                                    StartIcon={() => <Trash2 className="m-0" />}
-                                />
-                            </DialogTrigger>
-                            <DialogContentConfirmation
-                                title="Delete Category"
-                                description="Are you sure you want to delete the current category?"
-                                Icon={AlertTriangle}
-                                actionProps={{
-                                    actionText: "Delete category",
-                                    onClick: (e) =>
-                                        e &&
-                                        ((e: Event | React.MouseEvent<HTMLElement, MouseEvent>) => {
-                                            e.preventDefault();
-                                            categoryId.current && deleteCategoryMutation.mutate({ id: categoryId.current });
-                                        })(e)
-                                }}
-                            />
-                        </Dialog>
-                    ) : (
-                        <Button
-                            onClick={() => {
-                                onRemove && onRemove();
-                            }}
-                            type="button"
-                            color="destructive"
-                            className="border-2 px-3 font-normal"
-                            StartIcon={() => <Trash2 className="m-0" />}
-                        />
-                    )}
+            <div className="flex space-x-3">
+                {/* budget */}
+                <div className="flex-[1_1_80%]">
+                    <NumberInput<CatInputType>
+                        control={control}
+                        name="budget"
+                        label="Monthly Budget"
+                        placeholder="Budget"
+                    />
                 </div>
-            </Form>
-        );
-    }
 
-    // impossible state
-    return null;
+                {/* currency Select*/}
+                <div>
+                    <ControlledSelect<CatInputType>
+                        control={control}
+                        options={() => getCurrencyOptions({ type: "perRec", countryCode: user.country })}
+                        name="currency"
+                        label="Currency"
+                    />
+                </div>
+            </div>
+
+            {typeWatcher?.value === "outcome" && (
+                <>
+                    <div>
+                        {/* inflation label */}
+                        <TitleWithInfo
+                            Title={() => <Label>Inflation</Label>}
+                            infoCont={
+                                <>
+                                    Select &quot;Per record&quot; to apply individual inflation
+                                    to every expense record.
+                                    <br />
+                                    Leave it as is to apply same inflation to the whole
+                                    category.
+                                </>
+                            }
+                        />
+
+                        {/* inflType select */}
+                        <ControlledSelect
+                            control={control as unknown as Control}
+                            name="inflType"
+                            options={() => CATEGORY_INFL_TYPES}
+                        />
+                    </div>
+
+                    {typeWatcher?.value === "outcome" &&
+                        inflTypeWatcher?.value === "perCat" && (
+                            <div className="flex space-x-3">
+                                {/* country Select */}
+                                <div className="flex-[1_1_80%]">
+                                    <CountrySelect<CatInputType>
+                                        form={categoryForm}
+                                        name="country"
+                                        control={control}
+                                        updateInflation={updateInflation}
+                                        inflName="inflVal"
+                                    />
+                                </div>
+
+                                {/* country inflation */}
+                                <div>
+                                    <CountryInflInput<CatInputType>
+                                        control={control}
+                                        name="inflVal"
+                                        isLoadingInfl={isLoadingInfl}
+                                        isValidInfl={isValidInfl}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                </>
+            )}
+            {/* frequency type */}
+            <div>
+                <ControlledSelect<CatInputType>
+                    control={control}
+                    options={() => BASIC_GROUP_TYPES}
+                    name="freqType"
+                    label="Frequency Type (opt.)"
+                />
+            </div>
+            {/* frequency */}
+            {freqTypeWatcher?.value === "perCat" && (
+                <div className="flex-[1_1_80%]">
+                    <NumberInput<CatInputType>
+                        control={control}
+                        name="frequency"
+                        label="Yearly Frequency"
+                        placeholder={`${DEFAULT_FREQUENCY}`}
+                    />
+                </div>
+            )}
+
+            {/* expenses records */}
+            <RecordsList
+                isMutationLoading={categoryMutation.isLoading}
+                user={user}
+            />
+
+            <div className="flex items-center space-x-2 pt-3">
+                <Button
+                    color="primary"
+                    disabled={categoryMutation.isLoading}
+                >
+                    {transactionType === 'update' ? "Update" : "Create"}
+                </Button>
+                {transactionType === 'update' ? (
+                    <Dialog
+                        open={deleteCategoryOpen}
+                        onOpenChange={setDeleteCategoryOpen}
+                    >
+                        <DialogTrigger asChild>
+                            <Button
+                                type="button"
+                                color="destructive"
+                                className="border-2 px-3 font-normal"
+                                StartIcon={() => <Trash2 className="m-0" />}
+                            />
+                        </DialogTrigger>
+                        <DialogContentConfirmation
+                            title="Delete Category"
+                            description="Are you sure you want to delete the current category?"
+                            Icon={AlertTriangle}
+                            actionProps={{
+                                actionText: "Delete category",
+                                onClick: (e) =>
+                                    e &&
+                                    ((e: Event | React.MouseEvent<HTMLElement, MouseEvent>) => {
+                                        e.preventDefault();
+                                        categoryId.current && deleteCategoryMutation.mutate({ id: categoryId.current });
+                                    })(e)
+                            }}
+                        />
+                    </Dialog>
+                ) : (
+                    <Button
+                        onClick={() => {
+                            onRemove && onRemove();
+                        }}
+                        type="button"
+                        color="destructive"
+                        className="border-2 px-3 font-normal"
+                        StartIcon={() => <Trash2 className="m-0" />}
+                    />
+                )}
+            </div>
+        </Form>
+    );
 };
 const Categories = () => {
     const utils = api.useUtils();
-    const categoriesRes = api.simulation.categories.get.useQuery(undefined, {
+    const { isLoading: catsIsLoading, isError: catsIsError, isSuccess: catsIsSuccess, error: catsError } = api.simulation.categories.get.useQuery(undefined, {
         notifyOnChangeProps: ['error', 'isSuccess']
     });
-    const {
-        isLoading,
-        isError,
-        isSuccess,
-        error,
-    } = categoriesRes
+    const { data: user, isLoading: userIsLoading, isError: userIsError, isSuccess: userIsSuccess, error: userError } = api.user.me.useQuery(undefined, {
+        notifyOnChangeProps: ['error', 'isSuccess']
+    });
 
     const [categoriesAnimationParentRef] = useAutoAnimate<HTMLDivElement>();
 
@@ -380,26 +360,26 @@ const Categories = () => {
         if (catsData) {
             const instantiatedCats = catsData.map((catData) => (
                 <Fragment key={randomString()}>
-                    <CategoryForm category={catData} onRemove={() => {
+                    <CategoryForm user={user} category={catData} onRemove={() => {
                         setCachedCats((old) => old.filter((el) => el?.props.children.props.category.id !== catData.id))
                     }} />
                 </Fragment>)
             )
             setCachedCats(instantiatedCats)
         }
-    }, [isSuccess])
+    }, [catsIsSuccess, userIsSuccess])
 
-    if (isLoading) return <SkeletonLoader />;
-    if (isError)
+    if (catsIsLoading || userIsLoading) return <SkeletonLoader />;
+    if (catsIsError || userIsError)
         return (
             <Alert
                 severity="error"
                 title="Something went wrong"
-                message={error?.message}
+                message={catsError?.message || userError?.message}
             />
         );
 
-    if (isSuccess) {
+    if (catsIsSuccess && userIsSuccess) {
         return (
             <div>
                 <Button
@@ -408,11 +388,18 @@ const Categories = () => {
                     onClick={() => {
                         setNewCats((befNewCatData) => {
                             const elKey = randomString()
-                            return [<Fragment key={elKey}><CategoryForm onRemove={() => {
-                                setNewCats((crrCats) => {
-                                    return crrCats.filter((el) => el?.key !== elKey)
-                                })
-                            }} /></Fragment>, ...befNewCatData]
+                            return [
+                                <Fragment key={elKey}>
+                                    <CategoryForm
+                                        user={user}
+                                        onRemove={() => {
+                                            setNewCats((crrCats) => {
+                                                return crrCats.filter((el) => el?.key !== elKey)
+                                            })
+                                        }} />
+                                </Fragment>,
+                                ...befNewCatData
+                            ]
                         })
                     }}
                 >

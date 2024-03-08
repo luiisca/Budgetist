@@ -66,6 +66,7 @@ export function Errors<T extends FieldValues = FieldValues>(props: {
         formState.errors,
         fieldName
     );
+    // console.log('fieldErrors', fieldErrors)
 
     if (!fieldErrors) return null;
 
@@ -269,6 +270,7 @@ export const NumberInput = <T extends FieldValues = FieldValues>(
 
 type FormProps<T extends object> = {
     form: UseFormReturn<T>;
+    customInputValidation: () => boolean;
     handleSubmit: SubmitHandler<T>;
 } & Omit<JSX.IntrinsicElements["form"], "onSubmit">;
 
@@ -276,7 +278,7 @@ const PlainForm = <T extends FieldValues>(
     props: FormProps<T>,
     ref: Ref<HTMLFormElement>
 ) => {
-    const { form, handleSubmit, ...passThrough } = props;
+    const { form, customInputValidation, handleSubmit, ...passThrough } = props;
 
     return (
         <FormProvider {...form}>
@@ -285,11 +287,13 @@ const PlainForm = <T extends FieldValues>(
                 onSubmit={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
-                    form
-                        .handleSubmit(handleSubmit)(event)
-                        .catch((err) => {
-                            toast.error(`${getErrorFromUnknown(err).message}`);
-                        });
+                    if (customInputValidation()) {
+                        form
+                            .handleSubmit(handleSubmit)(event)
+                            .catch((err) => {
+                                toast.error(`${getErrorFromUnknown(err).message}`);
+                            });
+                    }
                 }}
                 {...passThrough}
             >

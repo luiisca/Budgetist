@@ -231,6 +231,7 @@ export const NumberInput = <T extends FieldValues = FieldValues>(
         addOnSuffix?: ReactNode;
         className?: string;
         loader?: ReactNode;
+        customNumValidation?: boolean;
         onChange?: (...event: any[]) => number | string;
         value?: (...event: any[]) => number | string;
     }
@@ -252,14 +253,19 @@ export const NumberInput = <T extends FieldValues = FieldValues>(
                         if (Number.isNaN(parsedValue)) {
                             return field.onChange('')
                         }
-                        if (parsedValue <= 0) {
-                            return field.onChange(1)
-                        }
 
-                        if (arg?.onChange) {
-                            field.onChange(arg.onChange(parsedValue));
+                        if (arg.customNumValidation && arg.onChange) {
+                            return field.onChange(arg.onChange(parsedValue))
                         } else {
-                            field.onChange(parsedValue);
+                            if (parsedValue <= 0) {
+                                return field.onChange(1)
+                            }
+
+                            if (arg.onChange) {
+                                field.onChange(arg.onChange(parsedValue));
+                            } else {
+                                field.onChange(parsedValue);
+                            }
                         }
                     }}
                 />

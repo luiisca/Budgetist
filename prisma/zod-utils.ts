@@ -3,16 +3,15 @@ import { z } from "zod";
 // helpers
 const nonEmptyString = z.string().min(1, { message: "Cannot be empty" });
 const numberInput = z.number({ invalid_type_error: "Cannot be empty" }).positive() // we're assuming input is only not a number when set to "", useful for <NumberInput />
+const nonNegativeNumberInput = z.number({ invalid_type_error: "Cannot be empty" }).nonnegative()
 const yearFrequency = numberInput.min(1).max(12)
-
-const range = (init: number, end: number) => numberInput.min(init).max(end);
 
 export const username = z
     .string()
     .min(2, { message: "Must be at least 2 characters long" })
     .optional();
 
-const percentage = numberInput.max(100, { message: "Invalid percentage" });
+const percentage = nonNegativeNumberInput.max(100, { message: "Invalid percentage" });
 
 export const selectOptions = z.object({
     value: z.string(),
@@ -33,26 +32,25 @@ export const profileInputZod = z.object({
 });
 
 // salary
-export const optSalVarianceInputZod = z.object({
-    taxPercent: percentage.optional(),
-})
 export const optSalInputZod = z.object({
     id: z.bigint().positive().optional(),
     title: z.string().optional(),
-    variance: z
-        .array(
-            optSalVarianceInputZod.extend({
-                from: numberInput,
-                amount: numberInput,
-            }).required()
-        )
-        .optional(),
 })
 export const salInputZod = optSalInputZod.extend({
     currency: selectOptions,
     amount: numberInput,
     taxType: selectOptions,
     taxPercent: percentage,
+    variance: z
+        .array(
+            z.object({
+                id: z.bigint().positive().optional(),
+                from: numberInput,
+                amount: numberInput,
+                taxPercent: percentage,
+            })
+        )
+        .optional(),
 });
 
 // categories

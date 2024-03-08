@@ -79,12 +79,12 @@ const SalaryForm = ({
         resolver: zodResolver(salInputZod),
         defaultValues: getDefSalInputValues({ salary, user })
     });
-    const { register, control, setFocus, setValue, setError, formState: { errors } } = salaryForm;
+    const { register, control, setFocus, setValue, clearErrors, formState: { errors } } = salaryForm;
 
     // watch values
-    const [taxTypeWatcher, varianceWatcher] = useWatch({
+    const [taxTypeWatcher, taxPercentWatcher, varianceWatcher] = useWatch({
         control,
-        name: ["taxType", "variance"],
+        name: ["taxType", "taxPercent", "variance"],
     });
 
     // mutation
@@ -206,6 +206,27 @@ const SalaryForm = ({
                         options={() => BASIC_GROUP_TYPES}
                         name="taxType"
                         label="Tax Type"
+                        onChange={(option) => {
+                            debounce(() => {
+                                if (option.value === 'perCat') {
+                                    if (varianceWatcher && varianceWatcher.length > 0) {
+                                        for (let index = 0; index < varianceWatcher.length; index++) {
+                                            const period = varianceWatcher[index];
+                                            if (!period?.taxPercent) {
+                                                setValue(`variance.${index}.taxPercent`, taxPercentWatcher)
+                                                clearErrors(`variance.${index}.taxPercent`)
+                                            }
+                                        }
+                                    }
+                                }
+                                if (option.value === 'perRec') {
+                                    setValue('taxPercent', 1)
+                                    clearErrors('taxPercent')
+                                }
+                            }, 1500)()
+
+                            return option
+                        }}
                     />
                 </div>
                 {/* income tax */}
@@ -217,6 +238,7 @@ const SalaryForm = ({
                             label="Income Taxes"
                             addOnSuffix={<Percent />}
                             placeholder={`${DEFAULT_TAX_PERCENT}`}
+                            customNumValidation
                             onChange={(parsedValue: number) => {
                                 debounce(() => {
                                     if (varianceWatcher && varianceWatcher.length > 0) {
@@ -229,11 +251,13 @@ const SalaryForm = ({
                                     }
                                 }, 1500)()
 
+                                if (parsedValue < 0) {
+                                    return 0
+                                }
                                 if (parsedValue > 100) {
                                     return 100
-                                } else {
-                                    return parsedValue
                                 }
+                                return parsedValue
                             }}
                         />
                     </div>

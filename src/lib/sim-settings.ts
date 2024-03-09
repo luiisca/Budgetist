@@ -70,7 +70,8 @@ export const getCountryOptionLabel = (countryCode: string) => {
         : "Other";
 };
 
-export const getCurrencyOptions = ({ type, countryCode = DEFAULT_COUNTRY }: { type?: "perRec", countryCode: string }) => {
+// export const getCurrencyOptions = ({ isTypePerRec = false, countryCode = DEFAULT_COUNTRY }: { isTypePerRec?: boolean, countryCode: string } | undefined) => {
+export const getCurrencyOptions = ({ isTypePerRec = false, countryCode = DEFAULT_COUNTRY }: { isTypePerRec?: boolean; countryCode?: string }) => {
     const getUniqCurrencies = (currencies: string[]) => {
         const seen: Record<string, boolean> = {};
         return currencies.filter(function(currency) {
@@ -86,7 +87,7 @@ export const getCurrencyOptions = ({ type, countryCode = DEFAULT_COUNTRY }: { ty
         label: getCurrencyLocaleName(code, countryCode)
     }));
 
-    if (type === "perRec") {
+    if (isTypePerRec) {
         return [getSelectOption("perRec"), ...currencies];
     } else {
         return currencies;

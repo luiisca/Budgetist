@@ -1,18 +1,15 @@
 'use client'
 
-import React, { Fragment, useContext, useEffect, useRef, useState } from "react";
-import { z } from "zod";
+import React, { Fragment, useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
-    Control,
-    useFieldArray,
+    DefaultValues,
     useForm,
-    useFormContext,
     useWatch,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { toast } from "sonner";
-import { AlertTriangle, Percent, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, Percent, Plus, Trash2 } from "lucide-react";
 
 import {
     Button,
@@ -31,18 +28,12 @@ import { DialogContentConfirmation } from "~/components/ui/custom-dialog";
 import {
     BASIC_GROUP_TYPES,
     DEFAULT_TAX_PERCENT,
-    getLabel,
-    OptionsType,
-    PER_CAT_LABEL,
-    PER_CAT_VAL,
 } from "~/lib/constants";
-import { getCurrency, getCurrencyOptions } from "~/lib/sim-settings";
-import omit from "~/lib/omit"
-import { SalInputType, SalaryDataInputTypeClient, salInputZod, salaryDataClient, salaryDataServer } from "prisma/zod-utils";
+import { getCurrencyOptions } from "~/lib/sim-settings";
+import { SalInputType, salInputZod } from "prisma/zod-utils";
 import { api } from "~/lib/trpc/react";
 import { RouterOutputs } from "~/lib/trpc/shared";
 import RecordsList from "./records-list";
-import { randomString } from "~/lib/random";
 import { BalanceContext } from "../../_lib/context";
 import getDefSalInputValues from "../../_lib/get-def-sal-input-values";
 import debounce from "~/lib/debounce";
@@ -65,27 +56,41 @@ const SkeletonLoader = () => {
 };
 
 const SalaryForm = ({
-    onRemove,
+    elKey,
     salary,
-    user
+    defaultValues,
+    user,
+    setSalaries,
 }: {
-    onRemove?: () => void;
+    elKey: number;
     salary?: RouterOutputs["simulation"]["salaries"]["get"][0];
+    defaultValues?: DefaultValues<SalInputType>;
     user: NonNullable<RouterOutputs['user']['me']>;
+    setSalaries: React.Dispatch<React.SetStateAction<(React.ReactElement | null)[]>>
 }) => {
     const utils = api.useUtils()
+
     // form
     const salaryForm = useForm<SalInputType>({
         resolver: zodResolver(salInputZod),
-        defaultValues: getDefSalInputValues({ salary, user })
+        defaultValues: defaultValues || getDefSalInputValues({ salary, user })
     });
-    const { register, control, setFocus, setValue, clearErrors, formState: { errors } } = salaryForm;
+    const { register, control, setValue, clearErrors, formState: { errors } } = salaryForm;
 
     // watch values
+    const allValuesWatcher = useWatch({
+        control
+    })
     const [taxTypeWatcher, taxPercentWatcher, varianceWatcher] = useWatch({
         control,
         name: ["taxType", "taxPercent", "variance"],
     });
+    const onRemove = useCallback(
+        () => {
+            setSalaries((crrSalaries) => crrSalaries.filter((el) => Number(el?.key) !== elKey))
+        },
+        []
+    )
 
     // mutation
     const { dispatch: balanceDispatch, state: { years } } = useContext(BalanceContext)
@@ -98,7 +103,7 @@ const SalaryForm = ({
                 totalBalanceLoading: true,
             });
         },
-        onSuccess: async (id) => {
+        onSuccess: (id) => {
             if (id) {
                 salaryId.current = id
                 setValue('id', id)
@@ -110,16 +115,14 @@ const SalaryForm = ({
                 years
             })
         },
-        onError: async (e) => {
-            const [message, inputIndex] = e.message.split(",");
-            setFocus(`variance.${Number(inputIndex)}.from`);
-
-            toast.error(message);
+        onError: () => {
+            toast.error("Could not add salary. Please try again");
             balanceDispatch({
                 type: "TOTAL_BAL_LOADING",
                 totalBalanceLoading: false,
             });
-            onRemove && onRemove();
+
+            onRemove();
         },
     });
 
@@ -130,6 +133,16 @@ const SalaryForm = ({
                 type: "TOTAL_BAL_LOADING",
                 totalBalanceLoading: true,
             });
+
+            let removedElPosition: number = 0;
+            setSalaries((crrSalaries) => crrSalaries.filter((el, i) => {
+                if (Number(el?.key) === elKey) {
+                    removedElPosition = i
+                }
+                return Number(el?.key) !== elKey
+            }))
+
+            return removedElPosition
         },
         onSuccess: async () => {
             toast.success("Salary deleted");
@@ -142,17 +155,34 @@ const SalaryForm = ({
                 })
             }
         },
-        onError: async () => {
+        onError: (e, v, removedElPosition) => {
             toast.error("Could not delete salary. Please try again.");
             balanceDispatch({
                 type: "TOTAL_BAL_LOADING",
                 totalBalanceLoading: false,
             });
+
+            setSalaries((crrSalaries) => {
+                const key = Date.now()
+                return [
+                    ...crrSalaries.slice(0, removedElPosition),
+                    <Fragment key={key}>
+                        <SalaryForm
+                            elKey={key}
+                            user={user}
+                            defaultValues={allValuesWatcher}
+                            salary={salary}
+                            setSalaries={setSalaries}
+                        />
+                    </Fragment>,
+                    ...crrSalaries.slice(removedElPosition),
+                ]
+            })
         },
     });
 
     return (
-        <Form<SalaryDataInputTypeClient>
+        <Form<SalInputType>
             form={salaryForm}
             customInputValidation={() => {
                 if (errors.variance) {
@@ -192,7 +222,7 @@ const SalaryForm = ({
             <div className="flex space-x-3">
                 {/* amount  */}
                 <div className="flex-[1_1_60%]">
-                    <NumberInput<SalaryDataInputTypeClient>
+                    <NumberInput<SalInputType>
                         control={control}
                         name="amount"
                         label="Yearly Salary"
@@ -201,7 +231,7 @@ const SalaryForm = ({
                 </div>
                 {/* taxType */}
                 <div>
-                    <ControlledSelect<SalaryDataInputTypeClient>
+                    <ControlledSelect<SalInputType>
                         control={control}
                         options={() => BASIC_GROUP_TYPES}
                         name="taxType"
@@ -209,6 +239,7 @@ const SalaryForm = ({
                         onChange={(option) => {
                             debounce(() => {
                                 if (option.value === 'perCat') {
+                                    // sets hidden empty variance taxPercent input to salary taxPercent value to avoid invisible errors on submit
                                     if (varianceWatcher && varianceWatcher.length > 0) {
                                         for (let index = 0; index < varianceWatcher.length; index++) {
                                             const period = varianceWatcher[index];
@@ -220,7 +251,7 @@ const SalaryForm = ({
                                     }
                                 }
                                 if (option.value === 'perRec') {
-                                    setValue('taxPercent', 1)
+                                    setValue('taxPercent', 0)
                                     clearErrors('taxPercent')
                                 }
                             }, 1500)()
@@ -232,7 +263,7 @@ const SalaryForm = ({
                 {/* income tax */}
                 {taxTypeWatcher?.value === "perCat" && (
                     <div>
-                        <NumberInput<SalaryDataInputTypeClient>
+                        <NumberInput<SalInputType>
                             control={control}
                             name="taxPercent"
                             label="Income Taxes"
@@ -264,7 +295,7 @@ const SalaryForm = ({
                 )}
                 {/* currency */}
                 <div>
-                    <ControlledSelect<SalaryDataInputTypeClient>
+                    <ControlledSelect<SalInputType>
                         control={control}
                         options={() => getCurrencyOptions({ countryCode: user.country })}
                         name="currency"
@@ -305,7 +336,7 @@ const SalaryForm = ({
                                     e &&
                                     ((e: Event | React.MouseEvent<HTMLElement, MouseEvent>) => {
                                         e.preventDefault();
-                                        deleteSalaryMutation.mutate({ id: salary.id });
+                                        salaryId.current && deleteSalaryMutation.mutate({ id: salaryId.current });
                                     })(e)
                             }}
                             Icon={AlertTriangle}
@@ -313,9 +344,7 @@ const SalaryForm = ({
                     </Dialog>
                 ) : (
                     <Button
-                        onClick={() => {
-                            onRemove && onRemove();
-                        }}
+                        onClick={onRemove}
                         type="button"
                         color="destructive"
                         className="border-2 px-3 font-normal"
@@ -343,13 +372,19 @@ export default function Salaries() {
     useEffect(() => {
         const salariesData = utils.simulation.salaries.get.getData()
         if (salariesData && user) {
-            const instantiatedSalaries = salariesData.map((catData) => (
-                <Fragment key={randomString()}>
-                    <SalaryForm user={user} salary={catData} onRemove={() => {
-                        setCachedSalaries((old) => old.filter((el) => el?.props.children.props.category.id !== catData.id))
-                    }} />
-                </Fragment>)
-            )
+            const instantiatedSalaries = salariesData.map((salaryData) => {
+                const key = Date.now()
+                return (
+                    <Fragment key={key}>
+                        <SalaryForm
+                            elKey={key}
+                            user={user}
+                            salary={salaryData}
+                            setSalaries={setCachedSalaries}
+                        />
+                    </Fragment>
+                )
+            })
             setCachedSalaries(instantiatedSalaries)
         }
     }, [salariesIsSuccess, userIsSuccess])
@@ -371,28 +406,25 @@ export default function Salaries() {
                     className="mb-4"
                     StartIcon={Plus}
                     onClick={() => {
-                        console.log('SALARYFORM onNew user', user)
-                        user && setNewSalaries((befNewSalData) => {
-                            const elKey = randomString()
-                            return [
-                                <Fragment key={elKey}>
+                        const key = Date.now()
+                        user && setNewSalaries((befNewSalData) => (
+                            [
+                                ...befNewSalData,
+                                <Fragment key={key}>
                                     <SalaryForm
+                                        elKey={key}
                                         user={user}
-                                        onRemove={() => {
-                                            setNewSalaries((crrSalaries) => {
-                                                return crrSalaries.filter((el) => el?.key !== elKey)
-                                            })
-                                        }} />
-                                </Fragment>,
-                                ...befNewSalData
+                                        setSalaries={setNewSalaries}
+                                    />
+                                </Fragment>
                             ]
-                        })
+                        ))
                     }}
                 >
                     New Salary
                 </Button>
                 <div className="mb-4 space-y-12" ref={salariesAnimationParentRef}>
-                    {newSalaries && newSalaries.map((newCat) => newCat)}
+                    {newSalaries && newSalaries.slice().reverse().map((newCat) => newCat)}
                     {cachedSalaries && cachedSalaries.map((cat) => cat)}
                 </div>
                 {/* @TODO: imprve wording */}

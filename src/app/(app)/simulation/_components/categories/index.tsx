@@ -1,13 +1,13 @@
 'use client'
-import React, { Fragment, useContext, useEffect, useMemo, useRef, useState } from "react";
-import ReactDOM from 'react-dom';
+import React, { Fragment, useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
     Control,
+    DefaultValues,
     useForm,
     useWatch,
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangle, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -32,37 +32,21 @@ import {
 } from "~/lib/sim-settings";
 import {
     DEFAULT_FREQUENCY,
-    DEFAULT_CURRENCY,
-    DEFAULT_COUNTRY,
     CATEGORY_INFL_TYPES,
-    SELECT_PER_CAT_VAL,
-    SELECT_PER_CAT_LABEL,
-    SELECT_OUTCOME_VAL,
-    SELECT_OUTCOME_LABEL,
-    SELECT_INCOME_VAL,
-    SELECT_INCOME_LABEL,
-    OptionsType,
     BASIC_BAL_TYPES,
     BASIC_GROUP_TYPES,
-    SELECT_LABELS_MAP,
-    getSelectOptionWithFallback,
-    SELECT_PER_REC_VAL,
-    getSelectOption,
 } from "~/lib/constants";
 import RecordsList from "./records-list";
 import { ControlledSelect } from "~/components/ui/core/form/select/Select";
-import Switch from "~/components/ui/core/switch";
 import { Dialog, DialogTrigger } from "~/components/ui/core/dialog";
 import { DialogContentConfirmation } from "~/components/ui/custom-dialog";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { api } from "~/lib/trpc/react";
 import TitleWithInfo from "../title-with-info";
 import { CountryInflInput, CountrySelect } from "../fields";
-import omit from "~/lib/omit"
 import { BalanceContext } from "../../_lib/context";
 import useUpdateInflation from "~/app/(app)/_lib/use-update-inflation";
 import getDefCatInputValues from "../../_lib/get-def-cat-input-values";
-import { randomString } from "~/lib/random";
 
 const SkeletonLoader = () => {
     return (
@@ -83,26 +67,41 @@ const SkeletonLoader = () => {
 
 
 const CategoryForm = ({
-    onRemove,
+    elKey,
     category,
-    user
+    defaultValues,
+    user,
+    setCats,
 }: {
-    onRemove?: () => void;
+    elKey: number;
     category?: RouterOutputs["simulation"]["categories"]["get"][0];
-    user: RouterOutputs["user"]["me"];
+    defaultValues?: DefaultValues<CatInputType>;
+    user: NonNullable<RouterOutputs["user"]["me"]>;
+    setCats: React.Dispatch<React.SetStateAction<(React.ReactElement | null)[]>>
 }) => {
     const utils = api.useUtils()
     // form
     const categoryForm = useForm<CatInputType>({
         resolver: zodResolver(catInputZod),
-        defaultValues: getDefCatInputValues({ category, user }),
+        defaultValues: defaultValues || getDefCatInputValues({ category, user }),
     });
 
     const { setValue, register, control } = categoryForm;
+
+    // watch values
+    const allValuesWatcher = useWatch({
+        control
+    })
     const [typeWatcher, freqTypeWatcher, inflTypeWatcher] = useWatch({
         control,
         name: ["type", 'freqType', 'inflType'],
     });
+    const onRemove = useCallback(
+        () => {
+            setCats((crrCats) => crrCats.filter((el) => Number(el?.key) !== elKey))
+        },
+        []
+    )
 
     // mutation
     const { dispatch: balanceDispatch, state: { years } } = useContext(BalanceContext)
@@ -133,7 +132,8 @@ const CategoryForm = ({
                 type: "TOTAL_BAL_LOADING",
                 totalBalanceLoading: false,
             });
-            onRemove && onRemove();
+
+            onRemove()
         },
     });
     const deleteCategoryMutation = api.simulation.categories.delete.useMutation({
@@ -142,8 +142,18 @@ const CategoryForm = ({
                 type: "TOTAL_BAL_LOADING",
                 totalBalanceLoading: true,
             });
+
+            let removedElPosition: number = 0;
+            setCats((crrCats) => crrCats.filter((el, i) => {
+                if (Number(el?.key) === elKey) {
+                    removedElPosition = i
+                }
+                return Number(el?.key) !== elKey
+            }))
+
+            return removedElPosition
         },
-        onSuccess: async () => {
+        onSuccess: () => {
             toast.success("Category deleted");
             const catsData = utils.simulation.categories.get.getData()
             // must be length > 1 since cached data is not yet udpated here
@@ -153,18 +163,33 @@ const CategoryForm = ({
                     years
                 })
             }
-            onRemove && onRemove();
         },
-        onError: async () => {
+        onError: (e, v, removedElPosition) => {
             toast.error("Could not delete category. Please try again.");
             balanceDispatch({
                 type: "TOTAL_BAL_LOADING",
                 totalBalanceLoading: false,
             });
+
+            setCats((crrCats) => {
+                const key = Date.now()
+                return [
+                    ...crrCats.slice(0, removedElPosition),
+                    <Fragment key={key}>
+                        <CategoryForm
+                            elKey={key}
+                            user={user}
+                            defaultValues={allValuesWatcher}
+                            category={category}
+                            setCats={setCats}
+                        />
+                    </Fragment>,
+                    ...crrCats.slice(removedElPosition),
+                ]
+            })
         },
     });
 
-    const [deleteCategoryOpen, setDeleteCategoryOpen] = useState(false);
     const { updateInflation, isLoadingInfl, isValidInfl } = useUpdateInflation<CatInputType>();
 
     return (
@@ -206,7 +231,7 @@ const CategoryForm = ({
                 <div>
                     <ControlledSelect<CatInputType>
                         control={control}
-                        options={() => getCurrencyOptions({ type: "perRec", countryCode: user.country })}
+                        options={() => getCurrencyOptions({ isTypePerRec: true, countryCode: user.country })}
                         name="currency"
                         label="Currency"
                     />
@@ -295,15 +320,12 @@ const CategoryForm = ({
             <div className="flex items-center space-x-2 pt-3">
                 <Button
                     color="primary"
-                    disabled={categoryMutation.isLoading}
+                    loading={categoryMutation.isLoading}
                 >
                     {transactionType === 'update' ? "Update" : "Create"}
                 </Button>
                 {transactionType === 'update' ? (
-                    <Dialog
-                        open={deleteCategoryOpen}
-                        onOpenChange={setDeleteCategoryOpen}
-                    >
+                    <Dialog>
                         <DialogTrigger asChild>
                             <Button
                                 type="button"
@@ -329,9 +351,7 @@ const CategoryForm = ({
                     </Dialog>
                 ) : (
                     <Button
-                        onClick={() => {
-                            onRemove && onRemove();
-                        }}
+                        onClick={onRemove}
                         type="button"
                         color="destructive"
                         className="border-2 px-3 font-normal"
@@ -357,14 +377,20 @@ const Categories = () => {
     const [cachedCats, setCachedCats] = useState<(React.ReactElement | null)[]>([])
     useEffect(() => {
         const catsData = utils.simulation.categories.get.getData()
-        if (catsData) {
-            const instantiatedCats = catsData.map((catData) => (
-                <Fragment key={randomString()}>
-                    <CategoryForm user={user} category={catData} onRemove={() => {
-                        setCachedCats((old) => old.filter((el) => el?.props.children.props.category.id !== catData.id))
-                    }} />
-                </Fragment>)
-            )
+        if (catsData && user) {
+            const instantiatedCats = catsData.map((catData) => {
+                const key = Date.now()
+                return (
+                    <Fragment key={key}>
+                        <CategoryForm
+                            elKey={key}
+                            user={user}
+                            category={catData}
+                            setCats={setCachedCats}
+                        />
+                    </Fragment>
+                )
+            })
             setCachedCats(instantiatedCats)
         }
     }, [catsIsSuccess, userIsSuccess])
@@ -386,27 +412,25 @@ const Categories = () => {
                     className="mb-4"
                     StartIcon={Plus}
                     onClick={() => {
-                        setNewCats((befNewCatData) => {
-                            const elKey = randomString()
-                            return [
-                                <Fragment key={elKey}>
+                        const key = Date.now()
+                        user && setNewCats((befNewCatData) => (
+                            [
+                                ...befNewCatData,
+                                <Fragment key={key}>
                                     <CategoryForm
+                                        elKey={key}
                                         user={user}
-                                        onRemove={() => {
-                                            setNewCats((crrCats) => {
-                                                return crrCats.filter((el) => el?.key !== elKey)
-                                            })
-                                        }} />
-                                </Fragment>,
-                                ...befNewCatData
+                                        setCats={setNewCats}
+                                    />
+                                </Fragment>
                             ]
-                        })
+                        ))
                     }}
                 >
                     New Category
                 </Button>
                 <div className="mb-4 space-y-12" ref={categoriesAnimationParentRef} id="cats-container">
-                    {newCats && newCats.map((newCat) => newCat)}
+                    {newCats && newCats.slice().reverse().map((newCat) => newCat)}
                     {cachedCats && cachedCats.map((cat) => cat)}
                 </div>
                 {/* @TODO: imprve wording */}

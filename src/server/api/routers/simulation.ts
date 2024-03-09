@@ -1,15 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { OptCatInputType, catInputZod, salInputZod } from "../../../../prisma/zod-utils";
+import { OptCatInputType, OptSalInputType, catInputZod, salInputZod } from "../../../../prisma/zod-utils";
 import {
     createTRPCRouter,
     protectedProcedure,
 } from "~/server/api/trpc";
 import { ErrorCode } from "~/lib/auth";
-import omit from '~/lib/omit'
 import { DEFAULT_FREQUENCY } from "~/lib/constants";
-import { Category, Prisma, Record } from "@prisma/client";
+import { Category, Prisma, Record, Salary } from "@prisma/client";
 
 export const simulationRouter = createTRPCRouter({
     salaries: createTRPCRouter({
@@ -45,13 +44,31 @@ export const simulationRouter = createTRPCRouter({
             }),
         createOrUpdate: protectedProcedure
             .input(salInputZod)
-            .mutation(async ({ input, ctx }) => {
+            .mutation(async ({ input: salary, ctx }) => {
                 const { db, user } = ctx;
 
-                let salary;
+                if (!user) {
+                    throw new TRPCError({ message: ErrorCode.UserNotFound, code: "NOT_FOUND" });
+                }
 
-                if (input.variance) {
-                    input.variance.reduce((prev, crr, index) => {
+                // parsse salary
+                const variance = salary.variance;
+                delete salary.variance;
+
+                const optFields: Required<Omit<OptSalInputType, 'id'>> = {
+                    title: salary.title || 'Job',
+                }
+                const parsedSalary: Omit<Salary, 'id' | 'userId'> = {
+                    ...salary,
+                    ...optFields,
+                    currency: salary.currency.value,
+                    taxType: salary.taxType.value,
+                }
+                const isVarianceValid = variance && variance.length > 0;
+
+                // update or create category
+                if (isVarianceValid) {
+                    variance.reduce((prev, crr, index) => {
                         if (prev.from >= crr.from) {
                             throw new TRPCError({
                                 code: "PARSE_ERROR",
@@ -61,39 +78,65 @@ export const simulationRouter = createTRPCRouter({
 
                         return crr;
                     });
-                    salary = {
-                        ...input,
-                        variance: {
-                            create: input.variance,
-                        },
-                    };
-                } else {
-                    salary = {
-                        ...omit(input, ["variance"]),
-                    };
                 }
 
-                if (input.id) {
-                    await db.period.deleteMany({
-                        where: {
-                            salaryId: input.id,
-                        },
-                    });
-                    await db.salary.update({
-                        where: {
-                            id: input.id,
-                        },
-                        data: salary,
-                    });
-                } else {
+                const opType = salary.id ? 'update' : 'create'
+                if (opType === 'update') {
+                    let salaryData: Omit<Prisma.SalaryCreateInput, 'user'>;
+                    if (isVarianceValid) {
+                        const periodsToCreate = []
+                        for (const period of variance) {
+                            const opType = period?.id ? 'update' : 'create'
+                            if (opType === 'update') {
+                                await db.period.update({
+                                    where: {
+                                        id: period.id,
+                                    },
+                                    data: period
+                                })
+                            }
+                            if (opType === 'create') {
+                                periodsToCreate.push(period)
+                            }
+                        }
 
-                    if (!user) {
-                        throw new TRPCError({ message: ErrorCode.UserNotFound, code: "NOT_FOUND" });
+                        salaryData = {
+                            ...parsedSalary,
+                            ...(periodsToCreate.length > 0 && {
+                                variance: {
+                                    create: periodsToCreate
+                                }
+                            })
+                        }
+                    } else {
+                        await db.period.deleteMany({
+                            where: {
+                                salaryId: salary.id,
+                            },
+                        });
+                        salaryData = {
+                            ...parsedSalary,
+                        }
                     }
 
-                    await db.salary.create({
+                    const updatedCategory = await db.salary.update({
+                        where: {
+                            id: salary.id,
+                        },
+                        data: salaryData
+                    });
+
+                    return updatedCategory.id
+                }
+                if (opType === 'create') {
+                    const newSalary = await db.salary.create({
                         data: {
-                            ...omit(salary, ["id"]),
+                            ...parsedSalary,
+                            ...(isVarianceValid && {
+                                variance: {
+                                    create: variance
+                                }
+                            }),
                             user: {
                                 connect: {
                                     id: user.id,
@@ -101,8 +144,24 @@ export const simulationRouter = createTRPCRouter({
                             },
                         },
                     });
+
+                    return newSalary.id
                 }
             }),
+        variance: createTRPCRouter({
+            delete: protectedProcedure
+                .input(z.object({ id: z.bigint().positive() }))
+                .mutation(async ({ input, ctx }) => {
+                    const { db } = ctx;
+
+                    await db.period.delete({
+                        where: {
+                            id: input.id,
+                        },
+                    });
+
+                })
+        }),
     }),
     categories: createTRPCRouter({
         get: protectedProcedure.query(async ({ ctx }) => {
@@ -144,10 +203,8 @@ export const simulationRouter = createTRPCRouter({
                     throw new TRPCError({ message: ErrorCode.UserNotFound, code: "NOT_FOUND" });
                 }
 
-                console.log('🔥procedure input ❌', category)
                 // parse category
                 const records = category.records;
-                console.log('createOrUpdate() records', records)
                 delete category.records;
 
                 const optFields: Required<Omit<OptCatInputType, 'id'>> = {
@@ -173,13 +230,13 @@ export const simulationRouter = createTRPCRouter({
                     inflation: record.inflation || user.inflation,
                     currency: record.currency?.value || user.currency,
                 }));
-                const isParsedcategoryRecordsValid = parsedCategoryRecords && parsedCategoryRecords.length > 0
+                const isParsedCategoryRecordsValid = parsedCategoryRecords && parsedCategoryRecords.length > 0
 
                 // update or create category
                 const opType = category.id ? 'update' : 'create'
                 if (opType === 'update') {
                     let categoryData: Omit<Prisma.CategoryCreateInput, 'user'>;
-                    if (isParsedcategoryRecordsValid) {
+                    if (isParsedCategoryRecordsValid) {
                         const recordsToCreate = []
                         for (const record of parsedCategoryRecords) {
                             const opType = record?.id ? 'update' : 'create'
@@ -228,7 +285,7 @@ export const simulationRouter = createTRPCRouter({
                     const newCategory = await db.category.create({
                         data: {
                             ...parsedCategory,
-                            ...(isParsedcategoryRecordsValid && {
+                            ...(isParsedCategoryRecordsValid && {
                                 records: {
                                     create: parsedCategoryRecords
                                 }
@@ -240,6 +297,7 @@ export const simulationRouter = createTRPCRouter({
                             },
                         },
                     });
+
                     return newCategory.id
                 }
             }),

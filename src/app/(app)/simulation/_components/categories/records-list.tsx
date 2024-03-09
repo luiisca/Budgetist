@@ -3,8 +3,9 @@
 import { toast } from 'sonner';
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Button, Label, NumberInput, TextField, Tooltip } from "~/components/ui";
-import { Dispatch, ReactNode, SetStateAction, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
+    FieldValues,
     UseFieldArrayReturn,
     useFieldArray,
     useFormContext,
@@ -13,38 +14,66 @@ import {
 import { Plus, X } from 'lucide-react';
 import Switch from '~/components/ui/core/switch';
 import TitleWithInfo from '../title-with-info';
-import { getCountryLocaleName, getCurrencyLocaleName, getCurrencyOptions } from '~/lib/sim-settings';
-import { CatInputDataType } from 'prisma/zod-utils';
+import { getCountryOptionLabel, getCurrencyLocaleName, getCurrencyOptions } from '~/lib/sim-settings';
+import { CatInputType } from 'prisma/zod-utils';
 import { BASIC_BAL_TYPES, DEFAULT_FREQUENCY, OptionsType, SELECT_OUTCOME_VAL, getSelectOptionWithFallback } from '~/lib/constants';
 import { RouterOutputs } from '~/lib/trpc/shared';
 import useUpdateInflation from '~/app/(app)/_lib/use-update-inflation';
 import { ControlledSelect } from '~/components/ui/core/form/select/Select';
 import { CountryInflInput, CountrySelect } from '../fields';
 import { api } from '~/lib/trpc/react';
+import { BalanceContext } from '../../_lib/context';
 
 const Record = ({
     index,
     fieldArray,
+    user,
 }: {
     index: number;
-    fieldArray: UseFieldArrayReturn<CatInputDataType>;
+    fieldArray: UseFieldArrayReturn<FieldValues, "records", "id">;
+    user: NonNullable<RouterOutputs['user']['me']>;
 }) => {
+    const { dispatch: balanceDispatch, state: { years } } = useContext(BalanceContext);
+
     const [inflDisabled, setInflDisabled] = useState(false);
-    const categoryForm = useFormContext<CatInputDataType>();
+    const categoryForm = useFormContext<CatInputType>();
     const { register, control } = categoryForm;
     const { remove } = fieldArray;
 
-    const { updateInflation, isLoadingInfl, isValidInfl } = useUpdateInflation<CatInputDataType>();
+    const { updateInflation, isLoadingInfl, isValidInfl } = useUpdateInflation<CatInputType>();
 
-    const [typeWatcher, freqTypeWatcher, inflTypeWatcher, currencyWatcher, recordTypeWatcher] = useWatch({
+    const [typeWatcher, freqTypeWatcher, inflTypeWatcher, currencyWatcher, recordTypeWatcher, recordIdWatcher] = useWatch({
         control,
-        name: ["type", "freqType", "inflType", "currency", `records.${index}.type`],
+        name: ["type", "freqType", "inflType", "currency", `records.${index}.type`, `records.${index}.id`],
     });
-    const res = api.user.me.useQuery();
-    const user = res.data as NonNullable<RouterOutputs['user']['me']>
+    const deleteRecordMutation = api.simulation.categories.records.delete.useMutation({
+        onMutate: () => {
+            balanceDispatch({
+                type: "TOTAL_BAL_LOADING",
+                totalBalanceLoading: true,
+            });
+        },
+        onSuccess: async () => {
+            toast.success("Record deleted");
+            balanceDispatch({
+                type: "SIM_RUN",
+                years
+            })
+        },
+        onError: async () => {
+            toast.error(`Could not delete record. Please try again.`);
+            balanceDispatch({
+                type: "TOTAL_BAL_LOADING",
+                totalBalanceLoading: false,
+            });
+        },
+    });
 
     return (
         <>
+            {/* id */}
+            {recordIdWatcher && <input {...register(`records.${index}.id`)} hidden />}
+
             {/* <Title /> */}
             <div>
                 <TextField
@@ -55,7 +84,7 @@ const Record = ({
             </div>
             {/* <Amount /> */}
             <div>
-                <NumberInput<CatInputDataType>
+                <NumberInput<CatInputType>
                     control={control}
                     name={`records.${index}.amount`}
                     label="Amount"
@@ -64,7 +93,7 @@ const Record = ({
             </div>
             {/* <SelectType /> */}
             <div>
-                <ControlledSelect<CatInputDataType>
+                <ControlledSelect<CatInputType>
                     control={control}
                     options={() => BASIC_BAL_TYPES}
                     onChange={(option) => {
@@ -98,7 +127,7 @@ const Record = ({
                             <div className="flex space-x-3">
                                 {/* country Select */}
                                 <div className="flex-[1_1_80%]">
-                                    <CountrySelect<CatInputDataType>
+                                    <CountrySelect<CatInputType>
                                         form={categoryForm}
                                         name={`records.${index}.country`}
                                         control={control}
@@ -109,7 +138,7 @@ const Record = ({
 
                                 {/* country inflation */}
                                 <div>
-                                    <CountryInflInput<CatInputDataType>
+                                    <CountryInflInput<CatInputType>
                                         control={control}
                                         name={`records.${index}.inflation`}
                                         isLoadingInfl={isLoadingInfl}
@@ -123,7 +152,7 @@ const Record = ({
             {/* freqType === 'perRec' => <Frequency /> */}
             {freqTypeWatcher?.value === "perRec" && (
                 <div>
-                    <NumberInput<CatInputDataType>
+                    <NumberInput<CatInputType>
                         control={control}
                         name={`records.${index}.frequency`}
                         label="Yearly Frequency"
@@ -135,7 +164,7 @@ const Record = ({
             {/* currency === 'perRec' => <Currency /> */}
             {currencyWatcher?.value === "perRec" && (
                 <div>
-                    <ControlledSelect<CatInputDataType>
+                    <ControlledSelect<CatInputType>
                         control={control}
                         options={() => getCurrencyOptions({ countryCode: user.country })}
                         name={`records.${index}.currency`}
@@ -144,9 +173,11 @@ const Record = ({
                 </div>
             )}
             <Button
+                type='button'
                 color="primary"
                 className="mt-3"
                 onClick={() => {
+                    recordIdWatcher && deleteRecordMutation.mutate({ id: recordIdWatcher })
                     remove(index);
                 }}
             >
@@ -158,15 +189,13 @@ const Record = ({
 
 export default function RecordsList({
     user,
-    disabledState,
     isMutationLoading,
 }: {
     user: NonNullable<RouterOutputs['user']['me']>;
-    disabledState: [boolean, Dispatch<SetStateAction<boolean>>];
     isMutationLoading: boolean;
 }) {
     // form
-    const form = useFormContext<CatInputDataType>();
+    const form = useFormContext<CatInputType>();
     const fieldArray = useFieldArray({
         name: "records",
     });
@@ -186,7 +215,7 @@ export default function RecordsList({
         country: {
             value: user.country,
             // @TODO: when will user.country be 'default'
-            label: getCountryLocaleName(user.country),
+            label: getCountryOptionLabel(user.country),
         },
         inflation: inflValWatcher || user.inflation,
         currency: {
@@ -202,7 +231,7 @@ export default function RecordsList({
     }, [errors]);
 
     const [recordsAnimationParentRef] = useAutoAnimate<HTMLUListElement>();
-    const [disabled, setDisabled] = disabledState;
+    const [disabled, setDisabled] = useState(false);
 
     return (
         <div>
@@ -217,16 +246,7 @@ export default function RecordsList({
                             id="disabled"
                             checked={!disabled}
                             onCheckedChange={() => {
-                                // setValue("title", titleValWatcher, {
-                                //     shouldDirty: true,
-                                // });
-
-                                if (!disabled) {
-                                    remove();
-                                } else {
-                                    append(newRecordDefaultShape);
-                                }
-
+                                !disabled && remove()
                                 setDisabled(!disabled);
                             }}
                         />
@@ -239,18 +259,20 @@ export default function RecordsList({
                     <ul className="space-y-4" ref={recordsAnimationParentRef}>
                         {fields.map((field, index) => (
                             <li key={field.id}>
-                                <div className="flex items-center space-x-3" key={index}>
-                                    <Record index={index} fieldArray={fieldArray} />
+                                <div className="flex items-center space-x-3">
+                                    <Record index={index} fieldArray={fieldArray} user={user} />
                                 </div>
                             </li>
                         ))}
                     </ul>
 
                     <Button
+                        type='button'
                         color="primary"
                         disabled={isMutationLoading}
                         className="mt-3"
                         onClick={() => {
+                            console.log('newRecordDefaultShape', newRecordDefaultShape)
                             append(newRecordDefaultShape);
                         }}
                     >

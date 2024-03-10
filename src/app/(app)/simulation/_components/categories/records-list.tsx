@@ -33,39 +33,71 @@ const Record = ({
     fieldArray: UseFieldArrayReturn<FieldValues, "records", "id">;
     user: NonNullable<RouterOutputs['user']['me']>;
 }) => {
+    const utils = api.useUtils()
     const { dispatch: balanceDispatch, state: { years } } = useContext(BalanceContext);
 
     const [inflDisabled, setInflDisabled] = useState(false);
     const categoryForm = useFormContext<CatInputType>();
     const { register, control } = categoryForm;
-    const { remove } = fieldArray;
+    const { remove, insert } = fieldArray;
 
     const { updateInflation, isLoadingInfl, isValidInfl } = useUpdateInflation<CatInputType>();
 
+
+    const allValuesWatcher = useWatch({
+        control,
+        name: `records.${index}`
+    })
     const [typeWatcher, freqTypeWatcher, inflTypeWatcher, currencyWatcher, recordTypeWatcher, recordIdWatcher] = useWatch({
         control,
         name: ["type", "freqType", "inflType", "currency", `records.${index}.type`, `records.${index}.id`],
     });
     const deleteRecordMutation = api.simulation.categories.records.delete.useMutation({
         onMutate: () => {
-            balanceDispatch({
-                type: "TOTAL_BAL_LOADING",
-                totalBalanceLoading: true,
-            });
+            const salariesData = utils.simulation.salaries.get.getData()
+            const shouldRunSim = salariesData && salariesData.length > 0
+            if (shouldRunSim) {
+                balanceDispatch({
+                    type: "TOTAL_BAL_LOADING",
+                    totalBalanceLoading: true,
+                });
+            } else {
+                balanceDispatch({
+                    type: "TOTAL_BAL_SET_HIDDEN",
+                    totalBalanceHidden: true,
+                })
+            }
+
+            // optimistically remove record
+            remove(index);
+
+            return { shouldRunSim }
         },
-        onSuccess: async () => {
+        onSuccess: (d, v, ctx) => {
             toast.success("Record deleted");
-            balanceDispatch({
-                type: "SIM_RUN",
-                years
-            })
+
+            if (ctx?.shouldRunSim) {
+                balanceDispatch({
+                    type: "SIM_RUN",
+                    years
+                })
+            }
         },
-        onError: async () => {
+        onError: (e, v, ctx) => {
             toast.error(`Could not delete record. Please try again.`);
             balanceDispatch({
                 type: "TOTAL_BAL_LOADING",
                 totalBalanceLoading: false,
             });
+            if (!ctx?.shouldRunSim) {
+                balanceDispatch({
+                    type: "TOTAL_BAL_SET_HIDDEN",
+                    totalBalanceHidden: true,
+                });
+            }
+
+            // insert record back if couldn't be deleted
+            insert(index, allValuesWatcher)
         },
     });
 
@@ -177,8 +209,11 @@ const Record = ({
                 color="primary"
                 className="mt-3"
                 onClick={() => {
-                    recordIdWatcher && deleteRecordMutation.mutate({ id: recordIdWatcher })
-                    remove(index);
+                    if (recordIdWatcher) {
+                        deleteRecordMutation.mutate({ id: recordIdWatcher })
+                    } else {
+                        remove(index);
+                    }
                 }}
             >
                 <X className="h-4 w-4" />

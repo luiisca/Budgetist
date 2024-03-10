@@ -98,22 +98,37 @@ const SalaryForm = ({
     const salaryId = useRef(salary && salary.id)
     const salaryMutation = api.simulation.salaries.createOrUpdate.useMutation({
         onMutate: () => {
-            balanceDispatch({
-                type: "TOTAL_BAL_LOADING",
-                totalBalanceLoading: true,
-            });
+            const catsData = utils.simulation.categories.get.getData()
+            const shouldRunSim = catsData && catsData.length > 0
+            if (shouldRunSim) {
+                balanceDispatch({
+                    type: "TOTAL_BAL_LOADING",
+                    totalBalanceLoading: true,
+                });
+            } else {
+                balanceDispatch({
+                    type: "TOTAL_BAL_SET_HIDDEN",
+                    totalBalanceHidden: true,
+                })
+            }
+
+            return { shouldRunSim }
         },
-        onSuccess: (id) => {
-            if (id) {
-                salaryId.current = id
-                setValue('id', id)
+        onSuccess: (salary, _, ctx) => {
+            if (salary) {
+                salaryId.current = salary.id
+                setValue('id', salary.id)
+                salary.varianceIds.forEach(({ id: periodId }, index) => setValue(`variance.${index}.id`, periodId))
             }
             toast.success(`Salary ${transactionType ? "updated" : "created"}`);
             setTransactionType('update')
-            balanceDispatch({
-                type: "SIM_RUN",
-                years
-            })
+
+            if (ctx?.shouldRunSim) {
+                balanceDispatch({
+                    type: "SIM_RUN",
+                    years
+                })
+            }
         },
         onError: () => {
             toast.error("Could not add salary. Please try again");
@@ -129,10 +144,17 @@ const SalaryForm = ({
     // deleteMutation
     const deleteSalaryMutation = api.simulation.salaries.delete.useMutation({
         onMutate: () => {
-            balanceDispatch({
-                type: "TOTAL_BAL_LOADING",
-                totalBalanceLoading: true,
-            });
+            const salariesData = utils.simulation.salaries.get.getData()
+            const catsData = utils.simulation.categories.get.getData()
+            // only run simulation if both salary and category data exist
+            // using salariesData.length > 1 since salariesData holds data from before deleting a salary
+            const shouldRunSim = salariesData && salariesData.length > 1 && catsData && catsData.length > 0
+            if (shouldRunSim) {
+                balanceDispatch({
+                    type: "TOTAL_BAL_LOADING",
+                    totalBalanceLoading: true,
+                });
+            }
 
             let removedElPosition: number = 0;
             setSalaries((crrSalaries) => crrSalaries.filter((el, i) => {
@@ -142,20 +164,18 @@ const SalaryForm = ({
                 return Number(el?.key) !== elKey
             }))
 
-            return removedElPosition
+            return { shouldRunSim, removedElPosition }
         },
-        onSuccess: async () => {
+        onSuccess: (d, v, ctx) => {
             toast.success("Salary deleted");
-            const salariesData = utils.simulation.salaries.get.getData()
-            // must be length > 1 since cached data is not yet udpated here
-            if (salariesData && salariesData.length > 1) {
+            if (ctx?.shouldRunSim) {
                 balanceDispatch({
                     type: "SIM_RUN",
                     years,
                 })
             }
         },
-        onError: (e, v, removedElPosition) => {
+        onError: (e, v, ctx) => {
             toast.error("Could not delete salary. Please try again.");
             balanceDispatch({
                 type: "TOTAL_BAL_LOADING",
@@ -165,7 +185,7 @@ const SalaryForm = ({
             setSalaries((crrSalaries) => {
                 const key = Date.now()
                 return [
-                    ...crrSalaries.slice(0, removedElPosition),
+                    ...crrSalaries.slice(0, ctx?.removedElPosition),
                     <Fragment key={key}>
                         <SalaryForm
                             elKey={key}
@@ -175,7 +195,7 @@ const SalaryForm = ({
                             setSalaries={setSalaries}
                         />
                     </Fragment>,
-                    ...crrSalaries.slice(removedElPosition),
+                    ...crrSalaries.slice(ctx?.removedElPosition),
                 ]
             })
         },
@@ -304,10 +324,7 @@ const SalaryForm = ({
                 </div>
             </div>
 
-            <RecordsList
-                isMutationLoading={salaryMutation.isLoading}
-                user={user}
-            />
+            <RecordsList isMutationLoading={salaryMutation.isLoading} />
 
             <div className="flex items-center space-x-2 pt-3">
                 <Button

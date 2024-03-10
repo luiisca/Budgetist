@@ -1,52 +1,9 @@
 'use client'
 
-// < RecordsList<SalaryDataInputTypeClient>
-// name="variance"
-// infoCont = {
-//         <>
-//             Your salary increase over time.
-//             < br />
-//     Input the starting year and how much you expect to make < br /> { " "}
-//             until the next period.
-//         </>
-//     }
-// isDisabled = { salaryMutation.isLoading }
-// fieldArray = { fieldArray }
-// newRecordShape = {{
-//     from: Number(watchLatestFromVal) + 1 || 1,
-//         amount: watchAmountVal,
-//             taxPercent: DEFAULT_TAX_PERCENT,
-//     }}
-// switchOnChecked = {() => {
-// salaryForm.setValue("amount", watchAmountVal, {
-//     shouldDirty: true,
-// });
-
-// if (!varianceHidden) {
-//     remove();
-// } else {
-//     append({
-//         from: 1,
-//         amount: watchAmountVal,
-//         taxPercent: DEFAULT_TAX_PERCENT,
-//     });
-// }
-// setVarianceHidden(!varianceHidden);
-// }}
-// >
-// {
-//     (index: number) => (
-//         <>
-//         </>
-//     )
-// }
-// </RecordsList >
-
-
 import { toast } from 'sonner';
 import { useAutoAnimate } from "@formkit/auto-animate/react";
-import { Button, Label, NumberInput, TextField, Tooltip } from "~/components/ui";
-import { Dispatch, ReactNode, SetStateAction, useContext, useEffect, useState } from "react";
+import { Button, Label, NumberInput, Tooltip } from "~/components/ui";
+import { useContext, useEffect, useState } from "react";
 import {
     FieldValues,
     UseFieldArrayReturn,
@@ -57,13 +14,8 @@ import {
 import { Percent, Plus, X } from 'lucide-react';
 import Switch from '~/components/ui/core/switch';
 import TitleWithInfo from '../title-with-info';
-import { getCountryOptionLabel, getCurrencyLocaleName, getCurrencyOptions } from '~/lib/sim-settings';
-import { CatInputType, SalInputType } from 'prisma/zod-utils';
-import { BASIC_BAL_TYPES, DEFAULT_FREQUENCY, DEFAULT_TAX_PERCENT, OptionsType, SELECT_OUTCOME_VAL, getSelectOptionWithFallback } from '~/lib/constants';
-import { RouterOutputs } from '~/lib/trpc/shared';
-import useUpdateInflation from '~/app/(app)/_lib/use-update-inflation';
-import { ControlledSelect } from '~/components/ui/core/form/select/Select';
-import { CountryInflInput, CountrySelect } from '../fields';
+import { SalInputType } from 'prisma/zod-utils';
+import { DEFAULT_TAX_PERCENT } from '~/lib/constants';
 import { api } from '~/lib/trpc/react';
 import { BalanceContext } from '../../_lib/context';
 
@@ -74,6 +26,7 @@ const Variance = ({
     position: number;
     fieldArray: UseFieldArrayReturn<FieldValues, "variance", "id">;
 }) => {
+    const utils = api.useUtils()
     const { dispatch: balanceDispatch, state: { years } } = useContext(BalanceContext);
 
     const {
@@ -83,32 +36,63 @@ const Variance = ({
         clearErrors,
         formState: { errors },
     } = useFormContext<SalInputType>();
-    const { remove } = fieldArray;
+    const { remove, insert } = fieldArray;
+
+    const allValuesWatcher = useWatch({
+        control,
+        name: `variance.${position}`
+    })
+
     const [varianceArrWatcher, taxTypeWatcher, periodIdWatcher] = useWatch({
         control,
         name: ["variance", 'taxType', `variance.${position}.id`]
     })
     const deletePeriodMutation = api.simulation.salaries.variance.delete.useMutation({
         onMutate: () => {
-            balanceDispatch({
-                type: "TOTAL_BAL_LOADING",
-                totalBalanceLoading: true,
-            });
+            const catsData = utils.simulation.categories.get.getData()
+            const shouldRunSim = catsData && catsData.length > 0
+            if (shouldRunSim) {
+                balanceDispatch({
+                    type: "TOTAL_BAL_LOADING",
+                    totalBalanceLoading: true,
+                });
+            } else {
+                balanceDispatch({
+                    type: "TOTAL_BAL_SET_HIDDEN",
+                    totalBalanceHidden: true,
+                })
+            }
+
+            // optimistically remove period
+            remove(position);
+
+            return { shouldRunSim }
         },
-        onSuccess: async () => {
+        onSuccess: (d, v, ctx) => {
             toast.success("Record deleted");
-            balanceDispatch({
-                type: "SIM_RUN",
-                years
-            })
+
+            if (ctx?.shouldRunSim) {
+                balanceDispatch({
+                    type: "SIM_RUN",
+                    years
+                })
+            }
         },
-        onError: async () => {
+        onError: (e, v, ctx) => {
             toast.error(`Could not delete record. Please try again.`);
             balanceDispatch({
                 type: "TOTAL_BAL_LOADING",
                 totalBalanceLoading: false,
             });
-            // @TODO: handle optimistic removal and failure
+            if (!ctx?.shouldRunSim) {
+                balanceDispatch({
+                    type: "TOTAL_BAL_SET_HIDDEN",
+                    totalBalanceHidden: true,
+                });
+            }
+
+            // insert period back if couldn't be deleted
+            insert(position, allValuesWatcher)
         },
     });
 
@@ -178,9 +162,11 @@ const Variance = ({
                 color="primary"
                 className="mt-3"
                 onClick={() => {
-                    periodIdWatcher && deletePeriodMutation.mutate({ id: periodIdWatcher })
-
-                    remove(position)
+                    if (periodIdWatcher) {
+                        deletePeriodMutation.mutate({ id: periodIdWatcher })
+                    } else {
+                        remove(position)
+                    }
                 }}
             >
                 <X className="h-4 w-4" />
@@ -190,10 +176,8 @@ const Variance = ({
 }
 
 export default function RecordsList({
-    user,
     isMutationLoading,
 }: {
-    user: NonNullable<RouterOutputs['user']['me']>;
     isMutationLoading: boolean;
 }) {
     // form

@@ -109,24 +109,39 @@ const CategoryForm = ({
     const categoryId = useRef(category && category.id)
     const categoryMutation = api.simulation.categories.createOrUpdate.useMutation({
         onMutate: () => {
-            balanceDispatch({
-                type: "TOTAL_BAL_LOADING",
-                totalBalanceLoading: true,
-            });
+            const salariesData = utils.simulation.salaries.get.getData()
+            const shouldRunSim = salariesData && salariesData.length > 0
+            if (shouldRunSim) {
+                balanceDispatch({
+                    type: "TOTAL_BAL_LOADING",
+                    totalBalanceLoading: true,
+                });
+            } else {
+                balanceDispatch({
+                    type: "TOTAL_BAL_SET_HIDDEN",
+                    totalBalanceHidden: true,
+                })
+            }
+
+            return { shouldRunSim }
         },
-        onSuccess: (id) => {
-            if (id) {
-                categoryId.current = id
-                setValue('id', id)
+        onSuccess: (category, _, ctx) => {
+            if (category) {
+                categoryId.current = category.id
+                setValue('id', category.id)
+                category.recordsIds.forEach(({ id: recordId }, index) => setValue(`records.${index}.id`, recordId))
             }
             toast.success(`Category ${transactionType === 'update' ? "updated" : "created"}`);
             setTransactionType('update')
-            balanceDispatch({
-                type: "SIM_RUN",
-                years
-            })
+
+            if (ctx?.shouldRunSim) {
+                balanceDispatch({
+                    type: "SIM_RUN",
+                    years
+                })
+            }
         },
-        onError: async () => {
+        onError: () => {
             toast.error("Could not add category. Please try again");
             balanceDispatch({
                 type: "TOTAL_BAL_LOADING",
@@ -138,10 +153,22 @@ const CategoryForm = ({
     });
     const deleteCategoryMutation = api.simulation.categories.delete.useMutation({
         onMutate: () => {
-            balanceDispatch({
-                type: "TOTAL_BAL_LOADING",
-                totalBalanceLoading: true,
-            });
+            const catsData = utils.simulation.categories.get.getData()
+            const salariesData = utils.simulation.salaries.get.getData()
+            // only run simulation if both salary and category data exist
+            // using catsData.length > 1 since catsData holds data from before deleting a category
+            const shouldRunSim = catsData && catsData.length > 1 && salariesData && salariesData.length > 0
+            if (shouldRunSim) {
+                balanceDispatch({
+                    type: "TOTAL_BAL_LOADING",
+                    totalBalanceLoading: true,
+                });
+            } else {
+                balanceDispatch({
+                    type: "TOTAL_BAL_SET_HIDDEN",
+                    totalBalanceHidden: true,
+                })
+            }
 
             let removedElPosition: number = 0;
             setCats((crrCats) => crrCats.filter((el, i) => {
@@ -151,20 +178,18 @@ const CategoryForm = ({
                 return Number(el?.key) !== elKey
             }))
 
-            return removedElPosition
+            return { shouldRunSim, removedElPosition }
         },
-        onSuccess: () => {
+        onSuccess: (d, v, ctx) => {
             toast.success("Category deleted");
-            const catsData = utils.simulation.categories.get.getData()
-            // must be length > 1 since cached data is not yet udpated here
-            if (catsData && catsData.length > 1) {
+            if (ctx?.shouldRunSim) {
                 balanceDispatch({
                     type: "SIM_RUN",
                     years
                 })
             }
         },
-        onError: (e, v, removedElPosition) => {
+        onError: (e, v, ctx) => {
             toast.error("Could not delete category. Please try again.");
             balanceDispatch({
                 type: "TOTAL_BAL_LOADING",
@@ -174,7 +199,7 @@ const CategoryForm = ({
             setCats((crrCats) => {
                 const key = Date.now()
                 return [
-                    ...crrCats.slice(0, removedElPosition),
+                    ...crrCats.slice(0, ctx?.removedElPosition),
                     <Fragment key={key}>
                         <CategoryForm
                             elKey={key}
@@ -184,7 +209,7 @@ const CategoryForm = ({
                             setCats={setCats}
                         />
                     </Fragment>,
-                    ...crrCats.slice(removedElPosition),
+                    ...crrCats.slice(ctx?.removedElPosition),
                 ]
             })
         },
@@ -195,7 +220,7 @@ const CategoryForm = ({
     return (
         <Form<CatInputType>
             form={categoryForm}
-            handleSubmit={(values) => { categoryMutation.mutate(values) }}
+            handleSubmit={(values) => { console.log('form values', values); categoryMutation.mutate(values) }}
             className="space-y-6"
         >
             {/* id */}

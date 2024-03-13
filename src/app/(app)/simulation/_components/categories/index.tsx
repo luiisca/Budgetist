@@ -1,5 +1,6 @@
 'use client'
 import React, { Fragment, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { v4 as uuidv4 } from 'uuid';
 import {
     Control,
     DefaultValues,
@@ -47,6 +48,9 @@ import { CountryInflInput, CountrySelect } from "../fields";
 import { BalanceContext } from "../../_lib/context";
 import useUpdateInflation from "~/app/(app)/_lib/use-update-inflation";
 import getDefCatInputValues from "../../_lib/get-def-cat-input-values";
+import handleBalanceLoadingState from "../../_lib/handle-balance-loading-state";
+import parseCatInputData from "~/app/(app)/_lib/parse-cat-input-data";
+import shouldRunSim from "../../_lib/should-run-sim";
 
 const SkeletonLoader = () => {
     return (
@@ -71,14 +75,15 @@ const CategoryForm = ({
     category,
     defaultValues,
     user,
-    setCats,
+    catsState,
 }: {
-    elKey: number;
+    elKey: string;
     category?: RouterOutputs["simulation"]["categories"]["get"][0];
     defaultValues?: DefaultValues<CatInputType>;
     user: NonNullable<RouterOutputs["user"]["me"]>;
-    setCats: React.Dispatch<React.SetStateAction<(React.ReactElement | null)[]>>
+    catsState: [(React.ReactElement | null)[], React.Dispatch<React.SetStateAction<(React.ReactElement | null)[]>>]
 }) => {
+    const [cats, setCats] = catsState
     const utils = api.useUtils()
     // form
     const categoryForm = useForm<CatInputType>({
@@ -96,122 +101,147 @@ const CategoryForm = ({
         control,
         name: ["type", 'freqType', 'inflType'],
     });
-    const onRemove = useCallback(
-        () => {
-            setCats((crrCats) => crrCats.filter((el) => Number(el?.key) !== elKey))
-        },
-        []
-    )
 
     // mutation
     const { dispatch: balanceDispatch, state: { years } } = useContext(BalanceContext)
     const [transactionType, setTransactionType] = useState<'update' | 'create'>(category ? 'update' : 'create')
     const categoryId = useRef(category && category.id)
     const categoryMutation = api.simulation.categories.createOrUpdate.useMutation({
-        onMutate: () => {
-            const salariesData = utils.simulation.salaries.get.getData()
-            const shouldRunSim = salariesData && salariesData.length > 0
-            if (shouldRunSim) {
-                balanceDispatch({
-                    type: "TOTAL_BAL_LOADING",
-                    totalBalanceLoading: true,
-                });
-            } else {
-                balanceDispatch({
-                    type: "TOTAL_BAL_SET_HIDDEN",
-                    totalBalanceHidden: true,
+        onMutate: (input) => {
+            // optimistic update
+            const { parsedCategory, parsedCategoryRecords } = parseCatInputData(input, user)
+            const oldCachedCatsData = utils.simulation.categories.get.getData() ?? []
+            if (transactionType === 'update') {
+                let updatedElPosition: number = 0;
+                cats.find((el, i) => {
+                    if (el?.key === elKey) {
+                        updatedElPosition = i
+
+                        return el
+                    }
                 })
+                utils.simulation.categories.get.setData(undefined, [
+                    ...oldCachedCatsData.slice(0, updatedElPosition),
+                    { ...parsedCategory, records: parsedCategoryRecords ?? [] },
+                    ...oldCachedCatsData.slice(updatedElPosition + 1),
+                ])
+            } else if (transactionType === 'create') {
+                utils.simulation.categories.get.setData(undefined, [...oldCachedCatsData, { ...parsedCategory, records: parsedCategoryRecords ?? [] }])
             }
 
-            return { shouldRunSim }
+            // wether run sim
+            const salariesData = utils.simulation.salaries.get.getData() ?? []
+            const catsData = utils.simulation.categories.get.getData()
+            handleBalanceLoadingState({ shouldRunSim: shouldRunSim(catsData, salariesData), balanceDispatch, action: { type: 'ON_MUTATE' } })
+
+            return { oldCachedCatsData, shouldRunSim }
         },
-        onSuccess: (category, _, ctx) => {
+        onSuccess: (category) => {
             if (category) {
+                toast.success(`Category ${transactionType === 'update' ? "updated" : "created"}`);
                 categoryId.current = category.id
                 setValue('id', category.id)
+                setValue('recordsIdsToRemove', [])
                 category.recordsIds.forEach(({ id: recordId }, index) => setValue(`records.${index}.id`, recordId))
-            }
-            toast.success(`Category ${transactionType === 'update' ? "updated" : "created"}`);
-            setTransactionType('update')
 
-            if (ctx?.shouldRunSim) {
-                balanceDispatch({
-                    type: "SIM_RUN",
-                    years
-                })
+                // update cached category id
+                if (transactionType === 'create') {
+                    const oldCachedCatsData = utils.simulation.salaries.get.getData() ?? []
+                    if (oldCachedCatsData.length > 0) {
+                        const salariesUpToLatest = oldCachedCatsData.slice(0, oldCachedCatsData.length - 1)
+                        const latestSalary = oldCachedCatsData[oldCachedCatsData.length - 1]!
+                        utils.simulation.salaries.get.setData(undefined, [
+                            ...salariesUpToLatest,
+                            {
+                                ...latestSalary,
+                                id: categoryId.current as bigint
+                            }
+                        ])
+                    }
+                }
+
+                transactionType === 'create' && setTransactionType('update')
             }
+
+            // wether run sim
+            const salariesData = utils.simulation.salaries.get.getData() ?? []
+            const catsData = utils.simulation.categories.get.getData()
+            handleBalanceLoadingState({ shouldRunSim: shouldRunSim(catsData, salariesData), balanceDispatch, action: { type: 'ON_SUCCESS', years } })
         },
         onError: () => {
             toast.error("Could not add category. Please try again");
-            balanceDispatch({
-                type: "TOTAL_BAL_LOADING",
-                totalBalanceLoading: false,
-            });
 
-            onRemove()
+            // wether run sim
+            const salariesData = utils.simulation.salaries.get.getData() ?? []
+            const catsData = utils.simulation.categories.get.getData()
+            handleBalanceLoadingState({ shouldRunSim: shouldRunSim(catsData, salariesData), balanceDispatch, action: { type: 'ON_ERROR' } })
         },
     });
     const deleteCategoryMutation = api.simulation.categories.delete.useMutation({
         onMutate: () => {
-            const catsData = utils.simulation.categories.get.getData()
-            const salariesData = utils.simulation.salaries.get.getData()
-            // only run simulation if both salary and category data exist
-            // using catsData.length > 1 since catsData holds data from before deleting a category
-            const shouldRunSim = catsData && catsData.length > 1 && salariesData && salariesData.length > 0
-            if (shouldRunSim) {
-                balanceDispatch({
-                    type: "TOTAL_BAL_LOADING",
-                    totalBalanceLoading: true,
-                });
-            } else {
-                balanceDispatch({
-                    type: "TOTAL_BAL_SET_HIDDEN",
-                    totalBalanceHidden: true,
-                })
-            }
-
+            // optimistic update
+            // UI
             let removedElPosition: number = 0;
             setCats((crrCats) => crrCats.filter((el, i) => {
-                if (Number(el?.key) === elKey) {
+                if (el?.key === elKey) {
                     removedElPosition = i
                 }
-                return Number(el?.key) !== elKey
+                return el?.key !== elKey
             }))
+            // cache
+            const oldCachedCatsData = utils.simulation.categories.get.getData()
+            const newCatsData = [
+                ...oldCachedCatsData?.slice(0, removedElPosition) ?? [],
+                ...oldCachedCatsData?.slice(removedElPosition + 1) ?? []
+            ]
+            utils.simulation.categories.get.setData(undefined, newCatsData)
 
-            return { shouldRunSim, removedElPosition }
+            // wether run sim
+            const salariesData = utils.simulation.salaries.get.getData()
+            const catsData = utils.simulation.categories.get.getData()
+            handleBalanceLoadingState({ shouldRunSim: shouldRunSim(catsData, salariesData), balanceDispatch, action: { type: 'ON_MUTATE' } })
+
+            return { oldCachedCatsData, removedElPosition }
         },
-        onSuccess: (d, v, ctx) => {
+        onSuccess: () => {
             toast.success("Category deleted");
-            if (ctx?.shouldRunSim) {
-                balanceDispatch({
-                    type: "SIM_RUN",
-                    years
-                })
-            }
+
+            // wether run sim
+            const salariesData = utils.simulation.salaries.get.getData() ?? []
+            const catsData = utils.simulation.categories.get.getData()
+            handleBalanceLoadingState({ shouldRunSim: shouldRunSim(catsData, salariesData), balanceDispatch, action: { type: 'ON_SUCCESS', years } })
         },
         onError: (e, v, ctx) => {
             toast.error("Could not delete category. Please try again.");
-            balanceDispatch({
-                type: "TOTAL_BAL_LOADING",
-                totalBalanceLoading: false,
-            });
 
-            setCats((crrCats) => {
-                const key = Date.now()
-                return [
-                    ...crrCats.slice(0, ctx?.removedElPosition),
-                    <Fragment key={key}>
-                        <CategoryForm
-                            elKey={key}
-                            user={user}
-                            defaultValues={allValuesWatcher}
-                            category={category}
-                            setCats={setCats}
-                        />
-                    </Fragment>,
-                    ...crrCats.slice(ctx?.removedElPosition),
-                ]
-            })
+            if (ctx) {
+                // revert optimistic update
+                // revert UI
+                setCats((crrCats) => {
+                    const key = uuidv4()
+                    return [
+                        ...crrCats.slice(0, ctx.removedElPosition),
+                        <Fragment key={key}>
+                            <CategoryForm
+                                elKey={key}
+                                user={user}
+                                defaultValues={allValuesWatcher}
+                                category={category}
+                                catsState={catsState}
+                            />
+                        </Fragment>,
+                        ...crrCats.slice(ctx.removedElPosition),
+                    ]
+                })
+
+                // revert cache 
+                utils.simulation.categories.get.setData(undefined, ctx.oldCachedCatsData)
+
+                // wether run sim
+                const salariesData = utils.simulation.salaries.get.getData() ?? []
+                const catsData = utils.simulation.categories.get.getData()
+                handleBalanceLoadingState({ shouldRunSim: shouldRunSim(catsData, salariesData), balanceDispatch, action: { type: 'ON_ERROR' } })
+            }
         },
     });
 
@@ -220,7 +250,9 @@ const CategoryForm = ({
     return (
         <Form<CatInputType>
             form={categoryForm}
-            handleSubmit={(values) => { console.log('form values', values); categoryMutation.mutate(values) }}
+            handleSubmit={(values) => {
+                categoryMutation.mutate(values)
+            }}
             className="space-y-6"
         >
             {/* id */}
@@ -376,7 +408,9 @@ const CategoryForm = ({
                     </Dialog>
                 ) : (
                     <Button
-                        onClick={onRemove}
+                        onClick={() => {
+                            setCats((crrCats) => crrCats.filter((el) => el?.key !== elKey))
+                        }}
                         type="button"
                         color="destructive"
                         className="border-2 px-3 font-normal"
@@ -398,25 +432,25 @@ const Categories = () => {
 
     const [categoriesAnimationParentRef] = useAutoAnimate<HTMLDivElement>();
 
-    const [newCats, setNewCats] = useState<(React.ReactElement | null)[]>([])
-    const [cachedCats, setCachedCats] = useState<(React.ReactElement | null)[]>([])
+    const catsState = useState<(React.ReactElement | null)[]>([])
+    const [cats, setCats] = catsState
     useEffect(() => {
         const catsData = utils.simulation.categories.get.getData()
         if (catsData && user) {
             const instantiatedCats = catsData.map((catData) => {
-                const key = Date.now()
+                const key = uuidv4()
                 return (
                     <Fragment key={key}>
                         <CategoryForm
                             elKey={key}
                             user={user}
                             category={catData}
-                            setCats={setCachedCats}
+                            catsState={catsState}
                         />
                     </Fragment>
                 )
             })
-            setCachedCats(instantiatedCats)
+            setCats(instantiatedCats)
         }
     }, [catsIsSuccess, userIsSuccess])
 
@@ -437,15 +471,15 @@ const Categories = () => {
                     className="mb-4"
                     StartIcon={Plus}
                     onClick={() => {
-                        const key = Date.now()
-                        user && setNewCats((befNewCatData) => (
+                        const key = uuidv4()
+                        user && setCats((befNewCatData) => (
                             [
                                 ...befNewCatData,
                                 <Fragment key={key}>
                                     <CategoryForm
                                         elKey={key}
                                         user={user}
-                                        setCats={setNewCats}
+                                        catsState={catsState}
                                     />
                                 </Fragment>
                             ]
@@ -455,12 +489,11 @@ const Categories = () => {
                     New Category
                 </Button>
                 <div className="mb-4 space-y-12" ref={categoriesAnimationParentRef} id="cats-container">
-                    {newCats && newCats.slice().reverse().map((newCat) => newCat)}
-                    {cachedCats && cachedCats.map((cat) => cat)}
+                    {cats && cats.slice().reverse().map((cat) => cat)}
                 </div>
                 {/* @TODO: imprve wording */}
                 {
-                    cachedCats?.length === 0 && newCats?.length === 0 && (
+                    cats?.length === 0 && (
                         <EmptyScreen
                             Icon={Plus}
                             headline="New category"

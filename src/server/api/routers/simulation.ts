@@ -1,14 +1,15 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { OptCatInputType, OptSalInputType, catInputZod, salInputZod } from "../../../../prisma/zod-utils";
+import { catInputZod, salInputZod } from "../../../../prisma/zod-utils";
 import {
     createTRPCRouter,
     protectedProcedure,
 } from "~/server/api/trpc";
 import { ErrorCode } from "~/lib/auth";
-import { DEFAULT_FREQUENCY } from "~/lib/constants";
-import { Category, Prisma, Record, Salary } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import parseCatInputData from "./_lib/parse-cat-input-data";
+import parseSalaryInputData from "./_lib/parse-salary-input-data";
 
 export const simulationRouter = createTRPCRouter({
     salaries: createTRPCRouter({
@@ -24,10 +25,26 @@ export const simulationRouter = createTRPCRouter({
                     userId: user.id,
                 },
                 orderBy: {
-                    id: "desc",
+                    id: "asc",
                 },
-                include: {
-                    variance: true,
+                select: {
+                    id: true,
+                    title: true,
+                    currency: true,
+                    amount: true,
+                    taxType: true,
+                    taxPercent: true,
+                    variance: {
+                        select: {
+                            id: true,
+                            from: true,
+                            amount: true,
+                            taxPercent: true,
+                        },
+                        orderBy: {
+                            id: 'asc'
+                        }
+                    },
                 },
             });
         }),
@@ -51,19 +68,18 @@ export const simulationRouter = createTRPCRouter({
                     throw new TRPCError({ message: ErrorCode.UserNotFound, code: "NOT_FOUND" });
                 }
 
-                // parsse salary
-                const variance = salary.variance;
-                delete salary.variance;
+                // remove periods
+                console.log('periodsIdsToRemove', salary.periodsIdsToRemove)
+                salary.periodsIdsToRemove?.forEach(async (periodId) => {
+                    await db.period.delete({
+                        where: {
+                            id: periodId
+                        }
+                    })
+                })
 
-                const optFields: Required<Omit<OptSalInputType, 'id'>> = {
-                    title: salary.title || 'Job',
-                }
-                const parsedSalary: Omit<Salary, 'id' | 'userId'> = {
-                    ...salary,
-                    ...optFields,
-                    currency: salary.currency.value,
-                    taxType: salary.taxType.value,
-                }
+                // parse salary
+                const { parsedSalary, variance } = parseSalaryInputData(salary)
                 const isVarianceValid = variance && variance.length > 0;
 
                 // update or create category
@@ -119,14 +135,28 @@ export const simulationRouter = createTRPCRouter({
                         }
                     }
 
-                    const updatedCategory = await db.salary.update({
+                    const updatedSalary = await db.salary.update({
                         where: {
                             id: salary.id,
                         },
-                        data: salaryData
+                        data: salaryData,
+                        select: {
+                            id: true,
+                            variance: {
+                                select: {
+                                    id: true,
+                                },
+                                orderBy: {
+                                    id: 'asc'
+                                }
+                            }
+                        }
                     });
 
-                    return updatedCategory.id
+                    return {
+                        id: updatedSalary.id,
+                        varianceIds: updatedSalary.variance
+                    }
                 }
                 if (opType === 'create') {
                     const newSalary = await db.salary.create({
@@ -143,46 +173,73 @@ export const simulationRouter = createTRPCRouter({
                                 },
                             },
                         },
+                        select: {
+                            id: true,
+                            variance: {
+                                select: {
+                                    id: true,
+                                },
+                                orderBy: {
+                                    id: 'asc'
+                                }
+                            }
+                        }
                     });
 
-                    return newSalary.id
+                    return {
+                        id: newSalary.id,
+                        varianceIds: newSalary.variance
+                    }
                 }
             }),
-        variance: createTRPCRouter({
-            delete: protectedProcedure
-                .input(z.object({ id: z.bigint().positive() }))
-                .mutation(async ({ input, ctx }) => {
-                    const { db } = ctx;
-
-                    await db.period.delete({
-                        where: {
-                            id: input.id,
-                        },
-                    });
-
-                })
-        }),
     }),
     categories: createTRPCRouter({
-        get: protectedProcedure.query(async ({ ctx }) => {
-            const { db, user } = ctx;
+        get: protectedProcedure
+            .query(async ({ ctx }) => {
+                const { db, user } = ctx;
 
-            if (!user) {
-                throw new TRPCError({ message: ErrorCode.UserNotFound, code: "NOT_FOUND" });
-            }
+                if (!user) {
+                    throw new TRPCError({ message: ErrorCode.UserNotFound, code: "NOT_FOUND" });
+                }
 
-            return await db.category.findMany({
-                where: {
-                    userId: user.id,
-                },
-                orderBy: {
-                    id: "desc",
-                },
-                include: {
-                    records: true,
-                },
-            });
-        }),
+                return await db.category.findMany({
+                    where: {
+                        userId: user.id,
+                    },
+                    orderBy: {
+                        id: "asc",
+                    },
+                    select: {
+                        id: true,
+                        inflVal: true,
+                        icon: true,
+                        frequency: true,
+                        title: true,
+                        budget: true,
+                        currency: true,
+                        type: true,
+                        inflType: true,
+                        country: true,
+                        freqType: true,
+                        records: {
+                            select: {
+                                id: true,
+                                title: true,
+                                frequency: true,
+                                inflation: true,
+                                currency: true,
+                                amount: true,
+                                inflType: true,
+                                type: true,
+                                country: true,
+                            },
+                            orderBy: {
+                                id: 'asc'
+                            }
+                        }
+                    },
+                });
+            }),
         delete: protectedProcedure
             .input(z.object({ id: z.bigint().positive() }))
             .mutation(async ({ input, ctx }) => {
@@ -203,33 +260,18 @@ export const simulationRouter = createTRPCRouter({
                     throw new TRPCError({ message: ErrorCode.UserNotFound, code: "NOT_FOUND" });
                 }
 
-                // parse category
-                const records = category.records;
-                delete category.records;
+                // remove records
+                console.log('recordsIdsToRemove', category.recordsIdsToRemove)
+                category.recordsIdsToRemove?.forEach(async (recordId) => {
+                    await db.record.delete({
+                        where: {
+                            id: recordId
+                        }
+                    })
+                })
 
-                const optFields: Required<Omit<OptCatInputType, 'id'>> = {
-                    inflVal: category.inflVal || user.inflation,
-                    icon: category.icon || "Icon",
-                    frequency: category.frequency || DEFAULT_FREQUENCY,
-                }
-                const parsedCategory: Omit<Category, 'id' | 'userId'> = {
-                    ...category,
-                    ...optFields,
-                    currency: category.currency.value,
-                    type: category.type.value,
-                    inflType: category.inflType.value,
-                    country: category.country.value,
-                    freqType: category.freqType.value,
-                }
-                const parsedCategoryRecords: (Omit<Record, 'id' | 'categoryId'> & { id?: bigint })[] | undefined = records?.map((record) => ({
-                    ...record,
-                    title: record.title || "",
-                    frequency: record.frequency || DEFAULT_FREQUENCY,
-                    country: record.country.value,
-                    type: record.type.value,
-                    inflation: record.inflation || user.inflation,
-                    currency: record.currency?.value || user.currency,
-                }));
+                // parse category
+                const { parsedCategory, parsedCategoryRecords } = parseCatInputData(category, user)
                 const isParsedCategoryRecordsValid = parsedCategoryRecords && parsedCategoryRecords.length > 0
 
                 // update or create category
@@ -276,9 +318,24 @@ export const simulationRouter = createTRPCRouter({
                         where: {
                             id: category.id,
                         },
-                        data: categoryData
+                        data: categoryData,
+                        select: {
+                            id: true,
+                            records: {
+                                select: {
+                                    id: true,
+                                },
+                                orderBy: {
+                                    id: 'asc'
+                                }
+                            }
+                        }
                     });
-                    return updatedCategory.id
+
+                    return {
+                        id: updatedCategory.id,
+                        recordsIds: updatedCategory.records
+                    }
                 }
 
                 if (opType === 'create') {
@@ -296,9 +353,23 @@ export const simulationRouter = createTRPCRouter({
                                 },
                             },
                         },
+                        select: {
+                            id: true,
+                            records: {
+                                select: {
+                                    id: true,
+                                },
+                                orderBy: {
+                                    id: 'asc'
+                                }
+                            }
+                        }
                     });
 
-                    return newCategory.id
+                    return {
+                        id: newCategory.id,
+                        recordsIds: newCategory.records
+                    }
                 }
             }),
         records: createTRPCRouter({

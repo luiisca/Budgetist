@@ -3,7 +3,7 @@
 import { toast } from 'sonner';
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Button, Label, NumberInput, TextField, Tooltip } from "~/components/ui";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
     FieldValues,
     UseFieldArrayReturn,
@@ -21,8 +21,6 @@ import { RouterOutputs } from '~/lib/trpc/shared';
 import useUpdateInflation from '~/app/(app)/_lib/use-update-inflation';
 import { ControlledSelect } from '~/components/ui/core/form/select/Select';
 import { CountryInflInput, CountrySelect } from '../fields';
-import { api } from '~/lib/trpc/react';
-import { BalanceContext } from '../../_lib/context';
 
 const Record = ({
     index,
@@ -33,72 +31,16 @@ const Record = ({
     fieldArray: UseFieldArrayReturn<FieldValues, "records", "id">;
     user: NonNullable<RouterOutputs['user']['me']>;
 }) => {
-    const utils = api.useUtils()
-    const { dispatch: balanceDispatch, state: { years } } = useContext(BalanceContext);
-
     const [inflDisabled, setInflDisabled] = useState(false);
     const categoryForm = useFormContext<CatInputType>();
-    const { register, control } = categoryForm;
-    const { remove, insert } = fieldArray;
+    const { register, setValue, control } = categoryForm;
+    const { remove } = fieldArray;
 
     const { updateInflation, isLoadingInfl, isValidInfl } = useUpdateInflation<CatInputType>();
 
-
-    const allValuesWatcher = useWatch({
+    const [recordsIdsToRemove, typeWatcher, freqTypeWatcher, inflTypeWatcher, currencyWatcher, recordTypeWatcher, recordIdWatcher] = useWatch({
         control,
-        name: `records.${index}`
-    })
-    const [typeWatcher, freqTypeWatcher, inflTypeWatcher, currencyWatcher, recordTypeWatcher, recordIdWatcher] = useWatch({
-        control,
-        name: ["type", "freqType", "inflType", "currency", `records.${index}.type`, `records.${index}.id`],
-    });
-    const deleteRecordMutation = api.simulation.categories.records.delete.useMutation({
-        onMutate: () => {
-            const salariesData = utils.simulation.salaries.get.getData()
-            const shouldRunSim = salariesData && salariesData.length > 0
-            if (shouldRunSim) {
-                balanceDispatch({
-                    type: "TOTAL_BAL_LOADING",
-                    totalBalanceLoading: true,
-                });
-            } else {
-                balanceDispatch({
-                    type: "TOTAL_BAL_SET_HIDDEN",
-                    totalBalanceHidden: true,
-                })
-            }
-
-            // optimistically remove record
-            remove(index);
-
-            return { shouldRunSim }
-        },
-        onSuccess: (d, v, ctx) => {
-            toast.success("Record deleted");
-
-            if (ctx?.shouldRunSim) {
-                balanceDispatch({
-                    type: "SIM_RUN",
-                    years
-                })
-            }
-        },
-        onError: (e, v, ctx) => {
-            toast.error(`Could not delete record. Please try again.`);
-            balanceDispatch({
-                type: "TOTAL_BAL_LOADING",
-                totalBalanceLoading: false,
-            });
-            if (!ctx?.shouldRunSim) {
-                balanceDispatch({
-                    type: "TOTAL_BAL_SET_HIDDEN",
-                    totalBalanceHidden: true,
-                });
-            }
-
-            // insert record back if couldn't be deleted
-            insert(index, allValuesWatcher)
-        },
+        name: ["recordsIdsToRemove", "type", "freqType", "inflType", "currency", `records.${index}.type`, `records.${index}.id`],
     });
 
     return (
@@ -209,11 +151,8 @@ const Record = ({
                 color="primary"
                 className="mt-3"
                 onClick={() => {
-                    if (recordIdWatcher) {
-                        deleteRecordMutation.mutate({ id: recordIdWatcher })
-                    } else {
-                        remove(index);
-                    }
+                    recordIdWatcher && setValue('recordsIdsToRemove', [...recordsIdsToRemove ?? [], recordIdWatcher])
+                    remove(index);
                 }}
             >
                 <X className="h-4 w-4" />

@@ -3,7 +3,7 @@
 import { toast } from 'sonner';
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Button, Label, NumberInput, Tooltip } from "~/components/ui";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
     FieldValues,
     UseFieldArrayReturn,
@@ -16,85 +16,28 @@ import Switch from '~/components/ui/core/switch';
 import TitleWithInfo from '../title-with-info';
 import { SalInputType } from 'prisma/zod-utils';
 import { DEFAULT_TAX_PERCENT } from '~/lib/constants';
-import { api } from '~/lib/trpc/react';
-import { BalanceContext } from '../../_lib/context';
 
-const Variance = ({
+const Period = ({
     position,
     fieldArray,
 }: {
     position: number;
     fieldArray: UseFieldArrayReturn<FieldValues, "variance", "id">;
 }) => {
-    const utils = api.useUtils()
-    const { dispatch: balanceDispatch, state: { years } } = useContext(BalanceContext);
-
     const {
         register,
         control,
+        setValue,
         setError,
         clearErrors,
         formState: { errors },
     } = useFormContext<SalInputType>();
-    const { remove, insert } = fieldArray;
+    const { remove } = fieldArray;
 
-    const allValuesWatcher = useWatch({
+    const [periodsIdsToRemove, varianceArrWatcher, taxTypeWatcher, periodIdWatcher] = useWatch({
         control,
-        name: `variance.${position}`
+        name: ["periodsIdsToRemove", "variance", 'taxType', `variance.${position}.id`]
     })
-
-    const [varianceArrWatcher, taxTypeWatcher, periodIdWatcher] = useWatch({
-        control,
-        name: ["variance", 'taxType', `variance.${position}.id`]
-    })
-    const deletePeriodMutation = api.simulation.salaries.variance.delete.useMutation({
-        onMutate: () => {
-            const catsData = utils.simulation.categories.get.getData()
-            const shouldRunSim = catsData && catsData.length > 0
-            if (shouldRunSim) {
-                balanceDispatch({
-                    type: "TOTAL_BAL_LOADING",
-                    totalBalanceLoading: true,
-                });
-            } else {
-                balanceDispatch({
-                    type: "TOTAL_BAL_SET_HIDDEN",
-                    totalBalanceHidden: true,
-                })
-            }
-
-            // optimistically remove period
-            remove(position);
-
-            return { shouldRunSim }
-        },
-        onSuccess: (d, v, ctx) => {
-            toast.success("Record deleted");
-
-            if (ctx?.shouldRunSim) {
-                balanceDispatch({
-                    type: "SIM_RUN",
-                    years
-                })
-            }
-        },
-        onError: (e, v, ctx) => {
-            toast.error(`Could not delete record. Please try again.`);
-            balanceDispatch({
-                type: "TOTAL_BAL_LOADING",
-                totalBalanceLoading: false,
-            });
-            if (!ctx?.shouldRunSim) {
-                balanceDispatch({
-                    type: "TOTAL_BAL_SET_HIDDEN",
-                    totalBalanceHidden: true,
-                });
-            }
-
-            // insert period back if couldn't be deleted
-            insert(position, allValuesWatcher)
-        },
-    });
 
     return (
         <>
@@ -162,11 +105,8 @@ const Variance = ({
                 color="primary"
                 className="mt-3"
                 onClick={() => {
-                    if (periodIdWatcher) {
-                        deletePeriodMutation.mutate({ id: periodIdWatcher })
-                    } else {
-                        remove(position)
-                    }
+                    periodIdWatcher && setValue('periodsIdsToRemove', [...periodsIdsToRemove ?? [], periodIdWatcher])
+                    remove(position)
                 }}
             >
                 <X className="h-4 w-4" />
@@ -175,17 +115,17 @@ const Variance = ({
     )
 }
 
-export default function RecordsList({
+export default function VarianceList({
     isMutationLoading,
 }: {
     isMutationLoading: boolean;
 }) {
     // form
     const form = useFormContext<SalInputType>();
+    const { formState: { errors }, control } = form;
     const fieldArray = useFieldArray({
         name: "variance",
     });
-    const { formState: { errors }, control } = form;
     const { fields, append, remove } = fieldArray;
     const [latestFromValWatcher, amountValWatcher, taxPercentWatcher] = useWatch({
         control,
@@ -248,7 +188,7 @@ export default function RecordsList({
                         {fields.map((field, index) => (
                             <li key={field.id}>
                                 <div className="flex items-center space-x-3">
-                                    <Variance position={index} fieldArray={fieldArray} />
+                                    <Period position={index} fieldArray={fieldArray} />
                                 </div>
                             </li>
                         ))}

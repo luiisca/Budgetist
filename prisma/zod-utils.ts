@@ -51,6 +51,7 @@ export const salInputZod = optSalInputZod.extend({
             })
         )
         .optional(),
+    periodsIdsToRemove: z.array(z.bigint()).optional(),
 });
 
 // categories
@@ -86,6 +87,7 @@ export const catInputZod = optCatInputZod.extend({
         )
         .optional(),
     freqType: selectOptions,
+    recordsIdsToRemove: z.array(z.bigint()).optional(),
 });
 
 // run simulation
@@ -95,7 +97,6 @@ export const runSimInputZod = z.object({
 
 export type ProfileInputType = z.infer<typeof profileInputZod>;
 
-export type OptSalVarianceInputType = z.infer<typeof optSalVarianceInputZod>;
 export type OptSalInputType = z.infer<typeof optSalInputZod>;
 export type SalInputType = z.infer<typeof salInputZod>;
 

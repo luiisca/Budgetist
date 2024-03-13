@@ -1,6 +1,7 @@
 'use client'
 
-import React, { Fragment, useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, { Fragment, useContext, useEffect, useRef, useState } from "react";
+import { v4 as uuidv4 } from 'uuid';
 import {
     DefaultValues,
     useForm,
@@ -33,10 +34,13 @@ import { getCurrencyOptions } from "~/lib/sim-settings";
 import { SalInputType, salInputZod } from "prisma/zod-utils";
 import { api } from "~/lib/trpc/react";
 import { RouterOutputs } from "~/lib/trpc/shared";
-import RecordsList from "./records-list";
+import VarianceList from "./variance-list";
 import { BalanceContext } from "../../_lib/context";
 import getDefSalInputValues from "../../_lib/get-def-sal-input-values";
 import debounce from "~/lib/debounce";
+import handleBalanceLoadingState from "../../_lib/handle-balance-loading-state";
+import parseSalaryInputData from "~/app/(app)/_lib/parse-salary-input-data";
+import shouldRunSim from "../../_lib/should-run-sim";
 
 const SkeletonLoader = () => {
     return (
@@ -60,14 +64,15 @@ const SalaryForm = ({
     salary,
     defaultValues,
     user,
-    setSalaries,
+    salariesState,
 }: {
-    elKey: number;
+    elKey: string;
     salary?: RouterOutputs["simulation"]["salaries"]["get"][0];
     defaultValues?: DefaultValues<SalInputType>;
     user: NonNullable<RouterOutputs['user']['me']>;
-    setSalaries: React.Dispatch<React.SetStateAction<(React.ReactElement | null)[]>>
+    salariesState: [(React.ReactElement | null)[], React.Dispatch<React.SetStateAction<(React.ReactElement | null)[]>>]
 }) => {
+    const [salaries, setSalaries] = salariesState
     const utils = api.useUtils()
 
     // form
@@ -85,119 +90,148 @@ const SalaryForm = ({
         control,
         name: ["taxType", "taxPercent", "variance"],
     });
-    const onRemove = useCallback(
-        () => {
-            setSalaries((crrSalaries) => crrSalaries.filter((el) => Number(el?.key) !== elKey))
-        },
-        []
-    )
 
     // mutation
     const { dispatch: balanceDispatch, state: { years } } = useContext(BalanceContext)
     const [transactionType, setTransactionType] = useState<'update' | 'create'>(salary ? 'update' : 'create')
     const salaryId = useRef(salary && salary.id)
     const salaryMutation = api.simulation.salaries.createOrUpdate.useMutation({
-        onMutate: () => {
-            const catsData = utils.simulation.categories.get.getData()
-            const shouldRunSim = catsData && catsData.length > 0
-            if (shouldRunSim) {
-                balanceDispatch({
-                    type: "TOTAL_BAL_LOADING",
-                    totalBalanceLoading: true,
-                });
-            } else {
-                balanceDispatch({
-                    type: "TOTAL_BAL_SET_HIDDEN",
-                    totalBalanceHidden: true,
+        onMutate: (input) => {
+            // optimistic update
+            const oldCachedSalariesData = utils.simulation.salaries.get.getData() ?? []
+            const { parsedSalary, parsedVariance } = parseSalaryInputData(input)
+            if (transactionType === 'update') {
+                let updatedElPosition: number = 0;
+                salaries.find((el, i) => {
+                    if (el?.key === elKey) {
+                        updatedElPosition = i
+
+                        return el
+                    }
                 })
+                utils.simulation.salaries.get.setData(undefined, [
+                    ...oldCachedSalariesData.slice(0, updatedElPosition),
+                    { ...parsedSalary, variance: parsedVariance ?? [] },
+                    ...oldCachedSalariesData.slice(updatedElPosition + 1),
+                ])
+            } else if (transactionType === 'create') {
+                utils.simulation.salaries.get.setData(undefined, [...oldCachedSalariesData, { ...parsedSalary, variance: parsedVariance ?? [] }])
             }
 
-            return { shouldRunSim }
+            // wether run sim
+            const salariesData = utils.simulation.salaries.get.getData() ?? []
+            const catsData = utils.simulation.categories.get.getData()
+            handleBalanceLoadingState({ shouldRunSim: shouldRunSim(catsData, salariesData), balanceDispatch, action: { type: 'ON_MUTATE' } })
+
+            return { oldCachedSalariesData }
         },
-        onSuccess: (salary, _, ctx) => {
+        onSuccess: (salary) => {
             if (salary) {
+                toast.success(`Salary ${transactionType ? "updated" : "created"}`);
                 salaryId.current = salary.id
                 setValue('id', salary.id)
+                setValue('periodsIdsToRemove', [])
                 salary.varianceIds.forEach(({ id: periodId }, index) => setValue(`variance.${index}.id`, periodId))
-            }
-            toast.success(`Salary ${transactionType ? "updated" : "created"}`);
-            setTransactionType('update')
 
-            if (ctx?.shouldRunSim) {
-                balanceDispatch({
-                    type: "SIM_RUN",
-                    years
-                })
+                // update cached salary id
+                if (transactionType === 'create') {
+                    const oldCachedSalariesData = utils.simulation.salaries.get.getData() ?? []
+                    if (oldCachedSalariesData.length > 0) {
+                        const salariesUpToLatest = oldCachedSalariesData.slice(0, oldCachedSalariesData.length - 1)
+                        const latestSalary = oldCachedSalariesData[oldCachedSalariesData.length - 1]!
+                        utils.simulation.salaries.get.setData(undefined, [
+                            ...salariesUpToLatest,
+                            {
+                                ...latestSalary,
+                                id: salaryId.current as bigint
+                            }
+                        ])
+                    }
+                }
+
+                transactionType === 'create' && setTransactionType('update')
             }
+
+            // wether run sim
+            const salariesData = utils.simulation.salaries.get.getData() ?? []
+            const catsData = utils.simulation.categories.get.getData()
+            handleBalanceLoadingState({ shouldRunSim: shouldRunSim(catsData, salariesData), balanceDispatch, action: { type: 'ON_SUCCESS', years } })
         },
         onError: () => {
             toast.error("Could not add salary. Please try again");
-            balanceDispatch({
-                type: "TOTAL_BAL_LOADING",
-                totalBalanceLoading: false,
-            });
 
-            onRemove();
+            // wether run sim
+            const salariesData = utils.simulation.salaries.get.getData() ?? []
+            const catsData = utils.simulation.categories.get.getData()
+            handleBalanceLoadingState({ shouldRunSim: shouldRunSim(catsData, salariesData), balanceDispatch, action: { type: 'ON_ERROR' } })
         },
     });
 
     // deleteMutation
     const deleteSalaryMutation = api.simulation.salaries.delete.useMutation({
         onMutate: () => {
-            const salariesData = utils.simulation.salaries.get.getData()
-            const catsData = utils.simulation.categories.get.getData()
-            // only run simulation if both salary and category data exist
-            // using salariesData.length > 1 since salariesData holds data from before deleting a salary
-            const shouldRunSim = salariesData && salariesData.length > 1 && catsData && catsData.length > 0
-            if (shouldRunSim) {
-                balanceDispatch({
-                    type: "TOTAL_BAL_LOADING",
-                    totalBalanceLoading: true,
-                });
-            }
-
+            // optimistic update
+            // UI
             let removedElPosition: number = 0;
             setSalaries((crrSalaries) => crrSalaries.filter((el, i) => {
-                if (Number(el?.key) === elKey) {
+                if (el?.key === elKey) {
                     removedElPosition = i
                 }
-                return Number(el?.key) !== elKey
+                return el?.key !== elKey
             }))
+            // cache
+            const oldCachedSalariesData = utils.simulation.salaries.get.getData() ?? []
+            const newSalariesData = [
+                ...oldCachedSalariesData.slice(0, removedElPosition),
+                ...oldCachedSalariesData.slice(removedElPosition + 1)
+            ]
+            utils.simulation.salaries.get.setData(undefined, newSalariesData)
 
-            return { shouldRunSim, removedElPosition }
+            // wether run sim
+            const salariesData = utils.simulation.salaries.get.getData()
+            const catsData = utils.simulation.categories.get.getData()
+            handleBalanceLoadingState({ shouldRunSim: shouldRunSim(catsData, salariesData), balanceDispatch, action: { type: 'ON_MUTATE' } })
+
+            return { oldCachedSalariesData, removedElPosition }
         },
-        onSuccess: (d, v, ctx) => {
+        onSuccess: () => {
             toast.success("Salary deleted");
-            if (ctx?.shouldRunSim) {
-                balanceDispatch({
-                    type: "SIM_RUN",
-                    years,
-                })
-            }
+
+            // wether run sim
+            const salariesData = utils.simulation.salaries.get.getData() ?? []
+            const catsData = utils.simulation.categories.get.getData()
+            handleBalanceLoadingState({ shouldRunSim: shouldRunSim(catsData, salariesData), balanceDispatch, action: { type: 'ON_SUCCESS', years } })
         },
         onError: (e, v, ctx) => {
             toast.error("Could not delete salary. Please try again.");
-            balanceDispatch({
-                type: "TOTAL_BAL_LOADING",
-                totalBalanceLoading: false,
-            });
 
-            setSalaries((crrSalaries) => {
-                const key = Date.now()
-                return [
-                    ...crrSalaries.slice(0, ctx?.removedElPosition),
-                    <Fragment key={key}>
-                        <SalaryForm
-                            elKey={key}
-                            user={user}
-                            defaultValues={allValuesWatcher}
-                            salary={salary}
-                            setSalaries={setSalaries}
-                        />
-                    </Fragment>,
-                    ...crrSalaries.slice(ctx?.removedElPosition),
-                ]
-            })
+            if (ctx) {
+                // revert optimistic update
+                // revert UI
+                setSalaries((crrSalaries) => {
+                    const key = uuidv4()
+                    return [
+                        ...crrSalaries.slice(0, ctx?.removedElPosition),
+                        <Fragment key={key}>
+                            <SalaryForm
+                                elKey={key}
+                                user={user}
+                                defaultValues={allValuesWatcher}
+                                salary={salary}
+                                salariesState={salariesState}
+                            />
+                        </Fragment>,
+                        ...crrSalaries.slice(ctx?.removedElPosition),
+                    ]
+                })
+                // revert cache 
+                utils.simulation.salaries.get.setData(undefined, ctx.oldCachedSalariesData)
+
+                // wether run sim
+                const salariesData = utils.simulation.salaries.get.getData() ?? []
+                const catsData = utils.simulation.categories.get.getData()
+                handleBalanceLoadingState({ shouldRunSim: shouldRunSim(catsData, salariesData), balanceDispatch, action: { type: 'ON_ERROR' } })
+            }
         },
     });
 
@@ -324,7 +358,7 @@ const SalaryForm = ({
                 </div>
             </div>
 
-            <RecordsList isMutationLoading={salaryMutation.isLoading} />
+            <VarianceList isMutationLoading={salaryMutation.isLoading} />
 
             <div className="flex items-center space-x-2 pt-3">
                 <Button
@@ -361,7 +395,9 @@ const SalaryForm = ({
                     </Dialog>
                 ) : (
                     <Button
-                        onClick={onRemove}
+                        onClick={() => {
+                            setSalaries((crrSalaries) => crrSalaries.filter((el) => el?.key !== elKey))
+                        }}
                         type="button"
                         color="destructive"
                         className="border-2 px-3 font-normal"
@@ -384,25 +420,25 @@ export default function Salaries() {
 
     const [salariesAnimationParentRef] = useAutoAnimate<HTMLDivElement>();
 
-    const [newSalaries, setNewSalaries] = useState<(React.ReactElement | null)[]>([])
-    const [cachedSalaries, setCachedSalaries] = useState<(React.ReactElement | null)[]>([])
+    const salariesState = useState<(React.ReactElement | null)[]>([])
+    const [salaries, setSalaries] = salariesState
     useEffect(() => {
         const salariesData = utils.simulation.salaries.get.getData()
         if (salariesData && user) {
             const instantiatedSalaries = salariesData.map((salaryData) => {
-                const key = Date.now()
+                const key = uuidv4()
                 return (
                     <Fragment key={key}>
                         <SalaryForm
                             elKey={key}
                             user={user}
                             salary={salaryData}
-                            setSalaries={setCachedSalaries}
+                            salariesState={salariesState}
                         />
                     </Fragment>
                 )
             })
-            setCachedSalaries(instantiatedSalaries)
+            setSalaries(instantiatedSalaries)
         }
     }, [salariesIsSuccess, userIsSuccess])
 
@@ -423,15 +459,15 @@ export default function Salaries() {
                     className="mb-4"
                     StartIcon={Plus}
                     onClick={() => {
-                        const key = Date.now()
-                        user && setNewSalaries((befNewSalData) => (
+                        const key = uuidv4()
+                        user && setSalaries((befNewSalData) => (
                             [
                                 ...befNewSalData,
                                 <Fragment key={key}>
                                     <SalaryForm
                                         elKey={key}
                                         user={user}
-                                        setSalaries={setNewSalaries}
+                                        salariesState={salariesState}
                                     />
                                 </Fragment>
                             ]
@@ -441,11 +477,10 @@ export default function Salaries() {
                     New Salary
                 </Button>
                 <div className="mb-4 space-y-12" ref={salariesAnimationParentRef}>
-                    {newSalaries && newSalaries.slice().reverse().map((newCat) => newCat)}
-                    {cachedSalaries && cachedSalaries.map((cat) => cat)}
+                    {salaries && salaries.slice().reverse().map((newCat) => newCat)}
                 </div>
                 {/* @TODO: imprve wording */}
-                {cachedSalaries?.length === 0 && newSalaries?.length === 0 && (
+                {salaries?.length === 0 && (
                     <EmptyScreen
                         Icon={Plus}
                         headline="New salary"

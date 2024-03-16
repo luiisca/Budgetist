@@ -1,9 +1,10 @@
-import { Fragment } from "react";
 import { ArrowLeft, User } from "lucide-react"
 import VerticalTabItem, { TabItemPropsType } from "./vertical-tab-item";
 import { cn } from "~/lib/cn";
 import Link from "next/link";
-import { auth } from "~/app/(auth)/auth";
+import { api } from "~/lib/trpc/server";
+import Name from "./name";
+import ProfileImage from "./profile-image";
 
 const tabs: TabItemPropsType[] = [
     {
@@ -36,7 +37,7 @@ function BackVerticalTabItem() {
 }
 
 export default async function Sidebar({ className }: { className?: string }) {
-    const session = await auth()
+    const user = await api.user.get.query();
 
     return (
         <aside className={cn(
@@ -64,16 +65,9 @@ export default async function Sidebar({ className }: { className?: string }) {
                                         "relative flex-shrink-0 rounded-full bg-gray-300 "
                                     )}
                                 >
-                                    {
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img
-                                            className="rounded-full"
-                                            src={session?.user?.image ?? ''}
-                                            alt={session?.user?.username ?? "Nameless User"}
-                                        />
-                                    }
+                                    <ProfileImage image={user?.image} name={user?.name} />
                                 </span>
-                                <p className="text-sm font-medium leading-5">{session?.user.name}</p>
+                                <Name name={user?.name} />
                             </div>
                         </div>
 

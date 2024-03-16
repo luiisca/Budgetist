@@ -12,7 +12,7 @@ export default function MobileSidebars({ children }: { children: React.ReactNode
     return (
         <>
             {/* show top navigation for md and smaller (tablet and phones) */}
-            <nav className="relative z-40 flex w-full items-center justify-between border-b border-gray-200 bg-muted px-4 py-1.5 dark:border-dark-350 sm:p-4 lg:hidden" >
+            <nav className="relative z-40 flex w-full items-center justify-between border-b border-emphasis bg-muted px-4 py-1.5 sm:p-4 lg:hidden">
                 <div className="flex items-center space-x-3 ">
                     <Button
                         color="minimal"
@@ -33,7 +33,7 @@ export default function MobileSidebars({ children }: { children: React.ReactNode
                     </Button>
                     <Link
                         href="/simulation"
-                        className="flex items-center space-x-2 rounded-md px-3 py-1 hover:bg-subtle text-foreground-emphasis"
+                        className="flex items-center space-x-2 rounded-md px-3 py-1 text-foreground-emphasis hover:bg-subtle"
                     >
                         <ArrowLeft className='h-4 w-4' />
                         <p className="font-semibold">

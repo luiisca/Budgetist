@@ -2,7 +2,7 @@ import { DEFAULT_COUNTRY, DEFAULT_CURRENCY, OptionsType, SELECT_PER_CAT_VAL, SEL
 import { getCountryOptionLabel, getCurrencyLocaleName } from "~/lib/sim-settings";
 import { RouterOutputs } from "~/lib/trpc/shared";
 
-export default function getDefCatInputValues({ category, user }: { category?: RouterOutputs["simulation"]["categories"]["get"][0]; user?: RouterOutputs['user']['me'] }) {
+export default function getDefCatInputValues({ category, user }: { category?: RouterOutputs["simulation"]["categories"]["get"][0]; user?: RouterOutputs['user']['get'] }) {
     const currency = category?.currency || user?.currency || DEFAULT_CURRENCY;
     const userCountry = user?.country || DEFAULT_COUNTRY;
     const catCountry = category?.country || userCountry;

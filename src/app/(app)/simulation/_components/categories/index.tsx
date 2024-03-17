@@ -107,8 +107,9 @@ const CategoryForm = ({
     const [transactionType, setTransactionType] = useState<'update' | 'create'>(category ? 'update' : 'create')
     const categoryId = useRef(category && category.id)
     const categoryMutation = api.simulation.categories.createOrUpdate.useMutation({
-        onMutate: (input) => {
+        onMutate: async (input) => {
             // optimistic update
+            await utils.simulation.categories.get.cancel();
             const { parsedCategory, parsedCategoryRecords } = parseCatInputData(input, user)
             const oldCachedCatsData = utils.simulation.categories.get.getData() ?? []
             if (transactionType === 'update') {
@@ -178,7 +179,7 @@ const CategoryForm = ({
         },
     });
     const deleteCategoryMutation = api.simulation.categories.delete.useMutation({
-        onMutate: () => {
+        onMutate: async () => {
             // optimistic update
             // UI
             let removedElPosition: number = 0;
@@ -189,6 +190,7 @@ const CategoryForm = ({
                 return el?.key !== elKey
             }))
             // cache
+            await utils.simulation.categories.get.cancel();
             const oldCachedCatsData = utils.simulation.categories.get.getData()
             const newCatsData = [
                 ...oldCachedCatsData?.slice(0, removedElPosition) ?? [],
@@ -329,6 +331,7 @@ const CategoryForm = ({
                                         form={categoryForm}
                                         name="country"
                                         control={control}
+                                        updateCurrencyActive
                                         updateInflation={updateInflation}
                                         inflName="inflVal"
                                     />
@@ -397,12 +400,12 @@ const CategoryForm = ({
                             Icon={AlertTriangle}
                             actionProps={{
                                 actionText: "Delete category",
-                                onClick: (e) =>
-                                    e &&
-                                    ((e: Event | React.MouseEvent<HTMLElement, MouseEvent>) => {
+                                onClick: (e) => {
+                                    if (e) {
                                         e.preventDefault();
                                         categoryId.current && deleteCategoryMutation.mutate({ id: categoryId.current });
-                                    })(e)
+                                    }
+                                }
                             }}
                         />
                     </Dialog>
@@ -426,7 +429,7 @@ const Categories = () => {
     const { isLoading: catsIsLoading, isError: catsIsError, isSuccess: catsIsSuccess, error: catsError } = api.simulation.categories.get.useQuery(undefined, {
         notifyOnChangeProps: ['error', 'isSuccess']
     });
-    const { data: user, isLoading: userIsLoading, isError: userIsError, isSuccess: userIsSuccess, error: userError } = api.user.me.useQuery(undefined, {
+    const { data: user, isLoading: userIsLoading, isError: userIsError, isSuccess: userIsSuccess, error: userError } = api.user.get.useQuery(undefined, {
         notifyOnChangeProps: ['error', 'isSuccess']
     });
 

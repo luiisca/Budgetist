@@ -21,6 +21,7 @@ import { RouterOutputs } from '~/lib/trpc/shared';
 import useUpdateInflation from '~/app/(app)/_lib/use-update-inflation';
 import { ControlledSelect } from '~/components/ui/core/form/select/Select';
 import { CountryInflInput, CountrySelect } from '../fields';
+import { Currencies } from 'country-to-currency';
 
 const Record = ({
     index,
@@ -29,7 +30,7 @@ const Record = ({
 }: {
     index: number;
     fieldArray: UseFieldArrayReturn<FieldValues, "records", "id">;
-    user: NonNullable<RouterOutputs['user']['me']>;
+    user: NonNullable<RouterOutputs['user']['get']>;
 }) => {
     const [inflDisabled, setInflDisabled] = useState(false);
     const categoryForm = useFormContext<CatInputType>();
@@ -105,6 +106,7 @@ const Record = ({
                                         form={categoryForm}
                                         name={`records.${index}.country`}
                                         control={control}
+                                        updateCurrencyActive
                                         updateInflation={updateInflation}
                                         inflName={`records.${index}.inflation`}
                                     />
@@ -165,7 +167,7 @@ export default function RecordsList({
     user,
     isMutationLoading,
 }: {
-    user: NonNullable<RouterOutputs['user']['me']>;
+    user: NonNullable<RouterOutputs['user']['get']>;
     isMutationLoading: boolean;
 }) {
     // form
@@ -194,7 +196,7 @@ export default function RecordsList({
         inflation: inflValWatcher || user.inflation,
         currency: {
             value: currencyWatcher.value,
-            label: getCurrencyLocaleName((currencyWatcher.value || user.currency), user.country),
+            label: getCurrencyLocaleName((currencyWatcher.value || user.currency) as Currencies, user.country),
         },
     };
 

@@ -1,15 +1,14 @@
 'use client'
 
-import { CreateReactUtilsProxy } from "@trpc/react-query/shared";
-import { PropsWithChildren, createContext, useCallback, useEffect, useReducer, useRef } from "react";
+import { PropsWithChildren, createContext, useCallback, useReducer } from "react";
 import { toast } from "sonner";
 import { YearBalanceType, getTotalBalance } from "~/lib/simulation";
 import { api } from "~/lib/trpc/react";
 import { RouterOutputs } from "~/lib/trpc/shared";
-import { AppRouter } from "~/server/api/root";
 
 export type TBalanceInitState = {
     years: number;
+    totalBalanceHidden: boolean;
     totalBalanceLoading: boolean;
     totalBalance: number;
     balanceHistory: YearBalanceType[] | [];
@@ -26,7 +25,7 @@ export type ActionType =
             years: number;
             categories: RouterOutputs['simulation']['categories']['get'];
             salaries: RouterOutputs['simulation']['salaries']['get'];
-            user: RouterOutputs['user']['me'];
+            user: RouterOutputs['user']['get'];
         }
     }
     | {
@@ -36,6 +35,10 @@ export type ActionType =
     | {
         type: "TOTAL_BAL_LOADING";
         totalBalanceLoading: boolean;
+    }
+    | {
+        type: "TOTAL_BAL_SET_HIDDEN";
+        totalBalanceHidden: boolean;
     }
 
 const createCtx = (
@@ -56,28 +59,21 @@ const createCtx = (
         const customDispatch = useCallback(async (action: ActionType) => {
             switch (action.type) {
                 case "SIM_RUN": {
-                    const categories = await utils.simulation.categories.get.fetch();
-                    const salaries = await utils.simulation.salaries.get.fetch();
-                    const user = await utils.user.me.fetch();
+                    const categories = utils.simulation.categories.get.getData();
+                    const salaries = utils.simulation.salaries.get.getData();
+                    const user = utils.user.get.getData();
 
-                    console.log('categories, salaries, user', categories, salaries, user)
                     // handle empty trpc data (i.e. when trpc query is still fetching and reducer state hasn't been synced with it by provider useEffect)
                     if (!categories || !salaries || !user) {
-                        utils.user.me.invalidate()
+                        utils.user.get.invalidate()
                         utils.simulation.invalidate()
                         toast.error('Error fetching data. Retrying...', {
                             action: {
                                 label: 'Retry',
                                 onClick: () => {
-                                    console.log('retrying onError ❌')
                                     dispatch({
-                                        type: "BASE_SIM_RUN",
-                                        payload: {
-                                            categories,
-                                            salaries,
-                                            user,
-                                            years: action.years
-                                        }
+                                        type: "SIM_RUN",
+                                        years: action.years
                                     })
                                 }
                             }
@@ -110,6 +106,8 @@ const createCtx = (
                             years: action.years
                         }
                     })
+
+                    break;
                 }
 
                 default: {
@@ -136,7 +134,6 @@ const createCtx = (
 const balanceReducer = (state: TBalanceReducerState, action: ActionType) => {
     switch (action.type) {
         case "BASE_SIM_RUN": {
-            console.log('running SIM_RUN! 👟')
             const { categories, salaries, user, years } = action.payload
 
             // data is in the right shape to run simulation algo
@@ -168,11 +165,17 @@ const balanceReducer = (state: TBalanceReducerState, action: ActionType) => {
             };
         }
         case "TOTAL_BAL_LOADING": {
-            console.log('TOTAL_BAL_LOADING running')
             return {
                 ...state,
+                totalBalanceHidden: false,
                 totalBalanceLoading: action.totalBalanceLoading,
             };
+        }
+        case "TOTAL_BAL_SET_HIDDEN": {
+            return {
+                ...state,
+                totalBalanceHidden: action.totalBalanceHidden
+            }
         }
 
         default: {
@@ -183,6 +186,7 @@ const balanceReducer = (state: TBalanceReducerState, action: ActionType) => {
 
 const balanceInitState: TBalanceInitState = {
     years: 1,
+    totalBalanceHidden: true,
     totalBalanceLoading: false,
     totalBalance: 0,
     balanceHistory: [],

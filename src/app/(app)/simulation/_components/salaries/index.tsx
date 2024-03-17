@@ -69,7 +69,7 @@ const SalaryForm = ({
     elKey: string;
     salary?: RouterOutputs["simulation"]["salaries"]["get"][0];
     defaultValues?: DefaultValues<SalInputType>;
-    user: NonNullable<RouterOutputs['user']['me']>;
+    user: NonNullable<RouterOutputs['user']['get']>;
     salariesState: [(React.ReactElement | null)[], React.Dispatch<React.SetStateAction<(React.ReactElement | null)[]>>]
 }) => {
     const [salaries, setSalaries] = salariesState
@@ -96,8 +96,9 @@ const SalaryForm = ({
     const [transactionType, setTransactionType] = useState<'update' | 'create'>(salary ? 'update' : 'create')
     const salaryId = useRef(salary && salary.id)
     const salaryMutation = api.simulation.salaries.createOrUpdate.useMutation({
-        onMutate: (input) => {
+        onMutate: async (input) => {
             // optimistic update
+            await utils.simulation.salaries.get.cancel();
             const oldCachedSalariesData = utils.simulation.salaries.get.getData() ?? []
             const { parsedSalary, parsedVariance } = parseSalaryInputData(input)
             if (transactionType === 'update') {
@@ -169,7 +170,7 @@ const SalaryForm = ({
 
     // deleteMutation
     const deleteSalaryMutation = api.simulation.salaries.delete.useMutation({
-        onMutate: () => {
+        onMutate: async () => {
             // optimistic update
             // UI
             let removedElPosition: number = 0;
@@ -180,6 +181,7 @@ const SalaryForm = ({
                 return el?.key !== elKey
             }))
             // cache
+            await utils.simulation.salaries.get.cancel();
             const oldCachedSalariesData = utils.simulation.salaries.get.getData() ?? []
             const newSalariesData = [
                 ...oldCachedSalariesData.slice(0, removedElPosition),
@@ -414,7 +416,7 @@ export default function Salaries() {
     const { isLoading: salariesIsLoading, isError: salariesIsError, isSuccess: salariesIsSuccess, error: salariesError } = api.simulation.salaries.get.useQuery(undefined, {
         notifyOnChangeProps: ['error', 'isSuccess']
     });
-    const { data: user, isLoading: userIsLoading, isError: userIsError, isSuccess: userIsSuccess, error: userError } = api.user.me.useQuery(undefined, {
+    const { data: user, isLoading: userIsLoading, isError: userIsError, isSuccess: userIsSuccess, error: userError } = api.user.get.useQuery(undefined, {
         notifyOnChangeProps: ['error', 'isSuccess']
     });
 

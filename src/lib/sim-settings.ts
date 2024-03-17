@@ -1,33 +1,25 @@
 import clm from "country-locale-map";
 import {
     DEFAULT_COUNTRY,
-    DEFAULT_CURRENCY,
     MAYOR_CURRENCY_CODES,
     getSelectOption,
 } from "~/lib/constants";
 import * as countryFlags from "country-flag-icons/react/3x2";
 import cc from "currency-codes";
-import { ProfileInputType } from "prisma/zod-utils";
 import { z } from "zod";
+import { Currencies } from "country-to-currency";
 
 export interface SelectOption {
     readonly value: string;
     readonly label: string;
 }
 
-export type SettingsFormValues = Omit<
-    ProfileInputType,
-    "country" | "currency"
-> & {
-    country?: SelectOption;
-    currency?: SelectOption;
-};
 export const selectOptionsData = z.object({
     value: z.string().optional(),
     label: z.string().optional(),
 });
 
-export const getCurrencyLocaleName = (code: string, countryCode = DEFAULT_COUNTRY) => {
+export const getCurrencyLocaleName = (code: Currencies, countryCode = DEFAULT_COUNTRY) => {
     const lang = clm.getCountryByAlpha2(countryCode)?.languages[0];
     return new Intl.NumberFormat(lang, {
         style: "currency",

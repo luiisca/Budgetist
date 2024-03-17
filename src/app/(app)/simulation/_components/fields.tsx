@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import countryToCurrency from "country-to-currency";
+import countryToCurrency, { Countries } from "country-to-currency";
 import {
     Control,
     Controller,
@@ -25,6 +25,7 @@ import { DEFAULT_CURRENCY, DEFAULT_INFLATION, FLAG_URL } from "~/lib/constants";
 import {
     getCountryOptions,
     getCurrency,
+    getCurrencyLocaleName,
     SelectOption,
 } from "~/lib/sim-settings";
 
@@ -130,16 +131,20 @@ export const CountrySelect = <T extends FieldValues>({
     const options = useMemo(getCountryOptions, []);
 
     const updateCurrency = useCallback(
-        (countryData: SingleValue<SelectOption>, form: UseFormReturn<T, any>) => {
-            const countryCode = countryData?.value;
-            const currencyCode =
-                countryCode &&
-                countryToCurrency[countryCode as keyof SingleValue<SelectOption>];
+        (form: UseFormReturn<T, any>, countryCode?: string) => {
+            const currencyCodeFromCountry =
+                countryCode ? countryToCurrency[countryCode as Countries] : null;
 
-            form.setValue(
-                "currency" as Path<T>,
-                getCurrency(currencyCode || DEFAULT_CURRENCY, countryCode) as PathValue<T, Path<T>>
-            );
+            console.log('currencyCodeFromCountry', currencyCodeFromCountry)
+            if (currencyCodeFromCountry) {
+                form.setValue(
+                    "currency" as Path<T>,
+                    {
+                        value: currencyCodeFromCountry,
+                        label: getCurrencyLocaleName(currencyCodeFromCountry, countryCode)
+                    } as PathValue<T, Path<T>>
+                );
+            }
         },
         []
     );
@@ -157,7 +162,7 @@ export const CountrySelect = <T extends FieldValues>({
                         onChange={async (e) => {
                             field.onChange(e);
                             if (e?.value !== 'default') {
-                                updateCurrencyActive && updateCurrency(e, form);
+                                updateCurrencyActive && updateCurrency(form, e?.value);
                                 updateInflation(e, form, inflName);
                             } else {
                                 form.setValue(inflName as Path<T>, '' as PathValue<T, Path<T>>)
@@ -208,7 +213,16 @@ export const CountryInflInput = <T extends FieldValues>({
                     {isLoadingInfl && <LoadingIcon />}
                 </>
             }
-            onChange={(parsedValue: number) => parsedValue > 100 ? 100 : parsedValue}
+            customNumValidation
+            onChange={(parsedValue: number) => {
+                if (parsedValue < 0) {
+                    return 0
+                }
+                if (parsedValue > 100) {
+                    return 100
+                }
+                return parsedValue
+            }}
         />
     );
 };

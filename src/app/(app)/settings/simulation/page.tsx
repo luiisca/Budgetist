@@ -1,14 +1,30 @@
-import { Fragment } from "react";
 import { Metadata } from "next";
 
+import SimForm from "./sim-form";
+import { Alert } from "~/components/ui/alert";
+import { api } from "~/lib/trpc/server";
+
+// @TODO: improve wording
 export const metadata: Metadata = {
     title: "Simulation",
-    description: "Manage configs for your Budgetist simulation",
+    description: "Manage settings for your Budgetist simulation",
 }
 
-export default function Simulation() {
+export default async function Simulation() {
+    const user = await api.user.get.query();
+
+    if (!user) {
+        return (
+            <Alert
+                severity="error"
+                title="Something went wrong"
+                message='Could not get user data. Please reload the page'
+            />
+        )
+    };
+
     return (
-        <Fragment>
+        <>
             <header className="mx-auto block justify-between pt-12 sm:flex sm:pt-8">
                 <div className="mb-8 flex flex-col w-full border-b border-gray-200 pb-8 dark:border-dark-350">
                     <h1 className="mb-1 font-cal text-xl font-bold tracking-wide text-black dark:text-dark-neutral">
@@ -20,7 +36,7 @@ export default function Simulation() {
                     </p>
                 </div>
             </header>
-            {/* <Fragment>{children}</Fragment> */}
-        </Fragment>
+            <SimForm user={user} />
+        </>
     )
 }

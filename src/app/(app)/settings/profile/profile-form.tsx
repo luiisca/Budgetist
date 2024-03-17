@@ -17,7 +17,6 @@ import { Dialog, DialogTrigger } from "~/components/ui/core/dialog";
 import ImageUploader from "~/components/ui/core/ImageUploader";
 import { SettingsProfileInputType, settingsProfileInputZod } from "prisma/zod-utils";
 import { zodResolver } from "@hookform/resolvers/zod";
-import getDefSettingsProfileInputValues from "./_lib/get-def-settings-profile-input-values";
 import { api } from "~/lib/trpc/react";
 
 export default function ProfileForm({ user }: { user: NonNullable<RouterOutputs['user']['get']> }) {
@@ -25,7 +24,10 @@ export default function ProfileForm({ user }: { user: NonNullable<RouterOutputs[
     const { data: _user } = api.user.get.useQuery()
     const profileForm = useForm<SettingsProfileInputType>({
         resolver: zodResolver(settingsProfileInputZod),
-        defaultValues: getDefSettingsProfileInputValues(user)
+        defaultValues: {
+            name: user.name,
+            image: user.image,
+        }
     });
     const { formState: { isSubmitting, isDirty } } = profileForm;
 
@@ -126,7 +128,6 @@ export default function ProfileForm({ user }: { user: NonNullable<RouterOutputs[
 
             <Button
                 disabled={isSubmitting || !isDirty}
-                color="primary"
                 className="mt-6"
                 type="submit"
                 loading={mutation.isLoading}

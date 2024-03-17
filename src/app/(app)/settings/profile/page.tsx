@@ -4,6 +4,7 @@ import { Alert } from "~/components/ui/alert";
 import { api } from "~/lib/trpc/server";
 import ProfileForm from "./profile-form";
 
+// @TODO: improve wording
 export const metadata: Metadata = {
     title: "Profile",
     description: "Manage settings for your Budgetist profile",

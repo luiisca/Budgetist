@@ -97,10 +97,11 @@ const SalaryForm = ({
     const salaryId = useRef(salary && salary.id)
     const salaryMutation = api.simulation.salaries.createOrUpdate.useMutation({
         onMutate: async (input) => {
+            console.log('salary input', input)
             // optimistic update
             await utils.simulation.salaries.get.cancel();
             const oldCachedSalariesData = utils.simulation.salaries.get.getData() ?? []
-            const { parsedSalary, parsedVariance } = parseSalaryInputData(input)
+            const { parsedSalary, parsedVariance } = input
             if (transactionType === 'update') {
                 let updatedElPosition: number = 0;
                 salaries.find((el, i) => {
@@ -110,12 +111,15 @@ const SalaryForm = ({
                         return el
                     }
                 })
+
+                // @ts-expect-error
                 utils.simulation.salaries.get.setData(undefined, [
                     ...oldCachedSalariesData.slice(0, updatedElPosition),
                     { ...parsedSalary, variance: parsedVariance ?? [] },
                     ...oldCachedSalariesData.slice(updatedElPosition + 1),
                 ])
             } else if (transactionType === 'create') {
+                // @ts-expect-error
                 utils.simulation.salaries.get.setData(undefined, [...oldCachedSalariesData, { ...parsedSalary, variance: parsedVariance ?? [] }])
             }
 
@@ -260,7 +264,16 @@ const SalaryForm = ({
                 return true
             }}
             handleSubmit={(values) => {
-                salaryMutation.mutate(values)
+                const { parsedSalary, parsedVariance } = parseSalaryInputData(values)
+
+                if (values.title === undefined || values.title === null || values.title === "") {
+                    setValue('title', parsedSalary.title)
+                }
+                salaryMutation.mutate({
+                    parsedSalary,
+                    parsedVariance,
+                    periodsIdsToRemove: values.periodsIdsToRemove
+                })
             }}
             className="space-y-6"
         >

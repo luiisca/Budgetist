@@ -21,7 +21,6 @@ import { RouterOutputs } from '~/lib/trpc/shared';
 import useUpdateInflation from '~/app/(app)/_lib/use-update-inflation';
 import { ControlledSelect } from '~/components/ui/core/form/select/Select';
 import { CountryInflInput, CountrySelect } from '../fields';
-import { Currencies } from 'country-to-currency';
 
 const Record = ({
     index,
@@ -196,7 +195,7 @@ export default function RecordsList({
         inflation: inflValWatcher || user.inflation,
         currency: {
             value: currencyWatcher.value,
-            label: getCurrencyLocaleName((currencyWatcher.value || user.currency) as Currencies, user.country),
+            label: getCurrencyLocaleName(currencyWatcher.value || user.currency, user.country),
         },
     };
 

@@ -1,5 +1,5 @@
 'use client'
-import React, { Fragment, useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, { Fragment, useContext, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import {
     Control,
@@ -80,7 +80,7 @@ const CategoryForm = ({
     elKey: string;
     category?: RouterOutputs["simulation"]["categories"]["get"][0];
     defaultValues?: DefaultValues<CatInputType>;
-    user: NonNullable<RouterOutputs["user"]["me"]>;
+    user: NonNullable<RouterOutputs["user"]["get"]>;
     catsState: [(React.ReactElement | null)[], React.Dispatch<React.SetStateAction<(React.ReactElement | null)[]>>]
 }) => {
     const [cats, setCats] = catsState
@@ -110,7 +110,7 @@ const CategoryForm = ({
         onMutate: async (input) => {
             // optimistic update
             await utils.simulation.categories.get.cancel();
-            const { parsedCategory, parsedCategoryRecords } = parseCatInputData(input, user)
+            const { parsedCategory, parsedRecords } = input
             const oldCachedCatsData = utils.simulation.categories.get.getData() ?? []
             if (transactionType === 'update') {
                 let updatedElPosition: number = 0;
@@ -121,13 +121,16 @@ const CategoryForm = ({
                         return el
                     }
                 })
+
+                // @ts-expect-error
                 utils.simulation.categories.get.setData(undefined, [
                     ...oldCachedCatsData.slice(0, updatedElPosition),
-                    { ...parsedCategory, records: parsedCategoryRecords ?? [] },
+                    { ...parsedCategory, records: parsedRecords ?? [] },
                     ...oldCachedCatsData.slice(updatedElPosition + 1),
                 ])
             } else if (transactionType === 'create') {
-                utils.simulation.categories.get.setData(undefined, [...oldCachedCatsData, { ...parsedCategory, records: parsedCategoryRecords ?? [] }])
+                // @ts-expect-error
+                utils.simulation.categories.get.setData(undefined, [...oldCachedCatsData, { ...parsedCategory, records: parsedRecords ?? [] }])
             }
 
             // wether run sim
@@ -253,7 +256,47 @@ const CategoryForm = ({
         <Form<CatInputType>
             form={categoryForm}
             handleSubmit={(values) => {
-                categoryMutation.mutate(values)
+                const { parsedCategory, parsedRecords } = parseCatInputData(values, user)
+
+                // let user know optional empty fields have been filled with default data
+                const valuesEntries = Object.entries(values)
+                for (let index = 0; index < valuesEntries.length; index++) {
+                    const entry = valuesEntries[index];
+                    if (entry) {
+                        const key = entry[0] as keyof typeof values;
+                        const value = entry[1];
+                        if (value === undefined || value === null || value === '') {
+                            if (key === 'inflVal' || key === 'icon' || key === 'frequency') {
+                                setValue(key, parsedCategory[key])
+                            }
+                        }
+                    }
+                }
+
+                values.records?.forEach((record, recordIndex) => {
+                    const parsedRecord = parsedRecords?.[recordIndex];
+                    const recordEntries = Object.entries(record)
+                    if (parsedRecord) {
+                        for (let entryIndex = 0; entryIndex < recordEntries.length; entryIndex++) {
+                            const entry = recordEntries[entryIndex];
+                            if (entry) {
+                                const key = entry[0] as keyof typeof record;
+                                const value = entry[1];
+                                if (value === undefined || value === null || value === '') {
+                                    if (key === 'title' || key === 'frequency' || key === 'inflation') {
+                                        setValue(`records.${recordIndex}.${key}`, parsedRecord[key])
+                                    }
+                                }
+                            }
+                        }
+                    }
+                })
+
+                categoryMutation.mutate({
+                    parsedCategory,
+                    parsedRecords,
+                    recordsIdsToRemove: values.recordsIdsToRemove
+                })
             }}
             className="space-y-6"
         >
@@ -356,7 +399,7 @@ const CategoryForm = ({
                     control={control}
                     options={() => BASIC_GROUP_TYPES}
                     name="freqType"
-                    label="Frequency Type (opt.)"
+                    label="Frequency Type"
                 />
             </div>
             {/* frequency */}
@@ -365,7 +408,7 @@ const CategoryForm = ({
                     <NumberInput<CatInputType>
                         control={control}
                         name="frequency"
-                        label="Yearly Frequency"
+                        label="Yearly Frequency (opt.)"
                         placeholder={`${DEFAULT_FREQUENCY}`}
                     />
                 </div>
